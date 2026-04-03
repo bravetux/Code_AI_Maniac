@@ -26,6 +26,8 @@ def test_settings(tmp_path, monkeypatch):
 
 @pytest.fixture
 def test_db(test_settings):
+    # NOTE: init_schema is a stub until Task 2 (DuckDB Setup) replaces db/schema.py.
+    # Tests using test_db will receive a schema-less connection until Task 2 is complete.
     conn = duckdb.connect(test_settings.db_path)
     init_schema(conn)
     yield conn
