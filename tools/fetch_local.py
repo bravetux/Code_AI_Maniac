@@ -46,3 +46,35 @@ def fetch_multiple_local_files(file_paths: list[str],
                                 start_line: int | None = None,
                                 end_line: int | None = None) -> list[dict]:
     return [fetch_local_file(fp, start_line, end_line) for fp in file_paths]
+
+
+def scan_folder_recursive(folder_path: str,
+                           extensions: list[str] | None = None) -> list[str]:
+    """
+    Walk a folder recursively and return sorted file paths.
+
+    Args:
+        folder_path: Root directory to scan.
+        extensions:  If given, only include files whose extension (without dot,
+                     case-insensitive) is in this list.  None means all files.
+
+    Returns:
+        Sorted list of absolute file paths (directories and hidden files excluded).
+    """
+    if not os.path.isdir(folder_path):
+        return []
+
+    allowed = {e.lower().lstrip(".") for e in extensions} if extensions else None
+    found: list[str] = []
+
+    for root, dirs, files in os.walk(folder_path):
+        # Skip hidden directories (e.g. .git, .venv, __pycache__)
+        dirs[:] = [d for d in dirs if not d.startswith(".") and d != "__pycache__"]
+        for name in sorted(files):
+            if name.startswith("."):
+                continue
+            ext = os.path.splitext(name)[1].lstrip(".").lower()
+            if allowed is None or ext in allowed:
+                found.append(os.path.join(root, name))
+
+    return sorted(found)

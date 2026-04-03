@@ -1,5 +1,5 @@
 import os
-from tools.fetch_local import fetch_local_file, fetch_multiple_local_files
+from tools.fetch_local import fetch_local_file, fetch_multiple_local_files, scan_folder_recursive
 
 
 def test_fetch_entire_file(tmp_path):
@@ -34,3 +34,46 @@ def test_fetch_multiple_files(tmp_path):
     results = fetch_multiple_local_files(files)
     assert len(results) == 3
     assert all("content" in r for r in results)
+
+
+def test_scan_folder_recursive_all_files(tmp_path):
+    (tmp_path / "a.py").write_text("x = 1")
+    (tmp_path / "b.js").write_text("let x = 1;")
+    sub = tmp_path / "sub"
+    sub.mkdir()
+    (sub / "c.py").write_text("y = 2")
+    # hidden file and __pycache__ should be excluded
+    (tmp_path / ".hidden.py").write_text("hidden")
+    pycache = tmp_path / "__pycache__"
+    pycache.mkdir()
+    (pycache / "mod.pyc").write_text("bytecode")
+
+    found = scan_folder_recursive(str(tmp_path))
+    names = [os.path.basename(p) for p in found]
+    assert "a.py" in names
+    assert "b.js" in names
+    assert "c.py" in names
+    assert ".hidden.py" not in names
+    assert "mod.pyc" not in names
+
+
+def test_scan_folder_recursive_extension_filter(tmp_path):
+    (tmp_path / "main.py").write_text("pass")
+    (tmp_path / "style.css").write_text("body {}")
+    (tmp_path / "readme.md").write_text("# Readme")
+
+    found = scan_folder_recursive(str(tmp_path), extensions=["py"])
+    names = [os.path.basename(p) for p in found]
+    assert names == ["main.py"]
+
+
+def test_scan_folder_recursive_nonexistent():
+    found = scan_folder_recursive("/nonexistent/folder")
+    assert found == []
+
+
+def test_scan_folder_recursive_respects_limit(tmp_path):
+    for i in range(10):
+        (tmp_path / f"file{i}.py").write_text(f"x = {i}")
+    found = scan_folder_recursive(str(tmp_path))
+    assert len(found) == 10  # scan returns all; caller enforces limit

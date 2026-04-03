@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     gitea_token: Optional[str] = None
 
     db_path: str = "data/arena.db"
+    max_files: int = Field(default=50, ge=1, le=100)
 
 
 @lru_cache()
