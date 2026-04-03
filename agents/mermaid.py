@@ -1,0 +1,67 @@
+import json
+import re
+import duckdb
+from strands import Agent
+from strands.models import BedrockModel
+from config.settings import get_settings
+from tools.chunk_file import chunk_by_lines
+from tools.cache import check_cache, write_cache
+from db.queries.history import add_history
+
+_SYSTEM_PROMPTS = {
+    "flowchart": """Generate a Mermaid flowchart diagram for the given code.
+Return JSON: {"diagram_type": "flowchart", "mermaid_source": "<valid mermaid flowchart LR code>", "description": "<what the diagram shows>"}
+Return ONLY valid JSON. No markdown fences.""",
+
+    "sequence": """Generate a Mermaid sequence diagram for the given code.
+Return JSON: {"diagram_type": "sequence", "mermaid_source": "<valid mermaid sequenceDiagram code>", "description": "<what the diagram shows>"}
+Return ONLY valid JSON. No markdown fences.""",
+
+    "class": """Generate a Mermaid class diagram for the given code.
+Return JSON: {"diagram_type": "class", "mermaid_source": "<valid mermaid classDiagram code>", "description": "<what the diagram shows>"}
+Return ONLY valid JSON. No markdown fences.""",
+}
+
+
+def run_mermaid(conn: duckdb.DuckDBPyConnection, job_id: str,
+                file_path: str, content: str, file_hash: str,
+                language: str | None, custom_prompt: str | None,
+                diagram_type: str = "flowchart",
+                flow_context: dict | None = None) -> dict:
+    """
+    Generate a Mermaid diagram. If flow_context is provided (from CodeFlowAgent),
+    it is injected into the prompt to avoid redundant Bedrock calls.
+    """
+    cache_key = f"mermaid_{diagram_type}"
+    cached = check_cache(conn, file_hash, cache_key, language, custom_prompt)
+    if cached:
+        return cached
+
+    s = get_settings()
+    model = BedrockModel(model_id=s.bedrock_model_id, temperature=s.bedrock_temperature,
+                         region_name=s.aws_region)
+    system = custom_prompt or _SYSTEM_PROMPTS.get(diagram_type, _SYSTEM_PROMPTS["flowchart"])
+    agent = Agent(model=model, system_prompt=system)
+
+    if flow_context:
+        prompt = (f"Based on this execution flow analysis, generate a {diagram_type} diagram:\n\n"
+                  f"{json.dumps(flow_context, indent=2)}")
+    else:
+        chunks = chunk_by_lines(content, max_tokens=4000)
+        prompt = (f"Language: {language or 'unknown'}\nFile: {file_path}\n\n"
+                  + "".join(c["content"] for c in chunks[:2]))
+
+    raw = str(agent(prompt))
+    text = re.sub(r"^```(?:json)?\n?", "", raw.strip())
+    text = re.sub(r"\n?```$", "", text)
+    try:
+        result = json.loads(text)
+    except (json.JSONDecodeError, ValueError):
+        result = {"diagram_type": diagram_type, "mermaid_source": raw,
+                  "description": "Generated diagram"}
+
+    write_cache(conn, job_id=job_id, feature=cache_key, file_hash=file_hash,
+                language=language, custom_prompt=custom_prompt, result=result)
+    add_history(conn, job_id=job_id, feature="mermaid", source_ref=file_path,
+                language=language, summary=f"{diagram_type} diagram generated.")
+    return result
