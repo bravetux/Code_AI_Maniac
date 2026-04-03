@@ -16,10 +16,11 @@ def create_job(conn: duckdb.DuckDBPyConnection, source_type: str, source_ref: st
 
 
 def get_job(conn: duckdb.DuckDBPyConnection, job_id: str) -> dict | None:
-    row = conn.execute("SELECT * FROM jobs WHERE id = ?", [job_id]).fetchone()
+    result = conn.execute("SELECT * FROM jobs WHERE id = ?", [job_id])
+    cols = [d[0] for d in result.description]
+    row = result.fetchone()
     if not row:
         return None
-    cols = [d[0] for d in conn.description]
     return dict(zip(cols, row))
 
 
@@ -32,8 +33,9 @@ def update_job_status(conn: duckdb.DuckDBPyConnection, job_id: str, status: str)
 
 
 def list_jobs(conn: duckdb.DuckDBPyConnection, limit: int = 50) -> list[dict]:
-    rows = conn.execute(
+    result = conn.execute(
         "SELECT * FROM jobs ORDER BY created_at DESC LIMIT ?", [limit]
-    ).fetchall()
-    cols = [d[0] for d in conn.description]
+    )
+    cols = [d[0] for d in result.description]
+    rows = result.fetchall()
     return [dict(zip(cols, r)) for r in rows]

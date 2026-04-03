@@ -14,8 +14,9 @@ def add_history(conn: duckdb.DuckDBPyConnection, job_id: str, feature: str,
 
 
 def list_history(conn: duckdb.DuckDBPyConnection, limit: int = 100) -> list[dict]:
-    rows = conn.execute(
+    result = conn.execute(
         "SELECT * FROM analysis_history ORDER BY created_at DESC LIMIT ?", [limit]
-    ).fetchall()
-    cols = [d[0] for d in conn.description]
+    )
+    cols = [d[0] for d in result.description]
+    rows = result.fetchall()
     return [dict(zip(cols, r)) for r in rows]

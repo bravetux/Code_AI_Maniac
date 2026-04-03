@@ -67,7 +67,8 @@ _STATEMENTS = [
         message       TEXT,
         diff_summary  TEXT,
         files_changed VARCHAR[],
-        created_at    TIMESTAMP DEFAULT now()
+        created_at    TIMESTAMP DEFAULT now(),
+        UNIQUE (repo_id, commit_sha)
     )""",
     """CREATE TABLE IF NOT EXISTS prompt_presets (
         id                 VARCHAR PRIMARY KEY,

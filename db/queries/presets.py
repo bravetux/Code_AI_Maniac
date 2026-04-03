@@ -15,12 +15,13 @@ def create_preset(conn: duckdb.DuckDBPyConnection, name: str, feature: str,
 
 def list_presets(conn: duckdb.DuckDBPyConnection, feature: str | None = None) -> list[dict]:
     if feature:
-        rows = conn.execute(
+        result = conn.execute(
             "SELECT * FROM prompt_presets WHERE feature = ? ORDER BY name", [feature]
-        ).fetchall()
+        )
     else:
-        rows = conn.execute("SELECT * FROM prompt_presets ORDER BY feature, name").fetchall()
-    cols = [d[0] for d in conn.description]
+        result = conn.execute("SELECT * FROM prompt_presets ORDER BY feature, name")
+    cols = [d[0] for d in result.description]
+    rows = result.fetchall()
     return [dict(zip(cols, r)) for r in rows]
 
 

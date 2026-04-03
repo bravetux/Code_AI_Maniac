@@ -11,7 +11,7 @@ def store_chunks(conn: duckdb.DuckDBPyConnection, job_id: str,
                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
             [str(uuid.uuid4()), job_id, file_path, chunk.get("chunk_index", 0),
              chunk.get("start_line"), chunk.get("end_line"),
-             chunk["content"], chunk.get("token_count", 0)]
+             chunk.get("content"), chunk.get("token_count", 0)]
         )
 
 

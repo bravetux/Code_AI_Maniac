@@ -34,12 +34,11 @@ def store_commit(conn: duckdb.DuckDBPyConnection, repo_id: str,
                  commit_sha: str, author: str, message: str,
                  diff_summary: str, files_changed: list[str]) -> str:
     commit_id = str(uuid.uuid4())
-    # Use ON CONFLICT DO NOTHING (DuckDB syntax, not INSERT OR IGNORE)
     conn.execute(
         """INSERT INTO commit_snapshots
            (id, repo_id, commit_sha, author, message, diff_summary, files_changed)
            VALUES (?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT DO NOTHING""",
+           ON CONFLICT (repo_id, commit_sha) DO NOTHING""",
         [commit_id, repo_id, commit_sha, author, message, diff_summary, files_changed]
     )
     return commit_id
@@ -47,10 +46,11 @@ def store_commit(conn: duckdb.DuckDBPyConnection, repo_id: str,
 
 def list_commits(conn: duckdb.DuckDBPyConnection, repo_id: str,
                  limit: int = 100) -> list[dict]:
-    rows = conn.execute(
+    result = conn.execute(
         """SELECT * FROM commit_snapshots WHERE repo_id = ?
            ORDER BY created_at DESC LIMIT ?""",
         [repo_id, limit]
-    ).fetchall()
-    cols = [d[0] for d in conn.description]
+    )
+    cols = [d[0] for d in result.description]
+    rows = result.fetchall()
     return [dict(zip(cols, r)) for r in rows]
