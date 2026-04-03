@@ -1,16 +1,18 @@
 import duckdb
-from config.settings import get_settings
 import os
+from config.settings import get_settings
 
-_connection = None
+_connection: duckdb.DuckDBPyConnection | None = None
 
-def get_connection():
+
+def get_connection() -> duckdb.DuckDBPyConnection:
     global _connection
     if _connection is None:
-        s = get_settings()
-        os.makedirs(os.path.dirname(s.db_path), exist_ok=True)
-        _connection = duckdb.connect(s.db_path)
+        settings = get_settings()
+        os.makedirs(os.path.dirname(settings.db_path), exist_ok=True)
+        _connection = duckdb.connect(settings.db_path)
     return _connection
+
 
 def reset_connection():
     global _connection
