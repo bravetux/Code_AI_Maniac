@@ -1,4 +1,5 @@
 import hashlib
+import os
 
 from github import Github, GithubException
 
@@ -8,7 +9,7 @@ except ImportError:
     def tool(f): return f
 
 
-def _hash(content: str) -> str:
+def _file_hash(content: str) -> str:
     return hashlib.sha256(content.encode()).hexdigest()
 
 
@@ -21,26 +22,29 @@ def fetch_github_file(repo: str, file_path: str, branch: str, token: str,
         g = Github(token)
         r = g.get_repo(repo)
         contents = r.get_contents(file_path, ref=branch)
-        content = contents.decoded_content.decode("utf-8", errors="replace")
-        lines = content.splitlines(keepends=True)
+        full_content = contents.decoded_content.decode("utf-8", errors="replace")
+        file_hash = _file_hash(full_content)
+        lines = full_content.splitlines(keepends=True)
         total_lines = len(lines)
-        if start_line and end_line:
+        if start_line is not None and end_line is not None:
             content = "".join(lines[start_line - 1:end_line])
+        else:
+            content = full_content
+            start_line = 1
+            end_line = total_lines
         return {
             "file_path": file_path,
             "repo": repo,
             "branch": branch,
             "content": content,
             "total_lines": total_lines,
-            "start_line": start_line or 1,
-            "end_line": end_line or total_lines,
-            "file_hash": _hash(content),
-            "extension": file_path.rsplit(".", 1)[-1] if "." in file_path else "",
+            "start_line": start_line,
+            "end_line": end_line,
+            "file_hash": file_hash,
+            "extension": os.path.splitext(file_path)[1].lstrip("."),
         }
     except GithubException as e:
         return {"error": f"GitHub error: {e.status} {e.data}", "file_path": file_path}
-    except Exception as e:
-        return {"error": str(e), "file_path": file_path}
 
 
 @tool

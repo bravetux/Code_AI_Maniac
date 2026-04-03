@@ -21,11 +21,12 @@ def fetch_local_file(file_path: str, start_line: int | None = None,
         with open(file_path, "r", encoding="utf-8", errors="replace") as f:
             lines = f.readlines()
         total_lines = len(lines)
-        if start_line and end_line:
-            selected = lines[start_line - 1:end_line]
-            content = "".join(selected)
+        full_content = "".join(lines)
+        file_hash = _file_hash(full_content)
+        if start_line is not None and end_line is not None:
+            content = "".join(lines[start_line - 1:end_line])
         else:
-            content = "".join(lines)
+            content = full_content
             start_line = 1
             end_line = total_lines
         return {
@@ -34,7 +35,7 @@ def fetch_local_file(file_path: str, start_line: int | None = None,
             "total_lines": total_lines,
             "start_line": start_line,
             "end_line": end_line,
-            "file_hash": _file_hash(content),
+            "file_hash": file_hash,
             "extension": os.path.splitext(file_path)[1].lstrip("."),
         }
     except Exception as e:

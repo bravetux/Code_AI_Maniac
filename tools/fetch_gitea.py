@@ -1,5 +1,7 @@
 import base64
+import binascii
 import hashlib
+import os
 
 import httpx
 
@@ -9,7 +11,7 @@ except ImportError:
     def tool(f): return f
 
 
-def _hash(content: str) -> str:
+def _file_hash(content: str) -> str:
     return hashlib.sha256(content.encode()).hexdigest()
 
 
@@ -27,22 +29,31 @@ def fetch_gitea_file(gitea_url: str, repo: str, file_path: str, branch: str,
             return {"error": f"File not found: {file_path}", "file_path": file_path}
         if resp.status_code != 200:
             return {"error": f"Gitea returned {resp.status_code}", "file_path": file_path}
-        data = resp.json()
-        content = base64.b64decode(data["content"]).decode("utf-8", errors="replace")
-        lines = content.splitlines(keepends=True)
+        try:
+            data = resp.json()
+            raw_b64 = data["content"]
+            full_content = base64.b64decode(raw_b64).decode("utf-8", errors="replace")
+        except (KeyError, ValueError, binascii.Error) as e:
+            return {"error": f"Failed to decode response: {e}", "file_path": file_path}
+        file_hash = _file_hash(full_content)
+        lines = full_content.splitlines(keepends=True)
         total_lines = len(lines)
-        if start_line and end_line:
+        if start_line is not None and end_line is not None:
             content = "".join(lines[start_line - 1:end_line])
+        else:
+            content = full_content
+            start_line = 1
+            end_line = total_lines
         return {
             "file_path": file_path,
             "repo": repo,
             "branch": branch,
             "content": content,
             "total_lines": total_lines,
-            "start_line": start_line or 1,
-            "end_line": end_line or total_lines,
-            "file_hash": _hash(content),
-            "extension": file_path.rsplit(".", 1)[-1] if "." in file_path else "",
+            "start_line": start_line,
+            "end_line": end_line,
+            "file_hash": file_hash,
+            "extension": os.path.splitext(file_path)[1].lstrip("."),
         }
     except httpx.RequestError as e:
         return {"error": f"Connection error: {e}", "file_path": file_path}
