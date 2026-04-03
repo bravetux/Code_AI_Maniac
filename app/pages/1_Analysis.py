@@ -11,6 +11,7 @@ from agents.orchestrator import run_analysis
 from app.components.source_selector import render_source_selector
 from app.components.feature_selector import render_feature_selector
 from app.components.result_tabs import render_results
+from app.components.sidebar_profile import render_sidebar_profile
 
 st.set_page_config(page_title="Analysis — AI Arena", layout="wide")
 st.title("Code Analysis")
@@ -19,6 +20,7 @@ conn = get_connection()
 init_schema(conn)
 
 with st.sidebar:
+    render_sidebar_profile(conn)       # save/load must come first
     source = render_source_selector()
     feature_config = render_feature_selector(conn)
     run_clicked = st.button("Run Analysis", type="primary",

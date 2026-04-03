@@ -8,6 +8,7 @@ TABLE_NAMES = {
     "repo_metadata",
     "commit_snapshots",
     "prompt_presets",
+    "sidebar_profiles",
 }
 
 _STATEMENTS = [
@@ -77,6 +78,18 @@ _STATEMENTS = [
         system_prompt      TEXT,
         extra_instructions TEXT,
         created_at         TIMESTAMP DEFAULT now()
+    )""",
+    """CREATE TABLE IF NOT EXISTS sidebar_profiles (
+        id                 VARCHAR PRIMARY KEY,
+        name               VARCHAR NOT NULL UNIQUE,
+        source_type        VARCHAR,
+        features           VARCHAR[],
+        language           VARCHAR,
+        custom_prompt      TEXT,
+        extra_instructions TEXT,
+        mermaid_type       VARCHAR DEFAULT 'flowchart',
+        created_at         TIMESTAMP DEFAULT now(),
+        updated_at         TIMESTAMP DEFAULT now()
     )""",
 ]
 

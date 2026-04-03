@@ -1,6 +1,7 @@
 from db.queries.jobs import create_job, get_job, update_job_status, list_jobs
 from db.queries.cache import store_result, get_cached_result
 from db.queries.presets import create_preset, list_presets, delete_preset
+from db.queries.sidebar_profiles import save_profile, list_profiles, get_profile, delete_profile
 
 
 def test_create_and_get_job(test_db):
@@ -48,3 +49,64 @@ def test_preset_crud(test_db):
     delete_preset(test_db, preset_id)
     presets = list_presets(test_db, feature="bug_analysis")
     assert not any(p["name"] == "Security Review" for p in presets)
+
+
+def test_sidebar_profile_save_and_load(test_db):
+    profile_id = save_profile(
+        test_db,
+        name="Bug Finder",
+        source_type="local",
+        features=["bug_analysis", "static_analysis"],
+        language="Python",
+        custom_prompt="Focus on security.",
+        extra_instructions="OWASP top 10.",
+        mermaid_type="flowchart",
+    )
+    assert profile_id
+
+    profile = get_profile(test_db, "Bug Finder")
+    assert profile is not None
+    assert profile["source_type"] == "local"
+    assert "bug_analysis" in profile["features"]
+    assert profile["language"] == "Python"
+    assert profile["mermaid_type"] == "flowchart"
+
+
+def test_sidebar_profile_upsert_by_name(test_db):
+    save_profile(test_db, name="My Profile", source_type="local",
+                 features=["bug_analysis"], language="Python",
+                 custom_prompt=None, extra_instructions=None)
+    # Save again with same name — should update, not duplicate
+    save_profile(test_db, name="My Profile", source_type="github",
+                 features=["code_design"], language="Go",
+                 custom_prompt=None, extra_instructions=None)
+
+    profiles = [p for p in list_profiles(test_db) if p["name"] == "My Profile"]
+    assert len(profiles) == 1
+    assert profiles[0]["source_type"] == "github"
+    assert profiles[0]["language"] == "Go"
+
+
+def test_sidebar_profile_list_and_delete(test_db):
+    save_profile(test_db, name="Profile A", source_type="local",
+                 features=["mermaid"], language=None,
+                 custom_prompt=None, extra_instructions=None)
+    save_profile(test_db, name="Profile B", source_type="gitea",
+                 features=["commit_analysis"], language=None,
+                 custom_prompt=None, extra_instructions=None)
+
+    profiles = list_profiles(test_db)
+    names = [p["name"] for p in profiles]
+    assert "Profile A" in names
+    assert "Profile B" in names
+
+    target = next(p for p in profiles if p["name"] == "Profile A")
+    delete_profile(test_db, target["id"])
+
+    remaining = [p["name"] for p in list_profiles(test_db)]
+    assert "Profile A" not in remaining
+    assert "Profile B" in remaining
+
+
+def test_sidebar_profile_get_missing_returns_none(test_db):
+    assert get_profile(test_db, "Nonexistent Profile") is None

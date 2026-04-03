@@ -20,6 +20,8 @@ def test_settings(tmp_path, monkeypatch):
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "test-secret")
     monkeypatch.setenv("BEDROCK_MODEL_ID", "anthropic.claude-3-5-sonnet-20241022-v2:0")
     monkeypatch.setenv("BEDROCK_TEMPERATURE", "0.3")
+    monkeypatch.setenv("MAX_FILES", "50")
+    monkeypatch.setenv("ENABLED_AGENTS", "all")
     get_settings.cache_clear()
     return get_settings()
 

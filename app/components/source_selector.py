@@ -20,7 +20,7 @@ def render_source_selector() -> dict:
     s = get_settings()
     max_files = s.max_files
     source_type = st.radio("Source", ["Local File", "GitHub", "Gitea"],
-                           horizontal=True)
+                           horizontal=True, key="sidebar_source_type")
 
     result = {"source_type": "", "source_ref": "", "start_line": None, "end_line": None}
 

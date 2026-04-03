@@ -38,9 +38,12 @@ def render_feature_selector(conn) -> dict:
 
     st.subheader("Language")
     extension_hint = st.session_state.get("detected_extension", "")
+    # Seed the key from auto-detection only on first render
+    if "sidebar_language" not in st.session_state:
+        st.session_state["sidebar_language"] = st.session_state.get("detected_language", "")
     language = st.text_input(
         "Language",
-        value=st.session_state.get("detected_language", ""),
+        key="sidebar_language",
         placeholder="e.g. Python, JavaScript, Go, COBOL",
         help=f"Auto-detected from extension: {extension_hint}" if extension_hint else "Enter language"
     )
@@ -53,7 +56,8 @@ def render_feature_selector(conn) -> dict:
 
     mermaid_type = "flowchart"
     if "mermaid" in selected:
-        mermaid_type = st.selectbox("Mermaid diagram type", MERMAID_TYPES)
+        mermaid_type = st.selectbox("Mermaid diagram type", MERMAID_TYPES,
+                                    key="sidebar_mermaid_type")
 
     custom_prompt = ""
     extra = ""
@@ -70,10 +74,16 @@ def render_feature_selector(conn) -> dict:
             if preset:
                 default_prompt = preset.get("system_prompt", "")
 
-        custom_prompt = st.text_area("System Prompt", value=default_prompt,
-                                     height=120, placeholder="Override the default system prompt...")
+        # Seed keys from loaded preset; don't override what user has typed
+        if default_prompt and st.session_state.get("sidebar_custom_prompt", "") == "":
+            st.session_state["sidebar_custom_prompt"] = default_prompt
+
+        custom_prompt = st.text_area("System Prompt", height=120,
+                                     placeholder="Override the default system prompt...",
+                                     key="sidebar_custom_prompt")
         extra = st.text_input("Extra Instructions",
-                              placeholder="e.g. focus on security issues only")
+                              placeholder="e.g. focus on security issues only",
+                              key="sidebar_extra_instructions")
         if extra:
             custom_prompt = f"{custom_prompt}\n\nAdditional: {extra}".strip()
 
