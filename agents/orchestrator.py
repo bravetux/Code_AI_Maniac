@@ -53,7 +53,10 @@ def run_analysis(conn: duckdb.DuckDBPyConnection, job_id: str) -> dict:
         raise ValueError(f"Job {job_id} not found")
 
     update_job_status(conn, job_id, "running")
-    features = job["features"] or []
+    # Intersect with enabled agents so no disabled agent can ever be invoked,
+    # even if a job was stored before the ENABLED_AGENTS setting was changed.
+    enabled = get_settings().enabled_agent_set
+    features = [f for f in (job["features"] or []) if f in enabled]
     language = job.get("language")
     custom_prompt = job.get("custom_prompt")
     results = {}
