@@ -105,7 +105,11 @@ if not exist ".env" (
 :: ── 7. Create data directory if missing ─────────────────────────
 if not exist "data" mkdir data
 
-:: ── 8. Launch the app ───────────────────────────────────────────
+:: ── 8. Set PYTHONPATH so all app pages can import project modules ─
+:: Streamlit adds app/ to sys.path by default; we also need the project root.
+set PYTHONPATH=%~dp0
+
+:: ── 9. Launch the app ───────────────────────────────────────────
 echo.
 echo ============================================================
 echo  Starting AI Arena...
