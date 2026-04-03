@@ -1,0 +1,47 @@
+import hashlib
+import os
+
+try:
+    from strands import tool
+except ImportError:
+    def tool(f): return f
+
+
+def _file_hash(content: str) -> str:
+    return hashlib.sha256(content.encode()).hexdigest()
+
+
+@tool
+def fetch_local_file(file_path: str, start_line: int | None = None,
+                     end_line: int | None = None) -> dict:
+    """Read a local source file, optionally restricted to a line range."""
+    if not os.path.exists(file_path):
+        return {"error": f"File not found: {file_path}", "file_path": file_path}
+    try:
+        with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+            lines = f.readlines()
+        total_lines = len(lines)
+        if start_line and end_line:
+            selected = lines[start_line - 1:end_line]
+            content = "".join(selected)
+        else:
+            content = "".join(lines)
+            start_line = 1
+            end_line = total_lines
+        return {
+            "file_path": file_path,
+            "content": content,
+            "total_lines": total_lines,
+            "start_line": start_line,
+            "end_line": end_line,
+            "file_hash": _file_hash(content),
+            "extension": os.path.splitext(file_path)[1].lstrip("."),
+        }
+    except Exception as e:
+        return {"error": str(e), "file_path": file_path}
+
+
+def fetch_multiple_local_files(file_paths: list[str],
+                                start_line: int | None = None,
+                                end_line: int | None = None) -> list[dict]:
+    return [fetch_local_file(fp, start_line, end_line) for fp in file_paths]
