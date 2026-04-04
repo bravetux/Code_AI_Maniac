@@ -172,8 +172,8 @@ def _render_bugs(result: dict, language: str = "") -> None:
                         st.caption("No fix snippet provided.")
 
                 if bug.get("github_comment"):
-                    with st.expander("GitHub comment"):
-                        st.code(bug["github_comment"], language="markdown")
+                    st.markdown("**GitHub PR comment**")
+                    st.code(bug["github_comment"], language="markdown")
 
 
 # ── Code Design ───────────────────────────────────────────────────────────────
