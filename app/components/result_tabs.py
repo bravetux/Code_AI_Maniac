@@ -264,13 +264,21 @@ def _render_code_flow(result: dict) -> None:
 def _render_mermaid(result: dict) -> None:
     src = result.get("mermaid_source", "")
     desc = result.get("description", "")
+    diagram_type = result.get("diagram_type", "")
+
+    if diagram_type:
+        st.caption(f"Diagram type: `{diagram_type}`")
+
+    if not src:
+        st.warning("No diagram source returned by the agent.")
+        return
+
+    from app.components.mermaid_renderer import render_mermaid
+    render_mermaid(src)
+
+    # Description sits below the source, not above the iframe gap
     if desc:
         st.caption(desc)
-    if src:
-        from app.components.mermaid_renderer import render_mermaid
-        render_mermaid(src)
-    else:
-        st.warning("No diagram source returned by the agent.")
 
 
 # ── Requirements ──────────────────────────────────────────────────────────────
