@@ -4,6 +4,47 @@ import streamlit as st
 from config.settings import get_settings
 from tools.fetch_local import scan_folder_recursive
 
+
+def _pick_file() -> str:
+    """Open a native file-picker dialog and return the selected path (or '')."""
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+        root = tk.Tk()
+        root.withdraw()
+        root.wm_attributes("-topmost", True)
+        path = filedialog.askopenfilename(
+            title="Select a file",
+            filetypes=[
+                ("Code files",
+                 " ".join(f"*.{e}" for e in [
+                     "py","js","ts","jsx","tsx","java","cs","cpp","c","h",
+                     "go","rs","rb","php","swift","kt","scala","sql",
+                     "html","css","json","yaml","yml","toml","xml","md","sh",
+                 ])),
+                ("All files", "*.*"),
+            ],
+        )
+        root.destroy()
+        return path or ""
+    except Exception:
+        return ""
+
+
+def _pick_folder() -> str:
+    """Open a native folder-picker dialog and return the selected path (or '')."""
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+        root = tk.Tk()
+        root.withdraw()
+        root.wm_attributes("-topmost", True)
+        path = filedialog.askdirectory(title="Select a folder")
+        root.destroy()
+        return path or ""
+    except Exception:
+        return ""
+
 # Common source-code extensions shown by default in folder scan
 _DEFAULT_EXTENSIONS = [
     "py", "js", "ts", "jsx", "tsx", "java", "cs", "cpp", "c", "h",
@@ -53,11 +94,21 @@ def render_source_selector() -> dict:
                 result["source_ref"] = "::".join(paths)
 
         elif local_mode == "File path":
-            path = st.text_input("File path", placeholder="/path/to/file.py")
+            if st.button("📂 Browse for file", key="browse_file_btn"):
+                picked = _pick_file()
+                if picked:
+                    st.session_state["local_file_path"] = picked
+            path = st.text_input("File path", placeholder="/path/to/file.py",
+                                 key="local_file_path")
             result["source_ref"] = path
 
         else:  # Folder (recursive)
-            folder = st.text_input("Folder path", placeholder="/path/to/project")
+            if st.button("📂 Browse for folder", key="browse_folder_btn"):
+                picked = _pick_folder()
+                if picked:
+                    st.session_state["local_folder_path"] = picked
+            folder = st.text_input("Folder path", placeholder="/path/to/project",
+                                   key="local_folder_path")
 
             with st.expander("Filter by extension", expanded=False):
                 use_filter = st.checkbox("Filter by extension", value=True,
