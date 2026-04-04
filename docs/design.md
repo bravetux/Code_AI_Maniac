@@ -1,7 +1,7 @@
 # AI Arena — Detailed Design Document
 
 **Project:** AG-UC-1128  
-**Version:** 1.0  
+**Version:** 1.2  
 **Date:** 2026-04-04  
 **Author:** Engineering Team
 
@@ -187,12 +187,17 @@ Returns: `{source_type, source_ref, start_line, end_line}`
 
 **`feature_selector.py` — `render_feature_selector(conn)`**
 
-Renders feature checkboxes filtered by `ENABLED_AGENTS`, language input, Mermaid-type selectbox, and an **Advanced** expander for:
+Renders feature checkboxes filtered by `ENABLED_AGENTS`, language input, Mermaid-type selectbox, and an **Advanced / Fine-tune** expander for:
 
 - Preset load by name
-- System prompt override (text area)
-- Extra instructions (appended to every agent call for this job)
+- **Prompt mode toggle** — horizontal radio with two options:
+  - *Append to default* — user text is concatenated after the agent's built-in system prompt (enhances without replacing)
+  - *Overwrite default* — user text replaces the built-in system prompt entirely
+- System prompt text area (placeholder text changes to reflect the selected mode)
+- Extra instructions text input (always appended regardless of prompt mode)
 - Save-as-preset button
+
+The selected mode is encoded as a `__append__\n` prefix on `custom_prompt` when Append is chosen; agents call `resolve_prompt()` to decode it. This means append vs overwrite on the same text produces different cache keys automatically.
 
 Returns: `{features, language, custom_prompt, mermaid_type}`
 
@@ -206,6 +211,11 @@ Creates one tab per completed feature. Each tab contains:
 - Feature-specific structured display (grouped by severity, collapsible expanders per finding).
 - **JSON download** and **Markdown download** buttons.
 - Multi-file mode: nested expanders per file path when `_multi_file: true`.
+
+Bug Analysis tab specifics:
+- Overall assessment narrative is rendered **first** (before counts or bug list) to give context.
+- "No bugs found" success banner is only shown when the bug list is empty **and** no narrative is present — preventing contradictions with a narrative that describes findings.
+- Each bug expander includes a **2-column code comparison** (Original Code | Fixed Code) with syntax highlighting using the job language. If snippets are absent (e.g., old cached result), a re-run caption is shown instead of hiding the columns.
 
 **`mermaid_renderer.py` — `render_mermaid(mermaid_source)`**
 
@@ -263,6 +273,17 @@ def run_<feature>(
 
 All agents check the cache first. On a miss they call Bedrock, store the result in cache, and add an `analysis_history` record.
 
+All agents use `resolve_prompt(custom_prompt, base_prompt)` from `agents/_bedrock.py` to determine the effective system prompt:
+
+```python
+def resolve_prompt(custom_prompt: str | None, base_prompt: str) -> str:
+    if not custom_prompt:
+        return base_prompt                          # no override
+    if custom_prompt.startswith("__append__\n"):
+        return base_prompt + "\n\n" + user_text     # append mode
+    return custom_prompt                            # overwrite mode
+```
+
 #### Agent Details
 
 **Bug Analysis (`bug_analysis.py`)**
@@ -270,7 +291,10 @@ All agents check the cache first. On a miss they call Bedrock, store the result 
 - Chunks file at 3 000 token max.
 - Per-chunk: calls Bedrock with senior-engineer reviewer system prompt.
 - Deduplicates bugs by `(line, description[:50])`.
-- Returns: `{bugs: [...], narrative, summary}`
+- After deduplication, **`original_snippet`** is extracted programmatically from the file content using `BUG_CONTEXT_LINES` lines above and below the reported line. Line numbers from the LLM are coerced to `int` (handles cases where the LLM returns a string).
+- **`fixed_snippet`** is requested from the LLM as part of the JSON schema — the corrected code block that resolves the bug.
+- Cache key uses versioned constant `"bug_analysis:v2"` — bumping this forces re-analysis when the output schema changes.
+- Returns: `{bugs: [...], narrative, summary, language}`
 
 Bug record shape:
 ```json
@@ -281,6 +305,9 @@ Bug record shape:
   "runtime_impact": "...",
   "root_cause": "...",
   "suggestion": "...",
+  "fixed_snippet": "corrected code block from LLM",
+  "original_snippet": "N context lines around the bug line (extracted from file)",
+  "snippet_start_line": 37,
   "github_comment": "PR-ready markdown"
 }
 ```
@@ -415,6 +442,8 @@ def check_cache(file_hash, feature, language, custom_prompt) -> dict | None
 def write_cache(job_id, feature, file_hash, language, custom_prompt, result) -> None
 ```
 
+**Schema versioning convention:** When an agent's output schema changes (new fields added), the `feature` value passed to cache functions is bumped (e.g., `"bug_analysis"` → `"bug_analysis:v2"`). Old entries remain in the table but are no longer consulted, forcing a fresh Bedrock call.
+
 ---
 
 ### 4.5 Persistence Layer
@@ -459,6 +488,7 @@ class Settings(BaseSettings):
     bedrock_temperature: float = 0.3
     db_path: str = "data/arena.db"
     max_files: int = 50
+    bug_context_lines: int = 5   # lines above/below bug line in code comparison (0–20)
     enabled_agents: str = "all"
 ```
 
@@ -490,7 +520,7 @@ class Settings(BaseSettings):
 Single-file:
 ```json
 {
-  "bug_analysis": { "bugs": [...], "narrative": "...", "summary": "..." }
+  "bug_analysis": { "bugs": [...], "narrative": "...", "summary": "...", "language": "Python" }
 }
 ```
 
@@ -513,6 +543,10 @@ Multi-file:
 ```
 SHA256( file_hash + ":" + feature + ":" + language + ":" + (custom_prompt or "") )
 ```
+
+`custom_prompt` encodes both the text **and** the prompt mode — an `__append__\n` prefix is prepended when Append mode is selected in the UI. This means the same prompt text in Append vs Overwrite mode produces distinct cache entries.
+
+`feature` may include a version suffix (e.g., `"bug_analysis:v2"`) to invalidate all prior entries when the output schema changes.
 
 ---
 
