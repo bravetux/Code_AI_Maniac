@@ -37,16 +37,26 @@ def render_feature_selector(conn) -> dict:
     active_features = {k: v for k, v in ALL_FEATURES.items() if k in enabled}
 
     st.subheader("Language")
-    # Seed the key from auto-detection only on first render
-    if "sidebar_language" not in st.session_state:
-        st.session_state["sidebar_language"] = st.session_state.get("detected_language", "")
-    language = st.text_input(
-        "Language (optional)",
-        key="sidebar_language",
-        placeholder="Leave blank to auto-detect from file extension / code",
-        help="If left blank, language is inferred from the file extension. "
-             "The model will self-detect for any extension not recognised."
+    specify_lang = st.toggle(
+        "Specify language",
+        value=bool(st.session_state.get("sidebar_language", "")),
+        key="sidebar_specify_language",
+        help="Off — language is auto-detected from the file extension.  "
+             "On — enter the language name explicitly.",
     )
+    if specify_lang:
+        if "sidebar_language" not in st.session_state:
+            st.session_state["sidebar_language"] = ""
+        language = st.text_input(
+            "Language",
+            key="sidebar_language",
+            placeholder="e.g. Python, JavaScript, Java…",
+        )
+    else:
+        # Clear any previously set language when switching back to auto-detect
+        st.session_state["sidebar_language"] = ""
+        language = ""
+        st.caption("Language will be auto-detected from the file extension.")
 
     st.subheader("Features")
     selected = []
