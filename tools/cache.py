@@ -12,9 +12,14 @@ def compute_cache_key(file_hash: str, feature: str,
 
 def check_cache(conn: duckdb.DuckDBPyConnection, file_hash: str, feature: str,
                 language: str | None, custom_prompt: str | None) -> dict | None:
-    """Return cached result if available, else None."""
+    """Return cached result if available, else None.
+    Cached results carry _from_cache=True so callers can distinguish hits from fresh runs."""
     key = compute_cache_key(file_hash, feature, language, custom_prompt)
-    return get_cached_result(conn, file_hash=key, feature=feature, language=language)
+    result = get_cached_result(conn, file_hash=key, feature=feature, language=language)
+    if result is not None:
+        result = dict(result)
+        result["_from_cache"] = True
+    return result
 
 
 def write_cache(conn: duckdb.DuckDBPyConnection, job_id: str, feature: str,

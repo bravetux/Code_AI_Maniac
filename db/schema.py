@@ -9,6 +9,7 @@ TABLE_NAMES = {
     "commit_snapshots",
     "prompt_presets",
     "sidebar_profiles",
+    "job_events",
 }
 
 _STATEMENTS = [
@@ -93,6 +94,15 @@ _STATEMENTS = [
         mermaid_type       VARCHAR DEFAULT 'flowchart',
         created_at         TIMESTAMP DEFAULT now(),
         updated_at         TIMESTAMP DEFAULT now()
+    )""",
+    """CREATE TABLE IF NOT EXISTS job_events (
+        id          VARCHAR PRIMARY KEY,
+        job_id      VARCHAR NOT NULL,
+        event_type  VARCHAR NOT NULL,
+        agent       VARCHAR,
+        file_path   VARCHAR,
+        message     VARCHAR,
+        created_at  TIMESTAMP DEFAULT now()
     )""",
 ]
 

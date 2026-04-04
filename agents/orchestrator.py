@@ -1,6 +1,7 @@
 import traceback
 import duckdb
 from db.queries.jobs import get_job, update_job_status, save_job_results
+from db.queries.job_events import add_event
 from agents.bug_analysis import run_bug_analysis
 from agents.code_design import run_code_design
 from agents.code_flow import run_code_flow
@@ -69,6 +70,33 @@ def _fetch_files(job: dict) -> list[dict]:
         raise ValueError(f"Unknown source type: {source_type}")
 
 
+def _emit(conn, job_id, event_type, agent=None, file_path=None, message=None):
+    """Fire-and-forget event; never raises so agent failures stay isolated."""
+    try:
+        add_event(conn, job_id, event_type, agent=agent,
+                  file_path=file_path, message=message)
+    except Exception:
+        pass
+
+
+def _run_agent(conn, job_id, agent_key, fn, file_path, kwargs) -> dict:
+    """Run a single agent, emit start/cached/complete/error events, return result."""
+    _emit(conn, job_id, "start", agent=agent_key, file_path=file_path)
+    try:
+        result = fn(**kwargs)
+        if result.get("_from_cache"):
+            _emit(conn, job_id, "cached", agent=agent_key, file_path=file_path,
+                  message=result.get("summary", ""))
+        else:
+            _emit(conn, job_id, "complete", agent=agent_key, file_path=file_path,
+                  message=result.get("summary", ""))
+        return result
+    except Exception as e:
+        _emit(conn, job_id, "error", agent=agent_key, file_path=file_path,
+              message=str(e)[:120])
+        return {"error": str(e)}
+
+
 def _run_features_for_file(conn, job_id, file_info, features, language,
                             custom_prompt) -> dict:
     """Run all applicable features on a single file. Returns {feature: result}."""
@@ -84,12 +112,12 @@ def _run_features_for_file(conn, job_id, file_info, features, language,
     feat_set = set(features)
 
     # ── Phase 1: foundation agents (no dependencies) ──────────────────────────
-    # Always run bug_analysis and static_analysis first so their findings can
-    # inform code_design — mirrors the cowork pattern where bugs inform design.
     phase1 = [f for f in ("bug_analysis", "static_analysis", "code_flow", "requirement")
               if f in feat_set]
 
-    # Built here so test mocks applied after import are picked up
+    if phase1:
+        _emit(conn, job_id, "phase", message="Phase 1 — Foundation")
+
     standalone = {
         "bug_analysis":    run_bug_analysis,
         "static_analysis": run_static_analysis,
@@ -98,50 +126,37 @@ def _run_features_for_file(conn, job_id, file_info, features, language,
     }
 
     for feat in phase1:
-        try:
-            print(f"[INFO] Running {feat} on {file_path}...")
-            file_results[feat] = standalone[feat](**common)
-        except Exception as e:
-            file_results[feat] = {"error": str(e)}
+        file_results[feat] = _run_agent(conn, job_id, feat, standalone[feat],
+                                        file_path, common)
 
     # ── Phase 2: context-aware agents ─────────────────────────────────────────
-    # code_design receives bug + static findings so it can treat bugs as design signals
-    if "code_design" in feat_set:
-        try:
-            print(f"[INFO] Running code_design on {file_path} (with bug/static context)...")
-            file_results["code_design"] = run_code_design(
-                **common,
-                bug_results=file_results.get("bug_analysis"),
-                static_results=file_results.get("static_analysis"),
-            )
-        except Exception as e:
-            file_results["code_design"] = {"error": str(e)}
+    phase2 = [f for f in ("code_design", "mermaid") if f in feat_set]
+    if phase2:
+        _emit(conn, job_id, "phase", message="Phase 2 — Context-Aware")
 
-    # Mermaid: reuse code_flow result to avoid a redundant Bedrock call
+    if "code_design" in feat_set:
+        file_results["code_design"] = _run_agent(
+            conn, job_id, "code_design", run_code_design, file_path,
+            {**common,
+             "bug_results":    file_results.get("bug_analysis"),
+             "static_results": file_results.get("static_analysis")},
+        )
+
     if "mermaid" in feat_set:
-        try:
-            print(f"[INFO] Running mermaid on {file_path}...")
-            file_results["mermaid"] = run_mermaid(
-                conn=conn, job_id=job_id, file_path=file_path,
-                content=content, file_hash=file_hash,
-                language=language, custom_prompt=custom_prompt,
-                flow_context=file_results.get("code_flow"),
-            )
-        except Exception as e:
-            file_results["mermaid"] = {"error": str(e)}
+        file_results["mermaid"] = _run_agent(
+            conn, job_id, "mermaid", run_mermaid, file_path,
+            {**common, "flow_context": file_results.get("code_flow")},
+        )
 
     # ── Phase 3: synthesis agents ─────────────────────────────────────────────
     if "comment_generator" in feat_set:
-        try:
-            print(f"[INFO] Running comment_generator on {file_path}...")
-            file_results["comment_generator"] = run_comment_generation(
-                conn=conn, job_id=job_id, file_path=file_path,
-                file_hash=file_hash, language=language, custom_prompt=custom_prompt,
-                bug_results=file_results.get("bug_analysis"),
-                static_results=file_results.get("static_analysis"),
-            )
-        except Exception as e:
-            file_results["comment_generator"] = {"error": str(e)}
+        _emit(conn, job_id, "phase", message="Phase 3 — Synthesis")
+        file_results["comment_generator"] = _run_agent(
+            conn, job_id, "comment_generator", run_comment_generation, file_path,
+            {**common,
+             "bug_results":    file_results.get("bug_analysis"),
+             "static_results": file_results.get("static_analysis")},
+        )
 
     return file_results
 
@@ -188,7 +203,12 @@ def run_analysis(conn: duckdb.DuckDBPyConnection, job_id: str) -> dict:
     results  = {}
 
     try:
+        _emit(conn, job_id, "fetch", message="Fetching source files...")
         files = _fetch_files(job)
+        fnames = ", ".join(f["file_path"].split("/")[-1] for f in files[:3])
+        _emit(conn, job_id, "fetch",
+              message=f"Loaded {len(files)} file(s) — {fnames}"
+                      + (" …" if len(files) > 3 else ""))
 
         if len(files) == 1:
             # ── Single file ───────────────────────────────────────────────

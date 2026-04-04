@@ -8,6 +8,7 @@ import streamlit as st
 from db.connection import get_connection
 from db.schema import init_schema
 from db.queries.jobs import create_job, get_job, get_job_results
+from db.queries.job_events import get_events
 from agents.orchestrator import run_analysis
 from app.components.source_selector import render_source_selector
 from app.components.feature_selector import render_feature_selector
@@ -56,6 +57,80 @@ if not job:
     st.warning("Job not found.")
     st.stop()
 
+_AGENT_LABELS = {
+    "bug_analysis":      "Bug Analysis",
+    "static_analysis":   "Static Analysis",
+    "code_flow":         "Code Flow",
+    "requirement":       "Requirements",
+    "code_design":       "Code Design",
+    "mermaid":           "Mermaid Diagram",
+    "comment_generator": "PR Comments",
+    "commit_analysis":   "Commit Analysis",
+}
+
+_EVENT_ICON = {
+    "fetch":    "📂",
+    "phase":    "—",
+    "start":    "🔄",
+    "complete": "✅",
+    "cached":   "⚡",
+    "error":    "❌",
+}
+
+
+def _render_live_progress(conn, job_id: str, job: dict) -> None:
+    features = job.get("features") or []
+    total    = len([f for f in features if f != "commit_analysis"])
+
+    events = get_events(conn, job_id)
+    done   = sum(1 for e in events if e["event_type"] in ("complete", "cached", "error"))
+    pct    = min(int((done / max(total, 1)) * 100), 99)   # cap at 99 until truly done
+
+    st.progress(pct, text=f"Analyzing… {done}/{total} agents done")
+
+    with st.container(border=True):
+        st.markdown("##### Live Activity")
+        if not events:
+            st.caption("Starting up…")
+        for ev in events:
+            etype     = ev["event_type"]
+            agent     = ev.get("agent") or ""
+            fpath     = ev.get("file_path") or ""
+            message   = ev.get("message") or ""
+            icon      = _EVENT_ICON.get(etype, "•")
+            fname     = os.path.basename(fpath) if fpath else ""
+            label     = _AGENT_LABELS.get(agent, agent)
+
+            if etype == "phase":
+                st.markdown(f"&nbsp;&nbsp;**{message}**")
+            elif etype == "fetch":
+                st.markdown(f"{icon} &nbsp; {message}")
+            elif etype == "start":
+                st.markdown(
+                    f"&nbsp;&nbsp;&nbsp;&nbsp;{icon} &nbsp; **{label}**"
+                    + (f" &nbsp; `{fname}`" if fname else "")
+                    + " &nbsp; *running…*"
+                )
+            elif etype == "cached":
+                st.markdown(
+                    f"&nbsp;&nbsp;&nbsp;&nbsp;{icon} &nbsp; **{label}**"
+                    + (f" &nbsp; `{fname}`" if fname else "")
+                    + f" &nbsp; *cache hit* — {message}"
+                )
+            elif etype == "complete":
+                st.markdown(
+                    f"&nbsp;&nbsp;&nbsp;&nbsp;{icon} &nbsp; **{label}**"
+                    + (f" &nbsp; `{fname}`" if fname else "")
+                    + (f" &nbsp; — {message}" if message else "")
+                )
+            elif etype == "error":
+                st.markdown(
+                    f"&nbsp;&nbsp;&nbsp;&nbsp;{icon} &nbsp; **{label}**"
+                    + (f" &nbsp; `{fname}`" if fname else "")
+                    + (f" &nbsp; — {message}" if message else "")
+                )
+
+
 status = job["status"]
 STATUS_LABEL = {
     "pending":   "Queued...",
@@ -66,9 +141,7 @@ STATUS_LABEL = {
 st.caption(f"Job `{job_id[:8]}...` — {STATUS_LABEL.get(status, status)}")
 
 if status in ("pending", "running"):
-    progress = 20 if status == "pending" else 60
-    st.progress(progress, text=STATUS_LABEL[status])
-    # Auto-refresh every 2 s while the background thread is still running
+    _render_live_progress(conn, job_id, job)
     time.sleep(2)
     st.rerun()
 
