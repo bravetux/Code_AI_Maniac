@@ -2,7 +2,7 @@ import json
 import re
 import duckdb
 from strands import Agent
-from agents._bedrock import make_bedrock_model
+from agents._bedrock import make_bedrock_model, resolve_prompt
 from tools.cache import check_cache, write_cache
 from db.queries.history import add_history
 
@@ -48,7 +48,7 @@ def run_comment_generation(conn: duckdb.DuckDBPyConnection, job_id: str,
         return cached
 
     model = make_bedrock_model()
-    agent = Agent(model=model, system_prompt=custom_prompt or _SYSTEM_PROMPT)
+    agent = Agent(model=model, system_prompt=resolve_prompt(custom_prompt, _SYSTEM_PROMPT))
 
     context_parts = [f"File under review: `{file_path}`"]
 

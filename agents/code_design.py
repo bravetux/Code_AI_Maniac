@@ -2,7 +2,7 @@ import json
 import re
 import duckdb
 from strands import Agent
-from agents._bedrock import make_bedrock_model
+from agents._bedrock import make_bedrock_model, resolve_prompt
 from tools.chunk_file import chunk_by_lines
 from tools.cache import check_cache, write_cache
 from db.queries.history import add_history
@@ -105,7 +105,7 @@ def run_code_design(conn: duckdb.DuckDBPyConnection, job_id: str,
         return cached
 
     model = make_bedrock_model()
-    agent = Agent(model=model, system_prompt=custom_prompt or _ANALYSIS_SYSTEM_PROMPT)
+    agent = Agent(model=model, system_prompt=resolve_prompt(custom_prompt, _ANALYSIS_SYSTEM_PROMPT))
 
     # ── Turn 1: understand the code structure ─────────────────────────────────
     chunks = chunk_by_lines(content, max_tokens=6000)

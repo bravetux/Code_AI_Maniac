@@ -2,7 +2,7 @@ import json
 import re
 import duckdb
 from strands import Agent
-from agents._bedrock import make_bedrock_model
+from agents._bedrock import make_bedrock_model, resolve_prompt
 from tools.run_linter import run_linter
 from tools.chunk_file import chunk_by_lines
 from tools.cache import check_cache, write_cache
@@ -55,7 +55,7 @@ def run_static_analysis(conn: duckdb.DuckDBPyConnection, job_id: str,
 
     # Layer 2: LLM semantic analysis
     model = make_bedrock_model()
-    agent = Agent(model=model, system_prompt=custom_prompt or _SYSTEM_PROMPT)
+    agent = Agent(model=model, system_prompt=resolve_prompt(custom_prompt, _SYSTEM_PROMPT))
 
     chunks = chunk_by_lines(content, max_tokens=3000)
     all_semantic = []

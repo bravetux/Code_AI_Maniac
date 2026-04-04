@@ -78,12 +78,39 @@ def render_feature_selector(conn) -> dict:
         if default_prompt and st.session_state.get("sidebar_custom_prompt", "") == "":
             st.session_state["sidebar_custom_prompt"] = default_prompt
 
-        custom_prompt = st.text_area("System Prompt", height=120,
-                                     placeholder="Override the default system prompt...",
-                                     key="sidebar_custom_prompt")
+        prompt_mode = st.radio(
+            "Prompt mode",
+            ["Append to default", "Overwrite default"],
+            horizontal=True,
+            key="sidebar_prompt_mode",
+            help=(
+                "**Append** — your text is added after the built-in system prompt, "
+                "enhancing it without losing its original instructions.\n\n"
+                "**Overwrite** — your text replaces the built-in system prompt entirely."
+            ),
+        )
+
+        custom_prompt_text = st.text_area(
+            "System Prompt",
+            height=120,
+            placeholder=(
+                "Append mode: add extra instructions to enhance the default prompt…\n"
+                "Overwrite mode: replace the default prompt entirely…"
+            ),
+            key="sidebar_custom_prompt",
+        )
         extra = st.text_input("Extra Instructions",
                               placeholder="e.g. focus on security issues only",
                               key="sidebar_extra_instructions")
+
+        # Build custom_prompt with mode encoding; extra instructions always append
+        custom_prompt = ""
+        if custom_prompt_text:
+            from agents._bedrock import _APPEND_PREFIX
+            if prompt_mode == "Append to default":
+                custom_prompt = f"{_APPEND_PREFIX}{custom_prompt_text}"
+            else:
+                custom_prompt = custom_prompt_text
         if extra:
             custom_prompt = f"{custom_prompt}\n\nAdditional: {extra}".strip()
 

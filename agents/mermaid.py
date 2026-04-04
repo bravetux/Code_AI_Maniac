@@ -2,7 +2,7 @@ import json
 import re
 import duckdb
 from strands import Agent
-from agents._bedrock import make_bedrock_model
+from agents._bedrock import make_bedrock_model, resolve_prompt
 from tools.chunk_file import chunk_by_lines
 from tools.cache import check_cache, write_cache
 from db.queries.history import add_history
@@ -37,7 +37,7 @@ def run_mermaid(conn: duckdb.DuckDBPyConnection, job_id: str,
         return cached
 
     model = make_bedrock_model()
-    system = custom_prompt or _SYSTEM_PROMPTS.get(diagram_type, _SYSTEM_PROMPTS["flowchart"])
+    system = resolve_prompt(custom_prompt, _SYSTEM_PROMPTS.get(diagram_type, _SYSTEM_PROMPTS["flowchart"]))
     agent = Agent(model=model, system_prompt=system)
 
     if flow_context:

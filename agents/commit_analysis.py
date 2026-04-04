@@ -1,7 +1,7 @@
 import json
 import duckdb
 from strands import Agent
-from agents._bedrock import make_bedrock_model
+from agents._bedrock import make_bedrock_model, resolve_prompt
 from db.queries.history import add_history
 
 _SYSTEM_PROMPT = """You are a senior engineering lead reviewing a git commit history before a release.
@@ -42,7 +42,7 @@ def run_commit_analysis(conn: duckdb.DuckDBPyConnection, job_id: str,
         }
 
     model = make_bedrock_model()
-    agent = Agent(model=model, system_prompt=custom_prompt or _SYSTEM_PROMPT)
+    agent = Agent(model=model, system_prompt=resolve_prompt(custom_prompt, _SYSTEM_PROMPT))
 
     batch_size = 20
     section_docs = []
