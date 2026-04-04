@@ -2,59 +2,83 @@ import json
 import streamlit as st
 
 FEATURE_LABELS = {
-    "bug_analysis": "Bug Analysis",
-    "code_design": "Code Design",
-    "code_flow": "Code Flow",
-    "mermaid": "Mermaid Diagram",
-    "requirement": "Requirements",
-    "static_analysis": "Static Analysis",
+    "bug_analysis":      "Bug Analysis",
+    "code_design":       "Code Design",
+    "code_flow":         "Code Flow",
+    "mermaid":           "Mermaid Diagram",
+    "requirement":       "Requirements",
+    "static_analysis":   "Static Analysis",
     "comment_generator": "PR Comments",
-    "commit_analysis": "Commit Analysis",
+    "commit_analysis":   "Commit Analysis",
 }
+
+_SEVERITY_ICON = {"critical": "🔴", "major": "🟠", "minor": "🟡", "suggestion": "🔵"}
+_RISK_ICON     = {"high": "🔴", "medium": "🟠", "low": "🟢"}
 
 
 def render_results(results: dict) -> None:
-    """Render analysis results as tabs, one per feature."""
     if not results:
+        st.info("No results to display.")
         return
 
-    features = [f for f in results if f != "error"]
+    features = [f for f in FEATURE_LABELS if f in results]  # display-order
     if not features:
         if "error" in results:
-            st.error(f"Analysis failed: {results['error']}")
+            st.error(f"Analysis error: {results['error']}")
         return
 
-    tabs = st.tabs([FEATURE_LABELS.get(f, f) for f in features])
-
+    tabs = st.tabs([FEATURE_LABELS[f] for f in features])
     for tab, feature in zip(tabs, features):
         with tab:
-            _render_feature_result(feature, results[feature])
+            _render_feature(feature, results[feature])
 
 
-def _render_feature_result(feature: str, result: dict) -> None:
-    if "error" in result:
-        st.error(result["error"])
+# ── Per-feature dispatcher ────────────────────────────────────────────────────
+
+def _render_feature(feature: str, result: dict) -> None:
+    if not isinstance(result, dict):
+        st.json(result)
         return
 
-    col1, col2 = st.columns([4, 1])
-    with col2:
-        st.download_button("Download JSON", data=json.dumps(result, indent=2),
-                           file_name=f"{feature}_result.json", mime="application/json",
-                           key=f"json_{feature}")
-        st.download_button("Download MD", data=_to_markdown(feature, result),
-                           file_name=f"{feature}_result.md", mime="text/markdown",
-                           key=f"md_{feature}")
+    if "error" in result:
+        st.error(result["error"])
+        _download_row(feature, result)
+        return
 
+    md_label = "⬇ Design Doc" if feature == "code_design" else "⬇ MD"
+    _download_row(feature, result, md_label=md_label)
+
+    # Multi-file: show per-file expanders
+    if result.get("_multi_file"):
+        _render_multi_file(feature, result)
+        return
+
+    _render_single(feature, result)
+
+
+def _render_multi_file(feature: str, result: dict) -> None:
+    files = result.get("files", {})
+    summary = result.get("summary", "")
+    if summary:
+        st.caption(summary)
+    for file_path, file_result in files.items():
+        label = file_path if len(file_path) <= 80 else "..." + file_path[-77:]
+        with st.expander(f"📄 {label}", expanded=False):
+            if "error" in file_result:
+                st.error(file_result["error"])
+            else:
+                _render_single(feature, file_result)
+
+
+def _render_single(feature: str, result: dict) -> None:
     if feature == "bug_analysis":
         _render_bugs(result)
     elif feature == "code_design":
-        st.markdown(result.get("markdown", json.dumps(result, indent=2)))
+        _render_code_design(result)
     elif feature == "code_flow":
-        _render_flow(result)
+        _render_code_flow(result)
     elif feature == "mermaid":
-        from app.components.mermaid_renderer import render_mermaid
-        render_mermaid(result.get("mermaid_source", ""))
-        st.caption(result.get("description", ""))
+        _render_mermaid(result)
     elif feature == "requirement":
         _render_requirements(result)
     elif feature == "static_analysis":
@@ -63,71 +87,349 @@ def _render_feature_result(feature: str, result: dict) -> None:
         _render_comments(result)
     elif feature == "commit_analysis":
         _render_commits(result)
+    else:
+        st.json(result)
 
+
+# ── Download buttons ──────────────────────────────────────────────────────────
+
+def _download_row(feature: str, result: dict, md_label: str = "⬇ MD") -> None:
+    json_bytes = json.dumps(result, indent=2, ensure_ascii=False)
+    md_bytes   = _to_markdown(feature, result)
+    c1, c2, _ = st.columns([1, 1, 6])
+    c1.download_button(
+        "⬇ JSON", data=json_bytes,
+        file_name=f"{feature}_result.json", mime="application/json",
+        key=f"dl_json_{feature}",
+    )
+    c2.download_button(
+        md_label, data=md_bytes,
+        file_name=f"{feature}_result.md", mime="text/markdown",
+        key=f"dl_md_{feature}",
+    )
+    st.divider()
+
+
+# ── Bug Analysis ──────────────────────────────────────────────────────────────
 
 def _render_bugs(result: dict) -> None:
     bugs = result.get("bugs", [])
-    st.caption(result.get("summary", ""))
+    narrative = result.get("narrative", "")
+    summary = result.get("summary", "")
+
+    # Narrative first — establishes context before counts or bug list
+    if narrative:
+        with st.container(border=True):
+            st.markdown("**Overall assessment**")
+            st.markdown(narrative)
+
     if not bugs:
-        st.success("No bugs found.")
+        # Only show "no bugs" banner when there is no narrative that may say otherwise
+        if not narrative:
+            st.success("No bugs found.")
         return
-    for bug in bugs:
-        severity = bug.get("severity", "minor")
-        color = {"critical": "🔴", "major": "🟠", "minor": "🟡"}.get(severity, "⚪")
-        with st.expander(f"{color} Line {bug.get('line', '?')} — {bug.get('description', '')}"):
-            st.write(f"**Severity:** {severity}")
-            st.write(f"**Suggestion:** {bug.get('suggestion', '')}")
-            st.code(bug.get("github_comment", ""), language="markdown")
+
+    # Summary count as a quiet caption above the grouped bug list
+    if summary:
+        st.caption(summary)
+
+    critical = [b for b in bugs if b.get("severity") == "critical"]
+    major    = [b for b in bugs if b.get("severity") == "major"]
+    minor    = [b for b in bugs if b.get("severity") == "minor"]
+
+    for group, label in [(critical, "Critical"), (major, "Major"), (minor, "Minor")]:
+        if not group:
+            continue
+        st.subheader(f"{_SEVERITY_ICON.get(label.lower(), '⚪')} {label} ({len(group)})")
+        for bug in group:
+            line = bug.get("line", "?")
+            desc = bug.get("description", bug.get("message", ""))
+            with st.expander(f"Line {line} — {desc[:80]}"):
+                st.markdown(desc)
+                if bug.get("runtime_impact"):
+                    st.markdown(f"**Runtime impact:** {bug['runtime_impact']}")
+                if bug.get("root_cause"):
+                    st.markdown(f"**Root cause:** {bug['root_cause']}")
+                if bug.get("suggestion"):
+                    st.markdown(f"**Fix:** {bug['suggestion']}")
+                if bug.get("github_comment"):
+                    with st.expander("GitHub comment"):
+                        st.code(bug["github_comment"], language="markdown")
 
 
-def _render_flow(result: dict) -> None:
-    st.caption(result.get("summary", ""))
-    for step in result.get("steps", []):
-        st.write(f"**Step {step['step']}:** {step['description']}")
-        if step.get("calls"):
-            st.write(f"  Calls: `{'`, `'.join(step['calls'])}`")
+# ── Code Design ───────────────────────────────────────────────────────────────
 
+def _render_code_design(result: dict) -> None:
+    _PRIORITY_ICON = {"high": "🔴", "medium": "🟠", "low": "🟡"}
+
+    # ── Primary: full design document rendered immediately ────────────────────
+    doc = result.get("design_document") or result.get("markdown", "")
+    if doc:
+        st.markdown(doc)
+    else:
+        # Fallback for old cached results that only have structured fields
+        if result.get("purpose"):
+            st.info(result["purpose"])
+
+    st.divider()
+
+    # ── Supporting: structured analysis in a collapsed expander ──────────────
+    design_issues = result.get("design_issues", [])
+    improvements  = result.get("improvements", [])
+    public_api    = result.get("public_api", [])
+    has_detail    = bool(design_issues or improvements or public_api
+                        or result.get("design_assessment")
+                        or result.get("dependencies")
+                        or result.get("data_contracts"))
+
+    if has_detail:
+        with st.expander(f"Analysis detail ({len(design_issues)} issue(s) found)", expanded=False):
+            if result.get("design_assessment"):
+                with st.container(border=True):
+                    st.markdown(f"**Overall assessment:** {result['design_assessment']}")
+
+            if design_issues:
+                st.subheader(f"Design issues ({len(design_issues)})")
+                for issue in design_issues:
+                    icon = _PRIORITY_ICON.get(issue.get("priority", "low"), "⚪")
+                    with st.expander(f"{icon} {issue.get('issue', '')}"):
+                        if issue.get("root_cause"):
+                            st.markdown(f"**Root cause:** {issue['root_cause']}")
+                        if issue.get("impact"):
+                            st.markdown(f"**Impact:** {issue['impact']}")
+                        if issue.get("recommendation"):
+                            st.markdown(f"**Recommendation:** {issue['recommendation']}")
+
+            if improvements:
+                st.subheader("Improvement roadmap")
+                for i, imp in enumerate(improvements, 1):
+                    st.markdown(f"{i}. {imp}")
+
+            if public_api:
+                st.subheader("Public API")
+                for api in public_api:
+                    with st.expander(f"`{api.get('name', '')}` — {api.get('signature', '')}"):
+                        st.markdown(api.get("description", ""))
+
+            if result.get("dependencies"):
+                st.subheader("Dependencies")
+                st.markdown(", ".join(f"`{d}`" for d in result["dependencies"]))
+
+            if result.get("data_contracts"):
+                st.subheader("Data contracts")
+                st.markdown(result["data_contracts"])
+
+
+# ── Code Flow ─────────────────────────────────────────────────────────────────
+
+def _render_code_flow(result: dict) -> None:
+    if result.get("markdown"):
+        st.markdown(result["markdown"])
+    else:
+        if result.get("summary"):
+            st.info(result["summary"])
+        entry_points = result.get("entry_points", [])
+        if entry_points:
+            st.markdown("**Entry points:** " + ", ".join(f"`{e}`" for e in entry_points))
+        for step in result.get("steps", []):
+            cols = st.columns([0.5, 7, 2.5])
+            cols[0].markdown(f"**{step.get('step', '')}**")
+            cols[1].markdown(step.get("description", ""))
+            calls = step.get("calls", [])
+            if calls:
+                cols[2].markdown(", ".join(f"`{c}`" for c in calls))
+
+
+# ── Mermaid Diagram ───────────────────────────────────────────────────────────
+
+def _render_mermaid(result: dict) -> None:
+    src = result.get("mermaid_source", "")
+    desc = result.get("description", "")
+    if desc:
+        st.caption(desc)
+    if src:
+        from app.components.mermaid_renderer import render_mermaid
+        render_mermaid(src)
+    else:
+        st.warning("No diagram source returned by the agent.")
+
+
+# ── Requirements ──────────────────────────────────────────────────────────────
 
 def _render_requirements(result: dict) -> None:
-    st.caption(result.get("summary", ""))
-    for req in result.get("requirements", []):
-        st.write(f"**{req.get('id', '')}** ({req.get('component', '')}): {req.get('statement', '')}")
+    if result.get("markdown"):
+        st.markdown(result["markdown"])
+    else:
+        if result.get("summary"):
+            st.info(result["summary"])
+        for req in result.get("requirements", []):
+            rid  = req.get("id", "")
+            comp = req.get("component", "")
+            stmt = req.get("statement", "")
+            lines = req.get("source_lines", [])
+            label = f"**{rid}**" + (f" `{comp}`" if comp else "")
+            with st.expander(f"{rid} — {stmt[:80]}"):
+                st.markdown(f"{label}: {stmt}")
+                if lines:
+                    st.caption(f"Source lines: {lines}")
 
+
+# ── Static Analysis ───────────────────────────────────────────────────────────
 
 def _render_static(result: dict) -> None:
-    st.caption(result.get("summary", ""))
-    linter = result.get("linter_findings", [])
-    semantic = result.get("semantic_findings", [])
-    if linter:
-        st.subheader("Linter Findings")
-        for f in linter:
-            st.write(f"Line {f.get('line')}: `{f.get('code')}` — {f.get('message')}")
-    if semantic:
-        st.subheader("Semantic Findings")
-        for f in semantic:
-            st.write(f"Line {f.get('line')}: [{f.get('category')}] {f.get('description')}")
+    if result.get("summary"):
+        st.info(result["summary"])
 
+    narrative = result.get("narrative", "")
+    if narrative:
+        with st.container(border=True):
+            st.markdown("**Overall assessment**")
+            st.markdown(narrative)
+
+    linter   = result.get("linter_findings", [])
+    semantic = result.get("semantic_findings", [])
+
+    if not linter and not semantic:
+        st.success("No issues found.")
+        return
+
+    if linter:
+        st.subheader(f"Linter findings ({len(linter)})")
+        for f in linter:
+            icon = _SEVERITY_ICON.get(f.get("severity", "minor"), "⚪")
+            line = f.get("line", "?")
+            code = f.get("code", "")
+            msg  = f.get("message", "")
+            st.markdown(f"{icon} **Line {line}** `{code}` — {msg}")
+
+    if semantic:
+        st.subheader(f"Semantic findings ({len(semantic)})")
+        for f in semantic:
+            icon = _SEVERITY_ICON.get(f.get("severity", "minor"), "⚪")
+            line = f.get("line", "?")
+            cat  = f.get("category", "")
+            desc = f.get("description", "")
+            sug  = f.get("suggestion", "")
+            with st.expander(f"{icon} Line {line} [{cat}] — {desc[:80]}"):
+                st.markdown(desc)
+                if sug:
+                    st.markdown(f"**Suggestion:** {sug}")
+
+
+# ── PR Comment Generator ──────────────────────────────────────────────────────
 
 def _render_comments(result: dict) -> None:
-    st.caption(result.get("summary", ""))
-    for comment in result.get("comments", []):
-        with st.expander(f"Line {comment.get('line')} — {comment.get('severity', '')}"):
-            st.code(comment.get("body", ""), language="markdown")
+    summary  = result.get("summary", "")
+    comments = result.get("comments", [])
 
+    if summary:
+        with st.container(border=True):
+            st.markdown("**PR Summary**")
+            st.markdown(summary)
+
+    if not comments:
+        st.caption("No inline comments generated.")
+        return
+
+    st.subheader(f"Inline comments ({len(comments)})")
+    for c in comments:
+        icon = _SEVERITY_ICON.get(c.get("severity", "suggestion"), "🔵")
+        file_ = c.get("file", "")
+        line  = c.get("line", "?")
+        body  = c.get("body", "")
+        sev   = c.get("severity", "")
+        with st.expander(f"{icon} {file_} : line {line} — {sev}"):
+            st.markdown(body)
+
+
+# ── Commit Analysis ───────────────────────────────────────────────────────────
 
 def _render_commits(result: dict) -> None:
-    st.caption(result.get("summary", ""))
-    ra = result.get("risk_assessment", {})
-    risk_color = {"high": "🔴", "medium": "🟠", "low": "🟢"}.get(ra.get("level", "low"), "⚪")
-    st.write(f"**Risk Level:** {risk_color} {ra.get('level', 'unknown')}")
-    cl = result.get("changelog", {})
-    if cl.get("added"):
-        st.write("**Added:**", ", ".join(cl["added"]))
-    if cl.get("changed"):
-        st.write("**Changed:**", ", ".join(cl["changed"]))
-    if cl.get("removed"):
-        st.write("**Removed:**", ", ".join(cl["removed"]))
+    if result.get("markdown"):
+        risk = result.get("risk_level", "")
+        if risk:
+            icon = _RISK_ICON.get(risk, "⚪")
+            st.metric("Risk Level", f"{icon} {risk.title()}")
+        st.markdown(result["markdown"])
+    else:
+        summary = result.get("summary", "")
+        if summary:
+            st.info(summary)
+        ra   = result.get("risk_assessment", {})
+        risk = ra.get("level", "low")
+        icon = _RISK_ICON.get(risk, "⚪")
+        st.metric("Risk Level", f"{icon} {risk.title()}")
+        concerns = ra.get("concerns", [])
+        if concerns:
+            with st.expander("Risk concerns"):
+                for c in concerns:
+                    st.markdown(f"- {c}")
+        cl = result.get("changelog", {})
+        for section, label in [("added", "Added"), ("changed", "Changed"), ("removed", "Removed")]:
+            for item in cl.get(section, []):
+                st.markdown(f"- [{label}] {item}")
+        quality = result.get("commit_quality", [])
+        if quality:
+            st.subheader(f"Commit quality ({len(quality)} commits)")
+            _QUALITY_ICON = {"good": "✅", "needs-improvement": "⚠️", "poor": "❌"}
+            for q in quality:
+                qicon  = _QUALITY_ICON.get(q.get("quality", ""), "❔")
+                sha    = q.get("sha", "")
+                msg    = q.get("message", "")
+                reason = q.get("reason", "")
+                with st.expander(f"{qicon} `{sha}` — {msg[:60]}"):
+                    if reason:
+                        st.markdown(f"**Reason:** {reason}")
 
+
+# ── Markdown export ───────────────────────────────────────────────────────────
 
 def _to_markdown(feature: str, result: dict) -> str:
-    return f"# {FEATURE_LABELS.get(feature, feature)}\n\n```json\n{json.dumps(result, indent=2)}\n```"
+    label = FEATURE_LABELS.get(feature, feature)
+    lines = [f"# {label}", ""]
+
+    if feature == "bug_analysis":
+        lines.append(result.get("summary", ""))
+        for bug in result.get("bugs", []):
+            lines += [
+                f"## Line {bug.get('line', '?')} — {bug.get('severity', '')}",
+                bug.get("description", bug.get("message", "")),
+                f"**Suggestion:** {bug.get('suggestion', '')}",
+                "",
+            ]
+    elif feature == "code_design":
+        lines.append(
+            result.get("design_document") or result.get("markdown") or json.dumps(result, indent=2)
+        )
+    elif feature == "code_flow":
+        lines.append(result.get("summary", ""))
+        for step in result.get("steps", []):
+            lines.append(f"{step.get('step')}. {step.get('description', '')}")
+    elif feature == "mermaid":
+        lines += ["```mermaid", result.get("mermaid_source", ""), "```"]
+    elif feature == "requirement":
+        lines.append(result.get("summary", ""))
+        for req in result.get("requirements", []):
+            lines.append(f"- **{req.get('id')}**: {req.get('statement', '')}")
+    elif feature == "static_analysis":
+        lines.append(result.get("summary", ""))
+        for f in result.get("linter_findings", []):
+            lines.append(f"- Line {f.get('line')}: `{f.get('code')}` {f.get('message')}")
+        for f in result.get("semantic_findings", []):
+            lines.append(f"- Line {f.get('line')} [{f.get('category')}]: {f.get('description')}")
+    elif feature == "comment_generator":
+        lines.append(result.get("summary", ""))
+        for c in result.get("comments", []):
+            lines += [f"### {c.get('file')} : line {c.get('line')}", c.get("body", ""), ""]
+    elif feature == "commit_analysis":
+        lines.append(result.get("summary", ""))
+        ra = result.get("risk_assessment", {})
+        lines.append(f"**Risk:** {ra.get('level', '')}")
+        cl = result.get("changelog", {})
+        for k in ("added", "changed", "removed"):
+            for item in cl.get(k, []):
+                lines.append(f"- [{k}] {item}")
+    else:
+        lines.append(f"```json\n{json.dumps(result, indent=2)}\n```")
+
+    return "\n".join(lines)

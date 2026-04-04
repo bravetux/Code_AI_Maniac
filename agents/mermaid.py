@@ -2,8 +2,7 @@ import json
 import re
 import duckdb
 from strands import Agent
-from strands.models import BedrockModel
-from config.settings import get_settings
+from agents._bedrock import make_bedrock_model
 from tools.chunk_file import chunk_by_lines
 from tools.cache import check_cache, write_cache
 from db.queries.history import add_history
@@ -37,9 +36,7 @@ def run_mermaid(conn: duckdb.DuckDBPyConnection, job_id: str,
     if cached:
         return cached
 
-    s = get_settings()
-    model = BedrockModel(model_id=s.bedrock_model_id, temperature=s.bedrock_temperature,
-                         region_name=s.aws_region)
+    model = make_bedrock_model()
     system = custom_prompt or _SYSTEM_PROMPTS.get(diagram_type, _SYSTEM_PROMPTS["flowchart"])
     agent = Agent(model=model, system_prompt=system)
 
@@ -48,7 +45,7 @@ def run_mermaid(conn: duckdb.DuckDBPyConnection, job_id: str,
                   f"{json.dumps(flow_context, indent=2)}")
     else:
         chunks = chunk_by_lines(content, max_tokens=4000)
-        prompt = (f"Language: {language or 'unknown'}\nFile: {file_path}\n\n"
+        prompt = (f"Language: {language or 'detect from code'}\nFile: {file_path}\n\n"
                   + "".join(c["content"] for c in chunks[:2]))
 
     raw = str(agent(prompt))

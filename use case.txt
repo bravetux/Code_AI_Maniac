@@ -1,0 +1,5 @@
+AG-UC-1128 - AWS LLM finds errors in a given solution, file or code snippet. The developer has to just select the respective solution file or code snippet and the software suggest the bugs and also suggest the possible fixes. code can be in GitHub/gittea or local file.
+The lines start and end of a file can be specified to be looked into or entire file. Option to choose multiple entire files upto 50.
+
+Agent AI - should have option to find bugs, prepare design documentation for the given files. 
+

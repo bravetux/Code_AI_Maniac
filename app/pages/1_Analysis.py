@@ -2,11 +2,12 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
+import time
 import threading
 import streamlit as st
 from db.connection import get_connection
 from db.schema import init_schema
-from db.queries.jobs import create_job, get_job
+from db.queries.jobs import create_job, get_job, get_job_results
 from agents.orchestrator import run_analysis
 from app.components.source_selector import render_source_selector
 from app.components.feature_selector import render_feature_selector
@@ -20,7 +21,7 @@ conn = get_connection()
 init_schema(conn)
 
 with st.sidebar:
-    render_sidebar_profile(conn)       # save/load must come first
+    render_sidebar_profile(conn)
     source = render_source_selector()
     feature_config = render_feature_selector(conn)
     run_clicked = st.button("Run Analysis", type="primary",
@@ -36,36 +37,52 @@ if run_clicked:
         custom_prompt=feature_config["custom_prompt"],
     )
     st.session_state["current_job_id"] = job_id
-    st.session_state["analysis_results"] = None
 
-    def _run():
-        results = run_analysis(conn=conn, job_id=job_id)
-        st.session_state["analysis_results"] = results
+    def _run(jid):
+        run_analysis(conn=conn, job_id=jid)
 
-    thread = threading.Thread(target=_run, daemon=True)
-    thread.start()
+    threading.Thread(target=_run, args=(job_id,), daemon=True).start()
     st.rerun()
 
-# Show progress / results
-if "current_job_id" in st.session_state:
-    job_id = st.session_state["current_job_id"]
-    job = get_job(conn, job_id)
+# ── Show progress / results ───────────────────────────────────────────────────
+if "current_job_id" not in st.session_state:
+    st.info("Configure a source and select features in the sidebar, then click **Run Analysis**.")
+    st.stop()
 
-    if job:
-        status = job["status"]
-        status_display = {"pending": "Pending...", "running": "Analyzing...",
-                          "completed": "Complete", "failed": "Failed"}.get(status, status)
+job_id = st.session_state["current_job_id"]
+job = get_job(conn, job_id)
 
-        st.caption(f"Job `{job_id[:8]}...` — {status_display}")
+if not job:
+    st.warning("Job not found.")
+    st.stop()
 
-        if status in ("pending", "running"):
-            st.progress(0 if status == "pending" else 50,
-                        text=f"{status_display} (refresh to update)")
-            if st.button("Refresh"):
-                st.rerun()
+status = job["status"]
+STATUS_LABEL = {
+    "pending":   "Queued...",
+    "running":   "Analyzing...",
+    "completed": "Complete",
+    "failed":    "Failed",
+}
+st.caption(f"Job `{job_id[:8]}...` — {STATUS_LABEL.get(status, status)}")
 
-        elif status == "completed" and st.session_state.get("analysis_results"):
-            render_results(st.session_state["analysis_results"])
+if status in ("pending", "running"):
+    progress = 20 if status == "pending" else 60
+    st.progress(progress, text=STATUS_LABEL[status])
+    # Auto-refresh every 2 s while the background thread is still running
+    time.sleep(2)
+    st.rerun()
 
-        elif status == "failed":
-            st.error("Analysis failed. Check your credentials and source configuration.")
+elif status == "completed":
+    results = get_job_results(conn, job_id)
+    if results:
+        render_results(results)
+    else:
+        st.warning("Analysis completed but no results were saved. Check the terminal for errors.")
+
+elif status == "failed":
+    results = get_job_results(conn, job_id) or {}
+    err = results.get("error", "Unknown error — check the terminal for the full traceback.")
+    st.error(f"Analysis failed: {err}")
+    if st.button("Clear and start over"):
+        del st.session_state["current_job_id"]
+        st.rerun()

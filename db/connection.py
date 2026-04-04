@@ -13,8 +13,16 @@ def get_connection() -> duckdb.DuckDBPyConnection:
         with _lock:
             if _connection is None:  # double-checked locking
                 settings = get_settings()
-                os.makedirs(os.path.dirname(settings.db_path), exist_ok=True)
-                _connection = duckdb.connect(settings.db_path)
+                db_path = settings.db_path
+                os.makedirs(os.path.dirname(os.path.abspath(db_path)), exist_ok=True)
+                try:
+                    _connection = duckdb.connect(db_path)
+                except duckdb.IOException as exc:
+                    raise RuntimeError(
+                        f"Cannot open database '{db_path}'. "
+                        "Another process already has it open — stop the other Streamlit "
+                        "instance (or other Python process) and restart the app."
+                    ) from exc
     return _connection
 
 

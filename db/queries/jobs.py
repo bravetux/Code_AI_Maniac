@@ -1,3 +1,4 @@
+import json
 import uuid
 from datetime import datetime, timezone
 import duckdb
@@ -30,6 +31,23 @@ def update_job_status(conn: duckdb.DuckDBPyConnection, job_id: str, status: str)
         "UPDATE jobs SET status = ?, completed_at = ? WHERE id = ?",
         [status, completed_at, job_id]
     )
+
+
+def save_job_results(conn: duckdb.DuckDBPyConnection, job_id: str, results: dict) -> None:
+    conn.execute(
+        "UPDATE jobs SET result_json = ? WHERE id = ?",
+        [json.dumps(results), job_id]
+    )
+
+
+def get_job_results(conn: duckdb.DuckDBPyConnection, job_id: str) -> dict | None:
+    row = conn.execute("SELECT result_json FROM jobs WHERE id = ?", [job_id]).fetchone()
+    if not row or row[0] is None:
+        return None
+    data = row[0]
+    if isinstance(data, str):
+        return json.loads(data)
+    return data
 
 
 def list_jobs(conn: duckdb.DuckDBPyConnection, limit: int = 50) -> list[dict]:

@@ -20,9 +20,12 @@ _STATEMENTS = [
         language     VARCHAR,
         features     VARCHAR[],
         custom_prompt TEXT,
+        result_json  JSON,
         created_at   TIMESTAMP DEFAULT now(),
         completed_at TIMESTAMP
     )""",
+    # Migration: add result_json to existing databases that predate this column
+    "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS result_json JSON",
     """CREATE TABLE IF NOT EXISTS results_cache (
         id           VARCHAR PRIMARY KEY,
         job_id       VARCHAR NOT NULL,

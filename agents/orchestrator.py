@@ -1,6 +1,6 @@
-import concurrent.futures
+import traceback
 import duckdb
-from db.queries.jobs import get_job, update_job_status
+from db.queries.jobs import get_job, update_job_status, save_job_results
 from agents.bug_analysis import run_bug_analysis
 from agents.code_design import run_code_design
 from agents.code_flow import run_code_flow
@@ -12,40 +12,167 @@ from agents.commit_analysis import run_commit_analysis
 from tools.fetch_local import fetch_local_file
 from tools.fetch_github import fetch_github_file
 from tools.fetch_gitea import fetch_gitea_file
+from tools.language_detect import detect_language
 from config.settings import get_settings
 
 
-def _fetch_content(job: dict) -> tuple[str, str]:
-    """Fetch file content and return (content, file_hash)."""
+def _fetch_files(job: dict) -> list[dict]:
+    """
+    Return a list of file dicts, each with keys:
+        file_path, content, file_hash
+    For local multi-file source_ref (paths joined by '::') returns one entry per file.
+    For GitHub/Gitea always returns exactly one entry.
+    """
     s = get_settings()
     source_type = job["source_type"]
-    source_ref = job["source_ref"]
+    source_ref  = job["source_ref"]
 
     if source_type == "local":
-        result = fetch_local_file(source_ref)
+        # Multi-file: paths joined by '::'
+        paths = source_ref.split("::") if "::" in source_ref else [source_ref]
+        files = []
+        errors = []
+        for p in paths:
+            r = fetch_local_file(p)
+            if "error" in r:
+                errors.append(r["error"])
+            else:
+                files.append({"file_path": p, "content": r["content"],
+                               "file_hash": r["file_hash"]})
+        if errors and not files:
+            raise RuntimeError("; ".join(errors))
+        if errors:
+            # Some files failed — surface as a warning but continue with successful ones
+            print(f"[WARN] Could not read {len(errors)} file(s): {errors[:3]}")
+        return files
+
     elif source_type == "github":
-        # source_ref format: "owner/repo::branch::path"
-        parts = source_ref.split("::")
+        parts  = source_ref.split("::")   # owner/repo :: branch :: path
         result = fetch_github_file(repo=parts[0], file_path=parts[2],
                                    branch=parts[1], token=s.github_token)
+        if "error" in result:
+            raise RuntimeError(result["error"])
+        return [{"file_path": parts[2], "content": result["content"],
+                 "file_hash": result["file_hash"]}]
+
     elif source_type == "gitea":
-        # source_ref format: "owner/repo::branch::path"
-        parts = source_ref.split("::")
+        parts  = source_ref.split("::")   # owner/repo :: branch :: path
         result = fetch_gitea_file(gitea_url=s.gitea_url, repo=parts[0],
                                   file_path=parts[2], branch=parts[1],
                                   token=s.gitea_token)
+        if "error" in result:
+            raise RuntimeError(result["error"])
+        return [{"file_path": parts[2], "content": result["content"],
+                 "file_hash": result["file_hash"]}]
+
     else:
         raise ValueError(f"Unknown source type: {source_type}")
 
-    if "error" in result:
-        raise RuntimeError(result["error"])
-    return result["content"], result["file_hash"]
+
+def _run_features_for_file(conn, job_id, file_info, features, language,
+                            custom_prompt) -> dict:
+    """Run all applicable features on a single file. Returns {feature: result}."""
+    file_path  = file_info["file_path"]
+    content    = file_info["content"]
+    file_hash  = file_info["file_hash"]
+    file_results = {}
+
+    common = dict(conn=conn, job_id=job_id, file_path=file_path,
+                  content=content, file_hash=file_hash,
+                  language=language, custom_prompt=custom_prompt)
+
+    feat_set = set(features)
+
+    # ── Phase 1: foundation agents (no dependencies) ──────────────────────────
+    # Always run bug_analysis and static_analysis first so their findings can
+    # inform code_design — mirrors the cowork pattern where bugs inform design.
+    phase1 = [f for f in ("bug_analysis", "static_analysis", "code_flow", "requirement")
+              if f in feat_set]
+
+    # Built here so test mocks applied after import are picked up
+    standalone = {
+        "bug_analysis":    run_bug_analysis,
+        "static_analysis": run_static_analysis,
+        "code_flow":       run_code_flow,
+        "requirement":     run_requirement_analysis,
+    }
+
+    for feat in phase1:
+        try:
+            print(f"[INFO] Running {feat} on {file_path}...")
+            file_results[feat] = standalone[feat](**common)
+        except Exception as e:
+            file_results[feat] = {"error": str(e)}
+
+    # ── Phase 2: context-aware agents ─────────────────────────────────────────
+    # code_design receives bug + static findings so it can treat bugs as design signals
+    if "code_design" in feat_set:
+        try:
+            print(f"[INFO] Running code_design on {file_path} (with bug/static context)...")
+            file_results["code_design"] = run_code_design(
+                **common,
+                bug_results=file_results.get("bug_analysis"),
+                static_results=file_results.get("static_analysis"),
+            )
+        except Exception as e:
+            file_results["code_design"] = {"error": str(e)}
+
+    # Mermaid: reuse code_flow result to avoid a redundant Bedrock call
+    if "mermaid" in feat_set:
+        try:
+            print(f"[INFO] Running mermaid on {file_path}...")
+            file_results["mermaid"] = run_mermaid(
+                conn=conn, job_id=job_id, file_path=file_path,
+                content=content, file_hash=file_hash,
+                language=language, custom_prompt=custom_prompt,
+                flow_context=file_results.get("code_flow"),
+            )
+        except Exception as e:
+            file_results["mermaid"] = {"error": str(e)}
+
+    # ── Phase 3: synthesis agents ─────────────────────────────────────────────
+    if "comment_generator" in feat_set:
+        try:
+            print(f"[INFO] Running comment_generator on {file_path}...")
+            file_results["comment_generator"] = run_comment_generation(
+                conn=conn, job_id=job_id, file_path=file_path,
+                file_hash=file_hash, language=language, custom_prompt=custom_prompt,
+                bug_results=file_results.get("bug_analysis"),
+                static_results=file_results.get("static_analysis"),
+            )
+        except Exception as e:
+            file_results["comment_generator"] = {"error": str(e)}
+
+    return file_results
+
+
+def _merge_multi_file_results(per_file: list[tuple[str, dict]],
+                               features: list[str]) -> dict:
+    """
+    Combine per-file results into a single results dict.
+    Each feature gets: {"_multi_file": True, "files": {path: result, ...}, "summary": "..."}
+    """
+    merged = {}
+    for feature in features:
+        if feature == "commit_analysis":
+            continue  # not file-based
+        files_data = {}
+        for file_path, file_results in per_file:
+            if feature in file_results:
+                files_data[file_path] = file_results[feature]
+        if files_data:
+            merged[feature] = {
+                "_multi_file": True,
+                "files": files_data,
+                "summary": f"{len(files_data)} file(s) analysed.",
+            }
+    return merged
 
 
 def run_analysis(conn: duckdb.DuckDBPyConnection, job_id: str) -> dict:
     """
     Orchestrate all selected features for a job.
-    Independent features run in parallel; dependent features run after.
+    Handles single-file and multi-file source refs.
     Returns dict of {feature_name: result}.
     """
     job = get_job(conn, job_id)
@@ -53,64 +180,41 @@ def run_analysis(conn: duckdb.DuckDBPyConnection, job_id: str) -> dict:
         raise ValueError(f"Job {job_id} not found")
 
     update_job_status(conn, job_id, "running")
-    # Intersect with enabled agents so no disabled agent can ever be invoked,
-    # even if a job was stored before the ENABLED_AGENTS setting was changed.
-    enabled = get_settings().enabled_agent_set
+
+    enabled  = get_settings().enabled_agent_set
     features = [f for f in (job["features"] or []) if f in enabled]
     language = job.get("language")
     custom_prompt = job.get("custom_prompt")
-    results = {}
-
-    # Built here so mocks in tests can patch individual agent functions
-    independent_features = {
-        "bug_analysis": run_bug_analysis,
-        "code_design": run_code_design,
-        "code_flow": run_code_flow,
-        "requirement": run_requirement_analysis,
-        "static_analysis": run_static_analysis,
-    }
+    results  = {}
 
     try:
-        content, file_hash = _fetch_content(job)
-        source_ref = job["source_ref"]
-        common_kwargs = dict(conn=conn, job_id=job_id, file_path=source_ref,
-                             content=content, file_hash=file_hash,
-                             language=language, custom_prompt=custom_prompt)
+        files = _fetch_files(job)
 
-        # Run independent features in parallel
-        independent = [f for f in features if f in independent_features]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-            futures = {
-                executor.submit(independent_features[f], **common_kwargs): f
-                for f in independent
-            }
-            for future in concurrent.futures.as_completed(futures):
-                feature = futures[future]
-                try:
-                    results[feature] = future.result()
-                except Exception as e:
-                    results[feature] = {"error": str(e)}
-
-        # Mermaid: reuse code_flow if available
-        if "mermaid" in features:
-            mermaid_kwargs = dict(conn=conn, job_id=job_id, file_path=source_ref,
-                                  content=content, file_hash=file_hash,
-                                  language=language, custom_prompt=custom_prompt,
-                                  flow_context=results.get("code_flow"))
-            results["mermaid"] = run_mermaid(**mermaid_kwargs)
-
-        # CommentGenerator: reuse bug + static results
-        if "comment_generator" in features:
-            results["comment_generator"] = run_comment_generation(
-                conn=conn, job_id=job_id, file_path=source_ref,
-                file_hash=file_hash, language=language, custom_prompt=custom_prompt,
-                bug_results=results.get("bug_analysis"),
-                static_results=results.get("static_analysis"),
+        if len(files) == 1:
+            # ── Single file ───────────────────────────────────────────────
+            effective_lang = language or detect_language(files[0]["file_path"])
+            results = _run_features_for_file(
+                conn, job_id, files[0], features, effective_lang, custom_prompt
             )
+        else:
+            # ── Multiple files ────────────────────────────────────────────
+            per_file: list[tuple[str, dict]] = []
+            for file_info in files:
+                # Auto-detect per file — different files in a folder may differ
+                effective_lang = language or detect_language(file_info["file_path"])
+                file_results = _run_features_for_file(
+                    conn, job_id, file_info, features, effective_lang, custom_prompt
+                )
+                per_file.append((file_info["file_path"], file_results))
+            results = _merge_multi_file_results(per_file, features)
 
+        save_job_results(conn, job_id, results)
         update_job_status(conn, job_id, "completed")
+
     except Exception as e:
-        update_job_status(conn, job_id, "failed")
         results["error"] = str(e)
+        traceback.print_exc()
+        save_job_results(conn, job_id, results)
+        update_job_status(conn, job_id, "failed")
 
     return results

@@ -2,14 +2,27 @@ import json
 import re
 import duckdb
 from strands import Agent
-from strands.models import BedrockModel
-from config.settings import get_settings
+from agents._bedrock import make_bedrock_model
 from tools.cache import check_cache, write_cache
 from db.queries.history import add_history
 
-_SYSTEM_PROMPT = """You are a senior engineer writing GitHub pull request review comments.
-Given bug findings and/or static analysis findings, generate ready-to-paste review comments
-in GitHub inline comment format.
+_SYSTEM_PROMPT = """You are a principal engineer writing a thorough GitHub pull request review.
+
+You will be given automated findings (bugs, static analysis). Your job is to turn these into
+high-quality, actionable PR review comments — the kind a thoughtful senior engineer writes, not
+a linting bot.
+
+For each comment:
+- Reference the exact line and explain the issue in context
+- Don't just restate the automated finding — add insight: why does this matter here, what is the
+  consequence in this specific codebase, what is the best fix given the surrounding code
+- Use a constructive, collegial tone (this is a code review, not a blame exercise)
+- Use markdown formatting: code blocks for suggested fixes, bold for key points
+
+Also write a top-level PR summary comment that:
+- Gives an honest overall assessment
+- Prioritises what the author must fix before merge vs. nice-to-haves
+- Notes any positive aspects of the code (good practices, clean sections)
 
 Return JSON:
 {
@@ -17,13 +30,12 @@ Return JSON:
     {
       "file": "<file path>",
       "line": <integer>,
-      "body": "<GitHub review comment text — use markdown>",
-      "severity": "<critical|major|minor|suggestion>"
+      "severity": "<critical|major|minor|suggestion>",
+      "body": "<full markdown review comment — be thorough, not terse>"
     }
   ],
-  "summary": "<overall PR review summary suitable for the top-level comment>"
-}
-Return ONLY valid JSON. No markdown fences."""
+  "summary": "<top-level PR review comment in markdown — overall assessment, must-fix items, positives>"
+}"""
 
 
 def run_comment_generation(conn: duckdb.DuckDBPyConnection, job_id: str,
@@ -35,22 +47,28 @@ def run_comment_generation(conn: duckdb.DuckDBPyConnection, job_id: str,
     if cached:
         return cached
 
-    s = get_settings()
-    model = BedrockModel(model_id=s.bedrock_model_id, temperature=s.bedrock_temperature,
-                         region_name=s.aws_region)
+    model = make_bedrock_model()
     agent = Agent(model=model, system_prompt=custom_prompt or _SYSTEM_PROMPT)
 
-    context_parts = [f"File: {file_path}"]
-    if bug_results:
+    context_parts = [f"File under review: `{file_path}`"]
+
+    bugs = (bug_results or {}).get("bugs", [])
+    if bugs:
         context_parts.append(
-            f"Bug Analysis findings:\n{json.dumps(bug_results.get('bugs', []), indent=2)}"
+            f"Bug analysis findings ({len(bugs)} bugs):\n" + json.dumps(bugs, indent=2)
         )
-    if static_results:
-        all_findings = (static_results.get("linter_findings", [])
-                        + static_results.get("semantic_findings", []))
+    if (bug_results or {}).get("narrative"):
+        context_parts.append(f"Bug analysis narrative:\n{bug_results['narrative']}")
+
+    linter   = (static_results or {}).get("linter_findings", [])
+    semantic = (static_results or {}).get("semantic_findings", [])
+    if linter or semantic:
         context_parts.append(
-            f"Static Analysis findings:\n{json.dumps(all_findings, indent=2)}"
+            f"Static analysis findings ({len(linter)} linter, {len(semantic)} semantic):\n"
+            + json.dumps(linter + semantic, indent=2)
         )
+    if (static_results or {}).get("narrative"):
+        context_parts.append(f"Static analysis narrative:\n{static_results['narrative']}")
 
     prompt = "\n\n".join(context_parts)
     raw = str(agent(prompt))
@@ -64,5 +82,6 @@ def run_comment_generation(conn: duckdb.DuckDBPyConnection, job_id: str,
     write_cache(conn, job_id=job_id, feature="comment_generator", file_hash=file_hash,
                 language=language, custom_prompt=custom_prompt, result=result)
     add_history(conn, job_id=job_id, feature="comment_generator", source_ref=file_path,
-                language=language, summary=f"{len(result.get('comments', []))} comments generated.")
+                language=language,
+                summary=f"{len(result.get('comments', []))} PR comments generated.")
     return result

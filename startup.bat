@@ -105,6 +105,28 @@ if not exist ".env" (
 :: ── 7. Create data directory if missing ─────────────────────────
 if not exist "data" mkdir data
 
+:: ── 7b. Kill stale Python/Streamlit processes holding the DB ─────
+echo [INFO] Checking for stale processes holding the database...
+set DB_FILE=%~dp0data\arena.db
+
+:: First try: kill Python processes whose command line contains "streamlit"
+for /f "tokens=2" %%P in ('wmic process where "name='python.exe'" get processid^,commandline /value 2^>nul ^| findstr /i "streamlit" ^| findstr /r "ProcessId=[0-9]"') do (
+    echo   [KILL] Streamlit process PID %%P — terminating.
+    taskkill /PID %%P /F >nul 2>&1
+)
+
+:: Verify the DB lock is now free; if not, fall back to killing all python.exe
+if exist "%DB_FILE%" (
+    python -c "import duckdb; c=duckdb.connect(r'%DB_FILE%'); c.close()" >nul 2>&1
+    if errorlevel 1 (
+        echo [WARN] DB still locked — killing all python.exe processes...
+        taskkill /IM python.exe /F >nul 2>&1
+        taskkill /IM python3.exe /F >nul 2>&1
+        timeout /t 2 /nobreak >nul
+    )
+)
+echo [OK] Database lock clear.
+
 :: ── 8. Set PYTHONPATH so all app pages can import project modules ─
 :: Streamlit adds app/ to sys.path by default; we also need the project root.
 set PYTHONPATH=%~dp0

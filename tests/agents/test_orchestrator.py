@@ -1,18 +1,23 @@
 from unittest.mock import patch
 from agents.orchestrator import run_analysis
 
+# Stub returned by the patched _fetch_files — a single-file list
+_FAKE_FILES = [{"file_path": "test.py", "content": "content", "file_hash": "hash"}]
+
 
 def test_orchestrator_runs_selected_features(test_db):
     from db.queries.jobs import create_job
     job_id = create_job(test_db, source_type="local", source_ref="test.py",
                         language="Python", features=["bug_analysis", "mermaid"])
 
-    mock_bug_result = {"bugs": [], "summary": "No bugs."}
-    mock_mermaid_result = {"diagram_type": "flowchart", "mermaid_source": "flowchart LR\nA-->B", "description": "test"}
+    mock_bug_result     = {"bugs": [], "summary": "No bugs."}
+    mock_mermaid_result = {"diagram_type": "flowchart",
+                           "mermaid_source": "flowchart LR\nA-->B",
+                           "description": "test"}
 
-    with patch("agents.orchestrator.run_bug_analysis", return_value=mock_bug_result) as mock_bug, \
-         patch("agents.orchestrator.run_mermaid", return_value=mock_mermaid_result) as mock_mermaid, \
-         patch("agents.orchestrator._fetch_content", return_value=("content", "hash")):
+    with patch("agents.orchestrator._fetch_files", return_value=_FAKE_FILES), \
+         patch("agents.orchestrator.run_bug_analysis", return_value=mock_bug_result) as mock_bug, \
+         patch("agents.orchestrator.run_mermaid", return_value=mock_mermaid_result) as mock_mermaid:
         results = run_analysis(conn=test_db, job_id=job_id)
 
     mock_bug.assert_called_once()
@@ -26,8 +31,9 @@ def test_orchestrator_updates_job_status(test_db):
     job_id = create_job(test_db, source_type="local", source_ref="test.py",
                         language="Python", features=["code_design"])
 
-    with patch("agents.orchestrator.run_code_design", return_value={"markdown": "# Doc", "title": "test"}), \
-         patch("agents.orchestrator._fetch_content", return_value=("content", "hash")):
+    with patch("agents.orchestrator._fetch_files", return_value=_FAKE_FILES), \
+         patch("agents.orchestrator.run_code_design",
+               return_value={"markdown": "# Doc", "title": "test"}):
         run_analysis(conn=test_db, job_id=job_id)
 
     job = get_job(test_db, job_id)
@@ -44,18 +50,18 @@ def test_orchestrator_skips_disabled_agents(test_db, monkeypatch):
     job_id = create_job(test_db, source_type="local", source_ref="test.py",
                         language="Python", features=["bug_analysis", "code_design"])
 
-    with patch("agents.orchestrator.run_bug_analysis") as mock_bug, \
+    with patch("agents.orchestrator._fetch_files", return_value=_FAKE_FILES), \
+         patch("agents.orchestrator.run_bug_analysis") as mock_bug, \
          patch("agents.orchestrator.run_code_design",
-               return_value={"markdown": "# Doc", "title": "test"}) as mock_design, \
-         patch("agents.orchestrator._fetch_content", return_value=("content", "hash")):
+               return_value={"markdown": "# Doc", "title": "test"}) as mock_design:
         results = run_analysis(conn=test_db, job_id=job_id)
 
-    mock_bug.assert_not_called()        # disabled — must be skipped
-    mock_design.assert_called_once()    # enabled — must run
+    mock_bug.assert_not_called()
+    mock_design.assert_called_once()
     assert "code_design" in results
     assert "bug_analysis" not in results
 
-    get_settings.cache_clear()  # restore default for subsequent tests
+    get_settings.cache_clear()
 
 
 def test_orchestrator_all_disabled_completes_empty(test_db, monkeypatch):
@@ -68,7 +74,7 @@ def test_orchestrator_all_disabled_completes_empty(test_db, monkeypatch):
     job_id = create_job(test_db, source_type="local", source_ref="test.py",
                         language="Python", features=["bug_analysis", "code_design"])
 
-    with patch("agents.orchestrator._fetch_content", return_value=("content", "hash")):
+    with patch("agents.orchestrator._fetch_files", return_value=_FAKE_FILES):
         results = run_analysis(conn=test_db, job_id=job_id)
 
     job = get_job(test_db, job_id)
@@ -77,3 +83,25 @@ def test_orchestrator_all_disabled_completes_empty(test_db, monkeypatch):
     assert "code_design" not in results
 
     get_settings.cache_clear()
+
+
+def test_orchestrator_multi_file(test_db):
+    """Multi-file source_ref produces _multi_file results."""
+    from db.queries.jobs import create_job
+    job_id = create_job(test_db, source_type="local",
+                        source_ref="a.py::b.py",
+                        language="Python", features=["bug_analysis"])
+
+    fake_files = [
+        {"file_path": "a.py", "content": "x=1", "file_hash": "hash_a"},
+        {"file_path": "b.py", "content": "y=2", "file_hash": "hash_b"},
+    ]
+    mock_bug = {"bugs": [], "summary": "No bugs."}
+
+    with patch("agents.orchestrator._fetch_files", return_value=fake_files), \
+         patch("agents.orchestrator.run_bug_analysis", return_value=mock_bug):
+        results = run_analysis(conn=test_db, job_id=job_id)
+
+    assert results["bug_analysis"]["_multi_file"] is True
+    assert "a.py" in results["bug_analysis"]["files"]
+    assert "b.py" in results["bug_analysis"]["files"]
