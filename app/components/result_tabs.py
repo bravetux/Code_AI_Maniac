@@ -72,7 +72,7 @@ def _render_multi_file(feature: str, result: dict) -> None:
 
 def _render_single(feature: str, result: dict) -> None:
     if feature == "bug_analysis":
-        _render_bugs(result)
+        _render_bugs(result, language=result.get("language", ""))
     elif feature == "code_design":
         _render_code_design(result)
     elif feature == "code_flow":
@@ -112,10 +112,11 @@ def _download_row(feature: str, result: dict, md_label: str = "⬇ MD") -> None:
 
 # ── Bug Analysis ──────────────────────────────────────────────────────────────
 
-def _render_bugs(result: dict) -> None:
+def _render_bugs(result: dict, language: str = "") -> None:
     bugs = result.get("bugs", [])
     narrative = result.get("narrative", "")
     summary = result.get("summary", "")
+    lang = (language or "python").lower()
 
     # Narrative first — establishes context before counts or bug list
     if narrative:
@@ -153,20 +154,22 @@ def _render_bugs(result: dict) -> None:
                 if bug.get("suggestion"):
                     st.markdown(f"**Fix:** {bug['suggestion']}")
 
+                st.divider()
+                col_orig, col_fix = st.columns(2)
                 original = bug.get("original_snippet", "")
                 fixed = bug.get("fixed_snippet", "")
-                if original or fixed:
-                    st.divider()
-                    col_orig, col_fix = st.columns(2)
-                    start_line = bug.get("snippet_start_line") or line
-                    with col_orig:
-                        st.markdown("**Original Code**")
-                        st.code(original or "—", language="python",
-                                line_numbers=True)
-                    with col_fix:
-                        st.markdown("**Fixed Code**")
-                        st.code(fixed or "—", language="python",
-                                line_numbers=True)
+                with col_orig:
+                    st.markdown("**Original Code**")
+                    if original:
+                        st.code(original, language=lang, line_numbers=True)
+                    else:
+                        st.caption("Re-run analysis to generate snippet.")
+                with col_fix:
+                    st.markdown("**Fixed Code**")
+                    if fixed:
+                        st.code(fixed, language=lang, line_numbers=True)
+                    else:
+                        st.caption("No fix snippet provided.")
 
                 if bug.get("github_comment"):
                     with st.expander("GitHub comment"):

@@ -48,10 +48,13 @@ def _parse_json_response(text: str) -> dict:
     return json.loads(text)
 
 
+_CACHE_KEY = "bug_analysis:v2"   # bump when output schema changes
+
+
 def run_bug_analysis(conn: duckdb.DuckDBPyConnection, job_id: str,
                      file_path: str, content: str, file_hash: str,
                      language: str | None, custom_prompt: str | None) -> dict:
-    cached = check_cache(conn, file_hash, "bug_analysis", language, custom_prompt)
+    cached = check_cache(conn, file_hash, _CACHE_KEY, language, custom_prompt)
     if cached:
         return cached
 
@@ -91,11 +94,16 @@ def run_bug_analysis(conn: duckdb.DuckDBPyConnection, job_id: str,
     file_lines = content.splitlines()
     for bug in deduped:
         line_no = bug.get("line")
-        if isinstance(line_no, int) and line_no >= 1:
+        try:
+            line_no = int(line_no)   # LLM sometimes returns a string
+        except (TypeError, ValueError):
+            line_no = None
+        if line_no and line_no >= 1:
             start = max(0, line_no - 1 - context)
             end = min(len(file_lines), line_no + context)
             bug["original_snippet"] = "\n".join(file_lines[start:end])
             bug["snippet_start_line"] = start + 1  # 1-based for display
+            bug["line"] = line_no   # normalise to int
         else:
             bug["original_snippet"] = ""
             bug["snippet_start_line"] = None
@@ -104,9 +112,10 @@ def run_bug_analysis(conn: duckdb.DuckDBPyConnection, job_id: str,
         "bugs": deduped,
         "narrative": "\n\n".join(narratives) if narratives else "",
         "summary": f"{len(deduped)} bug(s) found." if deduped else "No bugs found.",
+        "language": language or "",
     }
 
-    write_cache(conn, job_id=job_id, feature="bug_analysis",
+    write_cache(conn, job_id=job_id, feature=_CACHE_KEY,
                 file_hash=file_hash, language=language,
                 custom_prompt=custom_prompt, result=result)
     add_history(conn, job_id=job_id, feature="bug_analysis",
