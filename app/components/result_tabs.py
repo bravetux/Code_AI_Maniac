@@ -152,6 +152,22 @@ def _render_bugs(result: dict) -> None:
                     st.markdown(f"**Root cause:** {bug['root_cause']}")
                 if bug.get("suggestion"):
                     st.markdown(f"**Fix:** {bug['suggestion']}")
+
+                original = bug.get("original_snippet", "")
+                fixed = bug.get("fixed_snippet", "")
+                if original or fixed:
+                    st.divider()
+                    col_orig, col_fix = st.columns(2)
+                    start_line = bug.get("snippet_start_line") or line
+                    with col_orig:
+                        st.markdown("**Original Code**")
+                        st.code(original or "—", language="python",
+                                line_numbers=True)
+                    with col_fix:
+                        st.markdown("**Fixed Code**")
+                        st.code(fixed or "—", language="python",
+                                line_numbers=True)
+
                 if bug.get("github_comment"):
                     with st.expander("GitHub comment"):
                         st.code(bug["github_comment"], language="markdown")

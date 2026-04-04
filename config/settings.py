@@ -38,6 +38,7 @@ class Settings(BaseSettings):
 
     db_path: str = "data/arena.db"
     max_files: int = Field(default=50, ge=1, le=100)
+    bug_context_lines: int = Field(default=5, ge=0, le=20)
 
     # Comma-separated agent keys, or "all" / "*" / "" to enable everything.
     # Examples:

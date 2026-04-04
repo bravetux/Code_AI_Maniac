@@ -6,6 +6,7 @@ from agents._bedrock import make_bedrock_model
 from tools.chunk_file import chunk_by_lines
 from tools.cache import check_cache, write_cache
 from db.queries.history import add_history
+from config.settings import get_settings
 
 _SYSTEM_PROMPT = """You are a senior software engineer doing a thorough code review.
 
@@ -29,6 +30,7 @@ Return a JSON object:
       "runtime_impact": "<what actually goes wrong at runtime if this bug is not fixed>",
       "root_cause": "<the underlying reason this bug exists>",
       "suggestion": "<specific, concrete fix — include example code if helpful>",
+      "fixed_snippet": "<minimal corrected code snippet that resolves the bug — include only the lines that change, with enough surrounding context to be applied>",
       "github_comment": "<ready-to-paste GitHub PR review comment in markdown>"
     }
   ],
@@ -83,6 +85,20 @@ def run_bug_analysis(conn: duckdb.DuckDBPyConnection, job_id: str,
         if key not in seen:
             seen.add(key)
             deduped.append(bug)
+
+    # Attach original_snippet — extract programmatically from file content
+    context = get_settings().bug_context_lines
+    file_lines = content.splitlines()
+    for bug in deduped:
+        line_no = bug.get("line")
+        if isinstance(line_no, int) and line_no >= 1:
+            start = max(0, line_no - 1 - context)
+            end = min(len(file_lines), line_no + context)
+            bug["original_snippet"] = "\n".join(file_lines[start:end])
+            bug["snippet_start_line"] = start + 1  # 1-based for display
+        else:
+            bug["original_snippet"] = ""
+            bug["snippet_start_line"] = None
 
     result = {
         "bugs": deduped,
