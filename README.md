@@ -463,6 +463,4 @@ ai_arena/1128/
 
 ---
 
-## License
-
-Internal project — AG-UC-1128.
+*Developed by B.Vignesh Kumar — ic19939@gmail.com*
