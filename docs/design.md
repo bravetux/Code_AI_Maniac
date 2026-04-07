@@ -1,4 +1,4 @@
-# AI Arena — Detailed Design Document
+# AI Code Maniac — Detailed Design Document
 
 **Project:** AG-UC-1128  
 **Version:** 1.2  
@@ -35,7 +35,7 @@
 
 ## 1. Executive Summary
 
-AI Arena is a self-hosted, multi-agent code analysis platform. It accepts source code from GitHub, Gitea, or local files, runs up to eight specialized AI agents in a coordinated three-phase pipeline, and presents the results in a tabbed Streamlit UI with download options.
+AI Code Maniac is a self-hosted, multi-agent code analysis platform. It accepts source code from GitHub, Gitea, or local files, runs up to eight specialized AI agents in a coordinated three-phase pipeline, and presents the results in a tabbed Streamlit UI with download options.
 
 **Core design goals:**
 

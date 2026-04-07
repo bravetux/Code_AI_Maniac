@@ -1,8 +1,8 @@
-# AI Arena — Multi-Agent Code Analysis Platform
+# AI Code Maniac — Multi-Agent Code Analysis Platform
 
-**AG-UC-1128** | AWS Bedrock (Claude) · Strands Agents · Streamlit · DuckDB
+**Using: AWS Bedrock (Claude) · Strands Agents · Streamlit · DuckDB**
 
-AI Arena orchestrates up to **8 specialized AI agents** in a coordinated 3-phase pipeline to perform deep code analysis. Submit code from GitHub, Gitea, or local files and receive concurrent results: bug detection, design review, execution-flow documentation, requirement extraction, static analysis, Mermaid diagrams, PR comments, and commit-history assessment.
+AI Code Maniac orchestrates up to **8 specialized AI agents** in a coordinated 3-phase pipeline to perform deep code analysis. Submit code from GitHub, Gitea, or local files and receive concurrent results: bug detection, design review, execution-flow documentation, requirement extraction, static analysis, Mermaid diagrams, PR comments, and commit-history assessment.
 
 ---
 

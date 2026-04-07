@@ -1,4 +1,6 @@
 import json
+import os
+from datetime import datetime
 import streamlit as st
 
 FEATURE_LABELS = {
@@ -15,8 +17,19 @@ FEATURE_LABELS = {
 _SEVERITY_ICON = {"critical": "🔴", "major": "🟠", "minor": "🟡", "suggestion": "🔵"}
 _RISK_ICON     = {"high": "🔴", "medium": "🟠", "low": "🟢"}
 
+_FEATURE_SUFFIX = {
+    "bug_analysis":      "_bug_analysis.md",
+    "code_design":       "_code_design.md",
+    "code_flow":         "_code_flow.md",
+    "mermaid":           "_mermaid.md",
+    "requirement":       "_requirement.md",
+    "static_analysis":   "_static_analysis.md",
+    "comment_generator": "_pr_comments.md",
+    "commit_analysis":   "_commit_analysis.md",
+}
 
-def render_results(results: dict) -> None:
+
+def render_results(results: dict, source_ref: str = "") -> None:
     if not results:
         st.info("No results to display.")
         return
@@ -26,6 +39,19 @@ def render_results(results: dict) -> None:
         if "error" in results:
             st.error(f"Analysis error: {results['error']}")
         return
+
+    # ── Save All Reports button ───────────────────────────────────────────────
+    col_save, col_msg = st.columns([2, 8])
+    with col_save:
+        if st.button("💾 Save All Reports", key="save_all_reports_btn",
+                     help="Save all tab reports as .md files to the Reports/ folder"):
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            reports_dir = os.path.join("Reports", ts)
+            written = _save_all_reports(results, reports_dir, source_ref)
+            with col_msg:
+                st.success(
+                    f"Saved **{len(written)}** report(s) to `{reports_dir}/`"
+                )
 
     tabs = st.tabs([FEATURE_LABELS[f] for f in features])
     for tab, feature in zip(tabs, features):
@@ -407,6 +433,60 @@ def _render_commits(result: dict) -> None:
                 with st.expander(f"{qicon} `{sha}` — {msg[:60]}"):
                     if reason:
                         st.markdown(f"**Reason:** {reason}")
+
+
+# ── Bulk save to Reports/ folder ─────────────────────────────────────────────
+
+def _source_basename(source_ref: str) -> str:
+    """Extract a usable base filename from a source_ref string."""
+    if not source_ref:
+        return "report"
+    # GitHub/Gitea: owner/repo::branch::path/to/file.py → file.py
+    # Local single: /path/to/file.py → file.py
+    last = source_ref.split("::")[-1]
+    name = os.path.basename(last)
+    return name if name else "report"
+
+
+def _save_all_reports(results: dict, reports_dir: str, source_ref: str = "") -> list[str]:
+    """
+    Write one Markdown report per (source file × feature) into reports_dir.
+    Returns list of written file paths.
+    """
+    os.makedirs(reports_dir, exist_ok=True)
+    written = []
+
+    for feature in FEATURE_LABELS:
+        if feature not in results:
+            continue
+        result = results[feature]
+        suffix = _FEATURE_SUFFIX.get(feature, f"_{feature}.md")
+
+        if result.get("_multi_file"):
+            # One .md per source file
+            for file_path, file_result in result.get("files", {}).items():
+                base = os.path.basename(file_path) or "report"
+                out_path = os.path.join(reports_dir, f"{base}{suffix}")
+                try:
+                    content = _to_markdown(feature, file_result)
+                    with open(out_path, "w", encoding="utf-8") as fh:
+                        fh.write(content)
+                    written.append(out_path)
+                except Exception as exc:
+                    st.warning(f"Could not write {out_path}: {exc}")
+        else:
+            # Single file — derive name from source_ref
+            base = _source_basename(source_ref)
+            out_path = os.path.join(reports_dir, f"{base}{suffix}")
+            try:
+                content = _to_markdown(feature, result)
+                with open(out_path, "w", encoding="utf-8") as fh:
+                    fh.write(content)
+                written.append(out_path)
+            except Exception as exc:
+                st.warning(f"Could not write {out_path}: {exc}")
+
+    return written
 
 
 # ── Markdown export ───────────────────────────────────────────────────────────

@@ -8,7 +8,7 @@ import streamlit as st
 from db.connection import get_connection, reset_connection
 from config.settings import get_settings
 
-st.set_page_config(page_title="Settings — AI Arena", layout="wide")
+st.set_page_config(page_title="Settings — AI Code Maniac", layout="wide")
 st.title("Settings")
 
 conn = get_connection()

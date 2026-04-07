@@ -7,7 +7,7 @@ import pandas as pd
 from db.connection import get_connection
 from db.queries.presets import list_presets, delete_preset, create_preset
 
-st.set_page_config(page_title="Presets — AI Arena", layout="wide")
+st.set_page_config(page_title="Presets — AI Code Maniac", layout="wide")
 st.title("Prompt Presets")
 
 conn = get_connection()

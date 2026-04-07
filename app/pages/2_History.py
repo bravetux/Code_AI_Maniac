@@ -7,7 +7,7 @@ import pandas as pd
 from db.connection import get_connection
 from db.queries.history import list_history
 
-st.set_page_config(page_title="History — AI Arena", layout="wide")
+st.set_page_config(page_title="History — AI Code Maniac", layout="wide")
 st.title("Analysis History")
 
 conn = get_connection()

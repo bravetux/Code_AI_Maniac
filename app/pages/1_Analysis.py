@@ -15,7 +15,7 @@ from app.components.feature_selector import render_feature_selector
 from app.components.result_tabs import render_results
 from app.components.sidebar_profile import render_sidebar_profile
 
-st.set_page_config(page_title="Analysis — AI Arena", layout="wide")
+st.set_page_config(page_title="Analysis — AI Code Maniac", layout="wide")
 st.title("Code Analysis")
 
 conn = get_connection()
@@ -148,7 +148,7 @@ if status in ("pending", "running"):
 elif status == "completed":
     results = get_job_results(conn, job_id)
     if results:
-        render_results(results)
+        render_results(results, source_ref=job.get("source_ref", ""))
     else:
         st.warning("Analysis completed but no results were saved. Check the terminal for errors.")
 

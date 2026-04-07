@@ -1,4 +1,4 @@
-# AI Arena — Agent Architecture & Code Flow
+# AI Code Maniac — Agent Architecture & Code Flow
 
 **AG-UC-1128** | Updated: 2026-04-04
 

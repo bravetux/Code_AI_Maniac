@@ -1,0 +1,1839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Code Maniac — Presentation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0d1117;
+    --surface:   #161b22;
+    --surface2:  #21262d;
+    --border:    #30363d;
+    --text:      #e6edf3;
+    --muted:     #8b949e;
+    --accent:    #58a6ff;
+    --green:     #3fb950;
+    --orange:    #d29922;
+    --red:       #f85149;
+    --purple:    #bc8cff;
+    --cyan:      #39d353;
+    --p1:        #1f77b4;
+    --p2:        #e07b39;
+    --p3:        #2ca02c;
+    --standalone:#9467bd;
+  }
+
+  html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); }
+
+  /* ── Slide container ─────────────────────────────── */
+  #deck { width: 100vw; height: 100vh; position: relative; overflow: hidden; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    padding: 60px 80px;
+    opacity: 0; transform: translateX(60px);
+    transition: opacity .45s ease, transform .45s ease;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .slide.active  { opacity: 1; transform: translateX(0); pointer-events: all; z-index: 1; }
+  .slide.prev    { opacity: 0; transform: translateX(-60px); z-index: 0; }
+
+  /* slide-specific layouts */
+  .slide.left-align { align-items: flex-start; }
+
+  /* ── Typography ──────────────────────────────────── */
+  .slide-number {
+    position: absolute; top: 28px; right: 40px;
+    font-size: 12px; color: var(--muted); font-weight: 500;
+    letter-spacing: .05em;
+  }
+  .tag {
+    display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 18px;
+  }
+  .tag-blue   { background: rgba(88,166,255,.15); color: var(--accent); border: 1px solid rgba(88,166,255,.3); }
+  .tag-green  { background: rgba(63,185,80,.15);  color: var(--green);  border: 1px solid rgba(63,185,80,.3); }
+  .tag-orange { background: rgba(210,153,34,.15); color: var(--orange); border: 1px solid rgba(210,153,34,.3); }
+  .tag-purple { background: rgba(188,140,255,.15);color: var(--purple); border: 1px solid rgba(188,140,255,.3); }
+  .tag-red    { background: rgba(248,81,73,.15);  color: var(--red);    border: 1px solid rgba(248,81,73,.3); }
+
+  h1 { font-size: 52px; font-weight: 800; line-height: 1.1; letter-spacing: -.02em; }
+  h2 { font-size: 36px; font-weight: 700; line-height: 1.2; letter-spacing: -.01em; margin-bottom: 8px; }
+  h3 { font-size: 22px; font-weight: 600; line-height: 1.3; }
+  p  { font-size: 17px; line-height: 1.7; color: var(--muted); }
+  .lead { font-size: 20px; line-height: 1.65; color: var(--muted); max-width: 700px; text-align: center; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* ── Gradient headings ───────────────────────────── */
+  .grad-blue   { background: linear-gradient(135deg,#58a6ff,#79c0ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .grad-green  { background: linear-gradient(135deg,#3fb950,#56d364); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .grad-purple { background: linear-gradient(135deg,#bc8cff,#d2a8ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .grad-orange { background: linear-gradient(135deg,#f0883e,#ffa657); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+
+  /* ── Cards ───────────────────────────────────────── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px 24px;
+  }
+  .card-grid { display: grid; gap: 16px; width: 100%; }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+  /* ── Pill badge ──────────────────────────────────── */
+  .badge {
+    display: inline-block; padding: 2px 10px; border-radius: 12px;
+    font-size: 12px; font-weight: 600;
+  }
+  .badge-crit   { background:#f8514930; color:#f85149; }
+  .badge-major  { background:#d2992230; color:#d29922; }
+  .badge-minor  { background:#3fb95030; color:#3fb950; }
+  .badge-blue   { background:#58a6ff30; color:#58a6ff; }
+  .badge-purple { background:#bc8cff30; color:#bc8cff; }
+
+  /* ── Lists ───────────────────────────────────────── */
+  ul.check { list-style: none; }
+  ul.check li { padding: 5px 0; font-size: 16px; color: var(--muted); }
+  ul.check li::before { content: '✓ '; color: var(--green); font-weight: 700; }
+
+  ul.dot { list-style: none; }
+  ul.dot li { padding: 5px 0; font-size: 15px; color: var(--muted); }
+  ul.dot li::before { content: '• '; color: var(--accent); }
+
+  /* ── Navigation ──────────────────────────────────── */
+  #nav {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 16px; z-index: 100;
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 10px 20px; border-radius: 40px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  }
+  #nav button {
+    background: none; border: none; cursor: pointer;
+    color: var(--text); font-size: 18px; padding: 4px 8px;
+    border-radius: 6px; transition: background .2s;
+  }
+  #nav button:hover { background: var(--surface); }
+  #nav button:disabled { opacity: .3; cursor: default; }
+  #slide-indicator { font-size: 13px; color: var(--muted); min-width: 60px; text-align: center; font-weight: 500; }
+
+  /* ── Progress bar ────────────────────────────────── */
+  #progress {
+    position: fixed; top: 0; left: 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--purple));
+    transition: width .4s ease; z-index: 200;
+  }
+
+  /* ── Divider ─────────────────────────────────────── */
+  .divider { width: 60px; height: 4px; border-radius: 2px; margin: 16px auto; }
+  .div-blue   { background: var(--accent); }
+  .div-green  { background: var(--green); }
+  .div-purple { background: var(--purple); }
+  .div-orange { background: var(--orange); }
+
+  /* ── SLIDE-SPECIFIC STYLES ───────────────────────── */
+
+  /* Title slide */
+  .title-bg {
+    position: absolute; inset: 0; z-index: -1;
+    background: radial-gradient(ellipse at 20% 50%, rgba(88,166,255,.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 30%, rgba(188,140,255,.06) 0%, transparent 60%);
+  }
+  .title-grid {
+    position: absolute; inset: 0; z-index: -1;
+    background-image: linear-gradient(var(--border) 1px, transparent 1px),
+                      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px; opacity: .25;
+  }
+
+  /* Pipeline diagram */
+  .pipeline { display: flex; align-items: flex-start; gap: 0; width: 100%; }
+  .phase-block {
+    flex: 1; border-radius: 12px; padding: 16px 14px; border: 1px solid;
+    position: relative;
+  }
+  .phase-arrow {
+    display: flex; align-items: center; padding: 0 4px; color: var(--muted);
+    font-size: 20px; margin-top: 40px;
+  }
+  .phase-title { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 10px; }
+  .phase-agent {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; border-radius: 8px; margin: 5px 0;
+    font-size: 13px; font-weight: 500;
+    background: rgba(255,255,255,.04);
+  }
+
+  /* Architecture layers */
+  .layer-stack { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+  .layer {
+    border-radius: 10px; padding: 14px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    border: 1px solid var(--border);
+  }
+  .layer-name { font-size: 14px; font-weight: 700; letter-spacing: .05em; }
+  .layer-files { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+  /* Tech stack table */
+  .tech-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .tech-row:last-child { border-bottom: none; }
+  .tech-label { font-size: 14px; color: var(--muted); width: 140px; }
+  .tech-value { font-size: 14px; font-weight: 600; flex: 1; }
+  .tech-version { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+  /* UI Mockup */
+  .mockup-window {
+    width: 100%; background: #1c2128; border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  }
+  .mockup-titlebar {
+    height: 36px; background: #161b22; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 16px; gap: 8px;
+  }
+  .dot-red   { width:10px;height:10px;border-radius:50%;background:#f85149; }
+  .dot-yel   { width:10px;height:10px;border-radius:50%;background:#d29922; }
+  .dot-grn   { width:10px;height:10px;border-radius:50%;background:#3fb950; }
+  .url-bar {
+    flex: 1; height: 20px; background: var(--surface2); border-radius: 10px;
+    margin: 0 16px; display: flex; align-items: center; padding: 0 12px;
+    font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace;
+  }
+  .mockup-body { display: flex; height: 340px; }
+  .mockup-sidebar {
+    width: 220px; min-width: 220px; background: #161b22;
+    border-right: 1px solid var(--border); padding: 16px 12px;
+    overflow: hidden;
+  }
+  .mockup-main { flex: 1; padding: 20px 24px; overflow: hidden; }
+  .sidebar-nav-item {
+    padding: 8px 12px; border-radius: 8px; font-size: 13px;
+    margin: 3px 0; cursor: pointer; display: flex; align-items: center; gap: 8px;
+  }
+  .sidebar-nav-item.active { background: rgba(88,166,255,.15); color: var(--accent); }
+  .sidebar-nav-item:not(.active) { color: var(--muted); }
+  .sidebar-section { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; padding: 12px 12px 4px; }
+  .mock-input {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+    padding: 7px 10px; font-size: 12px; color: var(--text); width: 100%; margin: 4px 0;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .mock-btn {
+    border: none; border-radius: 6px; padding: 7px 14px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .mock-btn-primary { background: var(--accent); color: #0d1117; }
+  .mock-btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .mock-radio {
+    display: flex; gap: 8px; margin: 6px 0;
+  }
+  .mock-radio-item {
+    font-size: 11px; padding: 4px 10px; border-radius: 20px; cursor: pointer;
+    background: var(--surface2); color: var(--muted); border: 1px solid var(--border);
+  }
+  .mock-radio-item.sel { background: rgba(88,166,255,.2); color: var(--accent); border-color: var(--accent); }
+  .mock-checkbox {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; padding: 4px 0; color: var(--text);
+  }
+  .chk-box {
+    width:14px;height:14px;border-radius:3px;border:1px solid var(--border);
+    background:rgba(88,166,255,.2); display:flex;align-items:center;justify-content:center;
+    font-size:9px;color:var(--accent);
+  }
+  .mock-metric {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 16px; text-align: center;
+  }
+  .mock-metric-val { font-size: 28px; font-weight: 800; }
+  .mock-metric-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .mock-tab-bar { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .mock-tab { padding: 8px 14px; font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; color: var(--muted); }
+  .mock-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .mock-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .mock-table th { text-align: left; padding: 6px 10px; color: var(--muted); border-bottom: 1px solid var(--border); font-weight: 600; font-size: 11px; }
+  .mock-table td { padding: 7px 10px; border-bottom: 1px solid rgba(48,54,61,.5); }
+  .mock-status-done { color: var(--green); font-weight: 600; font-size: 11px; }
+  .mock-status-run  { color: var(--orange); font-weight: 600; font-size: 11px; }
+
+  /* Bug card */
+  .bug-item {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; margin: 8px 0;
+    border-left: 3px solid var(--red);
+  }
+  .bug-item.major { border-left-color: var(--orange); }
+  .bug-item.minor { border-left-color: var(--orange); opacity: .7; }
+
+  /* Code snippet */
+  .code-block {
+    background: #0d1117; border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 16px; font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; line-height: 1.6; overflow-x: auto; width: 100%;
+  }
+  .code-line-num { color: var(--muted); margin-right: 16px; user-select: none; }
+  .tok-kw  { color: #ff7b72; }
+  .tok-fn  { color: #d2a8ff; }
+  .tok-str { color: #a5d6ff; }
+  .tok-cmt { color: #8b949e; }
+  .tok-num { color: #79c0ff; }
+
+  /* Flow diagram */
+  .flow-node {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 16px; font-size: 13px; font-weight: 600; text-align: center;
+  }
+  .flow-arrow { text-align: center; color: var(--muted); font-size: 18px; line-height: 1.2; }
+  .flow-col { display: flex; flex-direction: column; gap: 4px; }
+
+  /* Mermaid mockup */
+  .mermaid-box {
+    background: #fff; border-radius: 8px; padding: 20px;
+    display: flex; align-items: center; justify-content: center; min-height: 160px;
+  }
+  .mermaid-node {
+    background: #dbeafe; border: 2px solid #3b82f6; border-radius: 6px;
+    padding: 8px 16px; font-size: 13px; font-weight: 600; color: #1e3a8a;
+  }
+  .mermaid-arrow { color: #6b7280; font-size: 20px; margin: 0 8px; }
+  .mermaid-diamond {
+    background: #fef3c7; border: 2px solid #f59e0b; border-radius: 4px;
+    padding: 8px 16px; font-size: 12px; font-weight: 600; color: #92400e;
+    transform: rotate(0); clip-path: polygon(50% 0%,100% 50%,50% 100%,0% 50%);
+    width: 100px; height: 60px; display: flex; align-items: center; justify-content: center;
+  }
+
+  /* DB schema */
+  .db-table {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    overflow: hidden; font-size: 12px; min-width: 140px;
+  }
+  .db-table-head { background: var(--surface2); padding: 8px 12px; font-weight: 700; font-size: 12px; color: var(--accent); border-bottom: 1px solid var(--border); }
+  .db-table-row { padding: 5px 12px; border-bottom: 1px solid rgba(48,54,61,.4); display: flex; justify-content: space-between; gap: 8px; }
+  .db-pk { color: var(--orange); font-weight: 600; }
+  .db-fk { color: var(--purple); }
+  .db-type { color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+
+  /* Cache diagram */
+  .cache-flow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .cache-box {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 16px; font-size: 13px; font-weight: 600; text-align: center;
+  }
+  .cache-hit  { border-color: var(--green);  color: var(--green); }
+  .cache-miss { border-color: var(--orange); color: var(--orange); }
+
+  /* Roadmap */
+  .roadmap-item { display: flex; align-items: flex-start; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .roadmap-item:last-child { border-bottom: none; }
+  .roadmap-icon { font-size: 20px; min-width: 28px; text-align: center; margin-top: 2px; }
+  .roadmap-title { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
+  .roadmap-desc { font-size: 13px; color: var(--muted); }
+
+  /* Summary metrics */
+  .big-stat { text-align: center; }
+  .big-stat-num { font-size: 56px; font-weight: 800; line-height: 1; }
+  .big-stat-lbl { font-size: 14px; color: var(--muted); margin-top: 6px; }
+
+  /* Horizontal scroll for wide diagrams */
+  .h-scroll { overflow-x: auto; width: 100%; }
+
+  /* Sequence timeline */
+  .seq-step {
+    display: flex; align-items: center; gap: 12px; padding: 8px 0;
+    border-bottom: 1px solid rgba(48,54,61,.4);
+  }
+  .seq-step:last-child { border-bottom: none; }
+  .seq-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(88,166,255,.15); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; flex-shrink: 0;
+  }
+  .seq-text { font-size: 14px; color: var(--muted); }
+  .seq-text strong { color: var(--text); }
+
+  /* Content width constraint */
+  .w-full  { width: 100%; }
+  .w-900   { width: 900px; max-width: 100%; }
+  .w-1000  { width: 1000px; max-width: 100%; }
+  .center  { text-align: center; }
+  .mt-4    { margin-top: 4px; }
+  .mt-8    { margin-top: 8px; }
+  .mt-12   { margin-top: 12px; }
+  .mt-16   { margin-top: 16px; }
+  .mt-20   { margin-top: 20px; }
+  .mt-28   { margin-top: 28px; }
+  .mb-4    { margin-bottom: 4px; }
+  .mb-8    { margin-bottom: 8px; }
+  .mb-16   { margin-bottom: 16px; }
+  .col2 { display: flex; gap: 24px; width: 100%; }
+  .col2 > * { flex: 1; }
+  .col3 { display: flex; gap: 20px; width: 100%; }
+  .col3 > * { flex: 1; }
+
+  /* Glow accent line */
+  .accent-line { width: 100%; height: 1px; background: linear-gradient(90deg,transparent,var(--accent),transparent); margin: 12px 0; opacity: .4; }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+<div id="deck">
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 1 — TITLE
+══════════════════════════════════════════════════════ -->
+<section class="slide active center" id="s1">
+  <div class="title-bg"></div>
+  <div class="title-grid"></div>
+  <div class="slide-number">1 / 26</div>
+  <div class="tag tag-blue">AG-UC-1128</div>
+  <h1 style="font-size:58px;text-align:center;max-width:780px">
+    <span class="grad-blue">AI Code Maniac</span>
+  </h1>
+  <div class="divider div-blue mt-12"></div>
+  <p class="lead mt-12">Multi-Agent Code Analysis Platform</p>
+  <p class="lead mt-8" style="font-size:15px">
+    AWS Bedrock · Claude 3.5 Sonnet · Strands Agents · Streamlit · DuckDB
+  </p>
+  <div class="card-grid grid-4 mt-28" style="max-width:860px;width:100%">
+    <div class="card center">
+      <div style="font-size:36px;font-weight:800;color:var(--accent)">8</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">AI Agents</div>
+    </div>
+    <div class="card center">
+      <div style="font-size:36px;font-weight:800;color:var(--green)">3</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">Pipeline Phases</div>
+    </div>
+    <div class="card center">
+      <div style="font-size:36px;font-weight:800;color:var(--purple)">50</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">Files per Job</div>
+    </div>
+    <div class="card center">
+      <div style="font-size:36px;font-weight:800;color:var(--orange)">59</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">Test Cases</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 2 — INTRODUCTION
+══════════════════════════════════════════════════════ -->
+<section class="slide center" id="s2">
+  <div class="slide-number">2 / 26</div>
+  <div class="tag tag-blue">Introduction</div>
+  <h2 class="grad-blue">What is AI Code Maniac?</h2>
+  <div class="divider div-blue"></div>
+  <p class="lead mt-8">A self-hosted, multi-agent code analysis platform that orchestrates specialized AI agents in a coordinated pipeline to perform deep code analysis — instantly, consistently, and at scale.</p>
+  <div class="col2 mt-28" style="max-width:900px;align-items:flex-start">
+    <div class="card">
+      <h3 style="color:var(--accent);margin-bottom:12px">🎯 Purpose</h3>
+      <ul class="check">
+        <li>Automate repetitive code review tasks</li>
+        <li>Catch bugs before they reach production</li>
+        <li>Generate documentation from existing code</li>
+        <li>Assess commit history risk and readiness</li>
+        <li>Enable consistent quality checks at any scale</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="color:var(--green);margin-bottom:12px">📥 Input Sources</h3>
+      <div class="mock-radio" style="flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface2);border-radius:8px">
+          <span style="font-size:18px">🗂️</span>
+          <div>
+            <div style="font-size:14px;font-weight:600">Local Files</div>
+            <div style="font-size:12px;color:var(--muted)">Upload, path, or recursive folder scan</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface2);border-radius:8px">
+          <span style="font-size:18px">🐙</span>
+          <div>
+            <div style="font-size:14px;font-weight:600">GitHub</div>
+            <div style="font-size:12px;color:var(--muted)">owner/repo · branch · file path</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface2);border-radius:8px">
+          <span style="font-size:18px">🦊</span>
+          <div>
+            <div style="font-size:14px;font-weight:600">Gitea</div>
+            <div style="font-size:12px;color:var(--muted)">Self-hosted git via REST API</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 3 — PROBLEM STATEMENT
+══════════════════════════════════════════════════════ -->
+<section class="slide center" id="s3">
+  <div class="slide-number">3 / 26</div>
+  <div class="tag tag-red">Problem Statement</div>
+  <h2 class="grad-purple">The Code Review Gap</h2>
+  <div class="divider div-purple"></div>
+  <div class="col3 mt-20" style="max-width:1000px">
+    <div class="card" style="border-color:rgba(248,81,73,.3)">
+      <div style="font-size:32px;margin-bottom:12px">⏱️</div>
+      <h3 style="color:var(--red);font-size:16px;margin-bottom:8px">Manual Reviews Are Slow</h3>
+      <p style="font-size:14px">Senior engineers spend hours reviewing code that automated tools could flag in seconds. High-value judgment is wasted on repetitive checks.</p>
+    </div>
+    <div class="card" style="border-color:rgba(210,153,34,.3)">
+      <div style="font-size:32px;margin-bottom:12px">📉</div>
+      <h3 style="color:var(--orange);font-size:16px;margin-bottom:8px">Inconsistent Coverage</h3>
+      <p style="font-size:14px">Code quality varies by reviewer. Security anti-patterns, performance issues, and design smells are caught inconsistently across teams.</p>
+    </div>
+    <div class="card" style="border-color:rgba(188,140,255,.3)">
+      <div style="font-size:32px;margin-bottom:12px">🔇</div>
+      <h3 style="color:var(--purple);font-size:16px;margin-bottom:8px">No Documentation Trail</h3>
+      <p style="font-size:14px">Legacy and undocumented codebases lack execution flow docs, requirement specs, and design reviews that are critical for onboarding.</p>
+    </div>
+  </div>
+  <div class="card mt-20" style="max-width:800px;border-color:rgba(88,166,255,.3);background:rgba(88,166,255,.05)">
+    <p style="font-size:16px;text-align:center">
+      <strong style="color:var(--accent)">AI Code Maniac</strong> solves this by orchestrating 8 specialized agents that run in parallel — delivering consistent, thorough analysis in under a minute.
+    </p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 4 — REQUIREMENTS
+══════════════════════════════════════════════════════ -->
+<section class="slide left-align" id="s4">
+  <div class="slide-number">4 / 26</div>
+  <div class="tag tag-green">Requirements</div>
+  <h2 class="grad-green" style="text-align:left">System Requirements</h2>
+  <div class="divider div-green" style="margin-left:0"></div>
+  <div class="col2 mt-16 w-1000">
+    <div>
+      <h3 style="font-size:16px;color:var(--text);margin-bottom:10px">Functional Requirements</h3>
+      <ul class="check">
+        <li>Accept code from GitHub, Gitea, and local files</li>
+        <li>Support single-file, multi-file (up to 50), and folder scan</li>
+        <li>Line-range targeting within any file</li>
+        <li>Run up to 8 analysis agents per job</li>
+        <li>3-phase orchestrated pipeline with dependency awareness</li>
+        <li>Composite result caching by file hash + feature + language + prompt</li>
+        <li>Named settings profiles persisted across sessions</li>
+        <li>Custom prompt overrides (append or overwrite mode)</li>
+        <li>JSON + Markdown export for all result tabs</li>
+        <li>Commit-history risk and changelog analysis</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="font-size:16px;color:var(--text);margin-bottom:10px">Non-Functional Requirements</h3>
+      <ul class="check">
+        <li>Non-blocking UI — background daemon thread + 2 s polling</li>
+        <li>Self-contained — no external database server (DuckDB)</li>
+        <li>Per-agent gating via <span class="mono" style="font-size:12px;color:var(--accent)">ENABLED_AGENTS</span> env var</li>
+        <li>Token-aware chunker for files exceeding LLM context limits</li>
+        <li>SQL injection prevention via parameterized queries</li>
+        <li>Credentials stored in <span class="mono" style="font-size:12px">.env</span>, never logged or displayed</li>
+        <li>Thread-safe DuckDB singleton connection</li>
+        <li>Schema versioning to auto-invalidate stale cache entries</li>
+        <li>Graceful linter fallbacks when tools not installed</li>
+        <li>59 automated tests covering agents, DB, tools, config</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 5 — TECH STACK
+══════════════════════════════════════════════════════ -->
+<section class="slide center" id="s5">
+  <div class="slide-number">5 / 26</div>
+  <div class="tag tag-blue">Technology</div>
+  <h2 class="grad-blue">Tech Stack</h2>
+  <div class="divider div-blue"></div>
+  <div class="col2 mt-20" style="max-width:900px;align-items:flex-start">
+    <div class="card w-full">
+      <h3 style="font-size:14px;color:var(--muted);margin-bottom:12px;letter-spacing:.06em;text-transform:uppercase">Core</h3>
+      <div class="tech-row"><span class="tech-label">Frontend</span><span class="tech-value">Streamlit</span><span class="tech-version">1.56+</span></div>
+      <div class="tech-row"><span class="tech-label">AI Backend</span><span class="tech-value">AWS Bedrock — Claude 3.5 Sonnet</span><span class="tech-version"></span></div>
+      <div class="tech-row"><span class="tech-label">Agent SDK</span><span class="tech-value">Strands Agents</span><span class="tech-version">1.34+</span></div>
+      <div class="tech-row"><span class="tech-label">Database</span><span class="tech-value">DuckDB</span><span class="tech-version">1.5+</span></div>
+      <div class="tech-row"><span class="tech-label">Language</span><span class="tech-value">Python</span><span class="tech-version">3.11+</span></div>
+      <div class="tech-row"><span class="tech-label">Config</span><span class="tech-value">Pydantic Settings</span><span class="tech-version">2.x</span></div>
+    </div>
+    <div class="card w-full">
+      <h3 style="font-size:14px;color:var(--muted);margin-bottom:12px;letter-spacing:.06em;text-transform:uppercase">Integrations & Tooling</h3>
+      <div class="tech-row"><span class="tech-label">GitHub</span><span class="tech-value">PyGithub</span><span class="tech-version">2.9+</span></div>
+      <div class="tech-row"><span class="tech-label">Gitea</span><span class="tech-value">httpx REST client</span><span class="tech-version">0.28+</span></div>
+      <div class="tech-row"><span class="tech-label">Python Linting</span><span class="tech-value">flake8</span><span class="tech-version">7+</span></div>
+      <div class="tech-row"><span class="tech-label">JS/TS Linting</span><span class="tech-value">ESLint</span><span class="tech-version">subprocess</span></div>
+      <div class="tech-row"><span class="tech-label">Diagrams</span><span class="tech-value">Mermaid.js</span><span class="tech-version">v10</span></div>
+      <div class="tech-row"><span class="tech-label">Testing</span><span class="tech-value">pytest + pytest-mock</span><span class="tech-version">9.x / 3.15+</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 6 — ARCHITECTURE LAYERS
+══════════════════════════════════════════════════════ -->
+<section class="slide center" id="s6">
+  <div class="slide-number">6 / 26</div>
+  <div class="tag tag-blue">Architecture</div>
+  <h2 class="grad-blue">Layered Architecture</h2>
+  <div class="divider div-blue"></div>
+  <div class="layer-stack mt-20" style="max-width:860px">
+    <div class="layer" style="background:rgba(88,166,255,.08);border-color:rgba(88,166,255,.4)">
+      <div>
+        <div class="layer-name" style="color:var(--accent)">Presentation Layer</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:3px">6 pages · 5 components · Streamlit widgets</div>
+      </div>
+      <div class="layer-files">app/pages/ &nbsp; app/components/</div>
+    </div>
+    <div style="text-align:center;color:var(--muted);font-size:16px">↕</div>
+    <div class="layer" style="background:rgba(63,185,80,.08);border-color:rgba(63,185,80,.4)">
+      <div>
+        <div class="layer-name" style="color:var(--green)">Orchestration Layer</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:3px">3-phase pipeline · background daemon thread · job lifecycle</div>
+      </div>
+      <div class="layer-files">agents/orchestrator.py</div>
+    </div>
+    <div style="text-align:center;color:var(--muted);font-size:16px">↕</div>
+    <div class="layer" style="background:rgba(188,140,255,.08);border-color:rgba(188,140,255,.4)">
+      <div>
+        <div class="layer-name" style="color:var(--purple)">Agent Layer</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:3px">8 specialized agents · cache-check → Bedrock → store pattern</div>
+      </div>
+      <div class="layer-files">agents/*.py</div>
+    </div>
+    <div style="text-align:center;color:var(--muted);font-size:16px">↕</div>
+    <div class="layer" style="background:rgba(210,153,34,.08);border-color:rgba(210,153,34,.4)">
+      <div>
+        <div class="layer-name" style="color:var(--orange)">Tools Layer</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:3px">File fetchers · chunker · linter · language detector · cache helpers</div>
+      </div>
+      <div class="layer-files">tools/*.py</div>
+    </div>
+    <div style="text-align:center;color:var(--muted);font-size:16px">↕</div>
+    <div class="layer" style="background:rgba(57,211,83,.08);border-color:rgba(57,211,83,.4)">
+      <div>
+        <div class="layer-name" style="color:var(--cyan)">Persistence Layer</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:3px">8-table DuckDB schema · thread-safe singleton · parameterized queries</div>
+      </div>
+      <div class="layer-files">db/connection.py &nbsp; db/queries/</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 7 — THREE-PHASE PIPELINE
+══════════════════════════════════════════════════════ -->
+<section class="slide center" id="s7">
+  <div class="slide-number">7 / 26</div>
+  <div class="tag tag-purple">Architecture</div>
+  <h2 class="grad-purple">3-Phase Orchestration Pipeline</h2>
+  <div class="divider div-purple"></div>
+  <div class="pipeline mt-20 w-1000">
+    <div class="phase-block" style="background:rgba(31,119,180,.08);border-color:rgba(31,119,180,.5)">
+      <div class="phase-title" style="color:#1f77b4">Phase 1 — Foundation</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Runs fully in parallel</div>
+      <div class="phase-agent">🐛 Bug Analysis</div>
+      <div class="phase-agent">🔍 Static Analysis</div>
+      <div class="phase-agent">🌊 Code Flow</div>
+      <div class="phase-agent">📋 Requirements</div>
+    </div>
+    <div class="phase-arrow">→</div>
+    <div class="phase-block" style="background:rgba(224,123,57,.08);border-color:rgba(224,123,57,.5)">
+      <div class="phase-title" style="color:#e07b39">Phase 2 — Context-Aware</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Receives Phase 1 results</div>
+      <div class="phase-agent">🏗️ Code Design<br><span style="font-size:11px;color:var(--muted)">+ bug &amp; static context</span></div>
+      <div style="margin-top:8px" class="phase-agent">📐 Mermaid Diagram<br><span style="font-size:11px;color:var(--muted)">+ code flow context</span></div>
+    </div>
+    <div class="phase-arrow">→</div>
+    <div class="phase-block" style="background:rgba(44,160,44,.08);border-color:rgba(44,160,44,.5)">
+      <div class="phase-title" style="color:#2ca02c">Phase 3 — Synthesis</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Aggregates all findings</div>
+      <div class="phase-agent">💬 PR Comments<br><span style="font-size:11px;color:var(--muted)">+ bug &amp; static merged</span></div>
+    </div>
+    <div class="phase-arrow">→</div>
+    <div class="phase-block" style="background:rgba(148,103,189,.08);border-color:rgba(148,103,189,.5)">
+      <div class="phase-title" style="color:#9467bd">Standalone</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Independent workflow</div>
+      <div class="phase-agent">📜 Commit Analysis</div>
+    </div>
+  </div>
+  <div class="card mt-20" style="max-width:900px;border-color:rgba(88,166,255,.2);background:rgba(88,166,255,.04)">
+    <p style="font-size:14px;text-align:center">
+      <strong style="color:var(--accent)">Rationale:</strong> Phase 1 parallelism maximises throughput. Feeding Phase 1 output to later phases eliminates redundant Bedrock calls and improves result quality — Code Design frames bugs as design symptoms, PR Comments incorporate full context.
+    </p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 8 — EXECUTION SEQUENCE
+══════════════════════════════════════════════════════ -->
+<section class="slide left-align" id="s8">
+  <div class="slide-number">8 / 26</div>
+  <div class="tag tag-blue">Architecture</div>
+  <h2 class="grad-blue" style="text-align:left">Job Execution Flow</h2>
+  <div class="divider div-blue" style="margin-left:0"></div>
+  <div class="col2 mt-12 w-1000" style="align-items:flex-start">
+    <div>
+      <div class="seq-step"><div class="seq-num">1</div><div class="seq-text"><strong>User configures</strong> source, selects agents, clicks Run</div></div>
+      <div class="seq-step"><div class="seq-num">2</div><div class="seq-text"><strong>create_job()</strong> → job_id stored in DuckDB (status=pending)</div></div>
+      <div class="seq-step"><div class="seq-num">3</div><div class="seq-text"><strong>Daemon thread</strong> spawned — UI returns immediately</div></div>
+      <div class="seq-step"><div class="seq-num">4</div><div class="seq-text"><strong>Orchestrator</strong> fetches files from local / GitHub / Gitea</div></div>
+      <div class="seq-step"><div class="seq-num">5</div><div class="seq-text"><strong>Phase 1</strong> agents run in parallel threads</div></div>
+      <div class="seq-step"><div class="seq-num">6</div><div class="seq-text">Each agent: <strong>check cache → miss → Bedrock → write cache</strong></div></div>
+      <div class="seq-step"><div class="seq-num">7</div><div class="seq-text"><strong>Phase 2</strong> receives Phase 1 bug + static + flow context</div></div>
+      <div class="seq-step"><div class="seq-num">8</div><div class="seq-text"><strong>Phase 3</strong> generates PR comments from merged findings</div></div>
+      <div class="seq-step"><div class="seq-num">9</div><div class="seq-text"><strong>save_job_results()</strong> → status=completed</div></div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px">Background Thread Model</div>
+        <div class="code-block" style="font-size:12px;padding:10px 14px">
+<span class="tok-cmt"># Streamlit thread</span>
+job_id = <span class="tok-fn">create_job</span>(conn, ...)
+<span class="tok-fn">Thread</span>(target=_run, args=(job_id,),
+       daemon=<span class="tok-kw">True</span>).<span class="tok-fn">start</span>()
+st.<span class="tok-fn">rerun</span>()  <span class="tok-cmt"># → poll every 2s</span>
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-size:13px;font-weight:700;color:var(--orange);margin-bottom:8px">File Fetch Routing</div>
+        <div style="font-size:13px">
+          <div style="padding:5px 0;border-bottom:1px solid var(--border)"><span class="badge badge-blue">local</span> <span style="font-size:12px;color:var(--muted);margin-left:8px">fetch_local_file()</span></div>
+          <div style="padding:5px 0;border-bottom:1px solid var(--border)"><span class="badge badge-purple">github</span> <span style="font-size:12px;color:var(--muted);margin-left:8px">fetch_github_file() via PyGithub</span></div>
+          <div style="padding:5px 0"><span class="badge badge-blue">gitea</span> <span style="font-size:12px;color:var(--muted);margin-left:8px">fetch_gitea_file() via httpx REST</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 9 — UI HOME PAGE
+══════════════════════════════════════════════════════ -->
+<section class="slide center" id="s9">
+  <div class="slide-number">9 / 26</div>
+  <div class="tag tag-green">UI Walkthrough</div>
+  <h2 class="grad-green">Home — Dashboard</h2>
+  <div class="divider div-green"></div>
+  <div class="mockup-window mt-16" style="max-width:960px">
+    <div class="mockup-titlebar">
+      <div class="dot-red"></div><div class="dot-yel"></div><div class="dot-grn"></div>
+      <div class="url-bar">localhost:8501 — AI Code Maniac</div>
+    </div>
+    <div class="mockup-body">
+      <div class="mockup-sidebar">
+        <div style="font-size:14px;font-weight:700;color:var(--text);padding:8px 12px;margin-bottom:8px">🏟 AI Code Maniac</div>
+        <div class="sidebar-nav-item active">📊 Home</div>
+        <div class="sidebar-nav-item">🔬 Analysis</div>
+        <div class="sidebar-nav-item">📜 History</div>
+        <div class="sidebar-nav-item">🔀 Commits</div>
+        <div class="sidebar-nav-item">💾 Presets</div>
+        <div class="sidebar-nav-item">⚙️ Settings</div>
+      </div>
+      <div class="mockup-main">
+        <div style="font-size:18px;font-weight:700;margin-bottom:4px">AI Code Maniac</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Multi-Agent Code Analysis Platform</div>
+        <div class="mock-tab-bar">
+          <div class="mock-tab active">📊 Dashboard</div>
+          <div class="mock-tab">✨ Features</div>
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:14px">
+          <div class="mock-metric" style="flex:1"><div class="mock-metric-val" style="color:var(--accent)">124</div><div class="mock-metric-lbl">Total Analyses Run</div></div>
+          <div class="mock-metric" style="flex:1"><div class="mock-metric-val" style="color:var(--green)">119</div><div class="mock-metric-lbl">Completed</div></div>
+          <div class="mock-metric" style="flex:1"><div class="mock-metric-val" style="color:var(--purple)">8</div><div class="mock-metric-lbl">Languages Analyzed</div></div>
+        </div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:6px">Recent Jobs</div>
+        <table class="mock-table">
+          <tr><th>Created</th><th>Status</th><th>Source</th><th>Language</th><th>Features</th></tr>
+          <tr><td style="color:var(--muted)">2026-04-06 09:12</td><td><span class="mock-status-done">● completed</span></td><td>github</td><td>Python</td><td>bug_analysis, code_design</td></tr>
+          <tr><td style="color:var(--muted)">2026-04-06 08:44</td><td><span class="mock-status-done">● completed</span></td><td>local</td><td>TypeScript</td><td>static_analysis, mermaid</td></tr>
+          <tr><td style="color:var(--muted)">2026-04-05 17:30</td><td><span class="mock-status-run">● running</span></td><td>gitea</td><td>Go</td><td>all agents</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 10 — UI ANALYSIS PAGE
+══════════════════════════════════════════════════════ -->
+<section class="slide center" id="s10">
+  <div class="slide-number">10 / 26</div>
+  <div class="tag tag-green">UI Walkthrough</div>
+  <h2 class="grad-green">Analysis — Run a Job</h2>
+  <div class="divider div-green"></div>
+  <div class="mockup-window mt-16" style="max-width:980px">
+    <div class="mockup-titlebar">
+      <div class="dot-red"></div><div class="dot-yel"></div><div class="dot-grn"></div>
+      <div class="url-bar">localhost:8501/Analysis — AI Code Maniac</div>
+    </div>
+    <div class="mockup-body" style="height:360px">
+      <div class="mockup-sidebar" style="width:240px;min-width:240px;overflow-y:auto">
+        <div class="sidebar-section">Profile</div>
+        <select style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:11px;margin-bottom:6px">
+          <option>bug-review-profile</option>
+        </select>
+        <div style="display:flex;gap:6px;margin-bottom:8px">
+          <button class="mock-btn mock-btn-secondary" style="flex:1;font-size:10px;padding:4px">Load</button>
+          <button class="mock-btn mock-btn-secondary" style="flex:1;font-size:10px;padding:4px">Save</button>
+          <button class="mock-btn mock-btn-secondary" style="flex:1;font-size:10px;padding:4px;color:var(--red)">Del</button>
+        </div>
+        <div class="sidebar-section">Source</div>
+        <div class="mock-radio">
+          <div class="mock-radio-item sel">Local</div>
+          <div class="mock-radio-item">GitHub</div>
+          <div class="mock-radio-item">Gitea</div>
+        </div>
+        <input class="mock-input" value="/src/main.py" readonly>
+        <div style="display:flex;gap:4px;margin:4px 0">
+          <input class="mock-input" style="width:50%" placeholder="Start" readonly value="1">
+          <input class="mock-input" style="width:50%" placeholder="End" readonly value="200">
+        </div>
+        <div class="sidebar-section">Agents</div>
+        <div class="mock-checkbox"><div class="chk-box">✓</div> Bug Analysis</div>
+        <div class="mock-checkbox"><div class="chk-box">✓</div> Static Analysis</div>
+        <div class="mock-checkbox"><div class="chk-box">✓</div> Code Design</div>
+        <div class="mock-checkbox"><div class="chk-box" style="background:transparent"></div> <span style="color:var(--muted)">Mermaid Diagram</span></div>
+        <div class="sidebar-section">Language</div>
+        <input class="mock-input" value="Python" readonly>
+        <button class="mock-btn mock-btn-primary" style="width:100%;margin-top:10px;padding:9px">▶ Run Analysis</button>
+      </div>
+      <div class="mockup-main">
+        <div style="font-size:16px;font-weight:700;margin-bottom:12px">Code Analysis</div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:12px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--orange)">⚙️ Processing job #a7f3e...</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">📂 Fetching main.py (local)</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <span style="font-size:11px;padding:3px 8px;background:rgba(63,185,80,.15);color:var(--green);border-radius:12px">✅ Bug Analysis</span>
+            <span style="font-size:11px;padding:3px 8px;background:rgba(210,153,34,.15);color:var(--orange);border-radius:12px">🔄 Static Analysis</span>
+            <span style="font-size:11px;padding:3px 8px;background:rgba(88,166,255,.15);color:var(--accent);border-radius:12px">⚡ Code Design (cached)</span>
+          </div>
+        </div>
+        <div class="mock-tab-bar">
+          <div class="mock-tab active">🐛 Bug Analysis</div>
+          <div class="mock-tab">🔍 Static Analysis</div>
+          <div class="mock-tab">🏗️ Code Design</div>
+        </div>
+        <div class="bug-item">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span class="badge badge-crit">● critical</span>
+            <span style="font-size:13px;font-weight:600">Line 47: Unhandled None dereference</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted)">Root cause: fetch_user() can return None when user not found, but the caller does not check before accessing .name attribute.</div>
+        </div>
+        <div class="bug-item major">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span class="badge badge-major">● major</span>
+            <span style="font-size:13px;font-weight:600">Line 83: SQL query built via string concat</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted)">Use parameterized queries to prevent SQL injection.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 11 — UI HISTORY / COMMITS / SETTINGS
+══════════════════════════════════════════════════════ -->
+<section class="slide center" id="s11">
+  <div class="slide-number">11 / 26</div>
+  <div class="tag tag-green">UI Walkthrough</div>
+  <h2 class="grad-green">Supporting Pages</h2>
+  <div class="divider div-green"></div>
+  <div class="col3 mt-16 w-1000" style="align-items:flex-start">
+    <div>
+      <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">📜 History</div>
+      <div class="mockup-window">
+        <div class="mockup-titlebar" style="height:28px"><div class="dot-red"></div><div class="dot-yel"></div><div class="dot-grn"></div><div class="url-bar">/History</div></div>
+        <div style="padding:14px;font-size:12px">
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <select style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px;font-size:11px"><option>All features</option></select>
+            <select style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px;font-size:11px"><option>All languages</option></select>
+          </div>
+          <div style="border-bottom:1px solid var(--border);padding:6px 0;color:var(--muted);font-size:11px;display:flex;justify-content:space-between"><span>main.py · bug_analysis</span><span style="color:var(--green)">✓</span></div>
+          <div style="border-bottom:1px solid var(--border);padding:6px 0;color:var(--muted);font-size:11px;display:flex;justify-content:space-between"><span>index.ts · static_analysis</span><span style="color:var(--green)">✓</span></div>
+          <div style="padding:6px 0;color:var(--muted);font-size:11px;display:flex;justify-content:space-between"><span>app.go · code_flow</span><span style="color:var(--green)">✓</span></div>
+        </div>
+      </div>
+      <ul class="dot mt-12">
+        <li>Filter by feature + language</li>
+        <li>Browse past analysis entries</li>
+        <li>Source reference + timestamp</li>
+      </ul>
+    </div>
+    <div>
+      <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">🔀 Commits</div>
+      <div class="mockup-window">
+        <div class="mockup-titlebar" style="height:28px"><div class="dot-red"></div><div class="dot-yel"></div><div class="dot-grn"></div><div class="url-bar">/Commits</div></div>
+        <div style="padding:14px;font-size:12px">
+          <div class="mock-radio" style="margin-bottom:8px">
+            <div class="mock-radio-item sel">GitHub</div>
+            <div class="mock-radio-item">Gitea</div>
+          </div>
+          <input class="mock-input" value="owner/repo" readonly style="margin-bottom:4px">
+          <input class="mock-input" value="main" readonly style="margin-bottom:8px">
+          <button class="mock-btn mock-btn-primary" style="font-size:11px;padding:5px 12px">Fetch &amp; Analyse</button>
+          <div style="margin-top:10px;padding:8px;background:var(--surface2);border-radius:6px;font-size:11px">
+            <div style="color:var(--orange);margin-bottom:4px">Risk Level: <strong>Medium 🟠</strong></div>
+            <div style="color:var(--muted)">22 commits · 3 releases</div>
+          </div>
+        </div>
+      </div>
+      <ul class="dot mt-12">
+        <li>GitHub or Gitea source</li>
+        <li>Risk level scoring</li>
+        <li>Auto-generated changelog</li>
+      </ul>
+    </div>
+    <div>
+      <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">⚙️ Settings &amp; Presets</div>
+      <div class="mockup-window">
+        <div class="mockup-titlebar" style="height:28px"><div class="dot-red"></div><div class="dot-yel"></div><div class="dot-grn"></div><div class="url-bar">/Settings</div></div>
+        <div style="padding:14px;font-size:12px">
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Model</span><span class="mono" style="font-size:10px">claude-3-5-sonnet-v2</span></div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Temperature</span><span>0.3 ████░</span></div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">DB Path</span><span class="mono" style="font-size:10px">data/arena.db</span></div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0"><span style="color:var(--muted)">Max Files</span><span>50</span></div>
+          <div style="display:flex;gap:6px;margin-top:10px">
+            <button class="mock-btn mock-btn-secondary" style="font-size:10px;padding:4px 8px">Export DB</button>
+            <button class="mock-btn mock-btn-secondary" style="font-size:10px;padding:4px 8px">Import DB</button>
+          </div>
+        </div>
+      </div>
+      <ul class="dot mt-12">
+        <li>Temperature slider</li>
+        <li>DB export / import</li>
+        <li>Named prompt presets</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 12 — DESIGN PHILOSOPHY
+══════════════════════════════════════════════════════ -->
+<section class="slide center" id="s12">
+  <div class="slide-number">12 / 26</div>
+  <div class="tag tag-orange">Design</div>
+  <h2 class="grad-orange">Core Design Decisions</h2>
+  <div class="divider div-orange"></div>
+  <div class="card-grid grid-3 mt-20" style="max-width:960px">
+    <div class="card">
+      <div style="font-size:24px;margin-bottom:10px">⚡</div>
+      <div style="font-size:14px;font-weight:700;color:var(--accent);margin-bottom:6px">Parallel-first</div>
+      <p style="font-size:13px">Phase 1 agents use Python ThreadPoolExecutor — 4 Bedrock calls in parallel instead of sequential. Phase 2 starts only after Phase 1 completes to use its output as context.</p>
+    </div>
+    <div class="card">
+      <div style="font-size:24px;margin-bottom:10px">🗄️</div>
+      <div style="font-size:14px;font-weight:700;color:var(--green);margin-bottom:6px">Cache-first</div>
+      <p style="font-size:13px">SHA-256 composite key on (file_hash + feature + language + prompt). Same file + same settings = instant cache hit. Schema versioning forces re-analysis on output schema changes.</p>
+    </div>
+    <div class="card">
+      <div style="font-size:24px;margin-bottom:10px">🧩</div>
+      <div style="font-size:14px;font-weight:700;color:var(--purple);margin-bottom:6px">Consistent Agent Contract</div>
+      <p style="font-size:13px">Every agent follows the same function signature. check_cache → miss → Bedrock → write_cache → add_history. Uniform pattern makes adding new agents trivial.</p>
+    </div>
+    <div class="card">
+      <div style="font-size:24px;margin-bottom:10px">🔒</div>
+      <div style="font-size:14px;font-weight:700;color:var(--orange);margin-bottom:6px">Isolated UI Thread</div>
+      <p style="font-size:13px">Streamlit never waits for analysis. A daemon thread runs the pipeline; the UI polls DuckDB every 2 seconds. The event loop is never blocked.</p>
+    </div>
+    <div class="card">
+      <div style="font-size:24px;margin-bottom:10px">🎛️</div>
+      <div style="font-size:14px;font-weight:700;color:var(--cyan);margin-bottom:6px">Per-Agent Gating</div>
+      <p style="font-size:13px">ENABLED_AGENTS env var selects which agents are active. Disabled agents are hidden from the UI and never invoked. Deploy bug-finder-only or design-review-only profiles.</p>
+    </div>
+    <div class="card">
+      <div style="font-size:24px;margin-bottom:10px">📦</div>
+      <div style="font-size:14px;font-weight:700;color:var(--red);margin-bottom:6px">Self-Contained</div>
+      <p style="font-size:13px">DuckDB needs no server. One file (data/arena.db) holds all jobs, cache, history, presets, and profiles. Full export/import via the Settings page.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 13 — FEATURE: BUG ANALYSIS
+══════════════════════════════════════════════════════ -->
+<section class="slide left-align" id="s13">
+  <div class="slide-number">13 / 26</div>
+  <div class="tag" style="background:rgba(248,81,73,.15);color:var(--red);border:1px solid rgba(248,81,73,.3)">Phase 1 · Bug Analysis</div>
+  <h2 style="background:linear-gradient(135deg,#f85149,#ff7b72);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">🐛 Bug Analysis Agent</h2>
+  <div class="divider" style="background:var(--red);margin-left:0"></div>
+  <div class="col2 mt-12 w-1000" style="align-items:flex-start">
+    <div>
+      <ul class="check" style="margin-bottom:16px">
+        <li>Chunks file at <strong>3,000 tokens</strong> max with per-chunk analysis</li>
+        <li>Deduplicates bugs by <span class="mono" style="font-size:12px">(line, description[:50])</span></li>
+        <li>Critical / Major / Minor severity classification</li>
+        <li>Root cause, runtime impact, and concrete fix suggestion</li>
+        <li>Side-by-side <strong>Original vs Fixed</strong> code comparison</li>
+        <li>Configurable context lines (<span class="mono" style="font-size:12px">BUG_CONTEXT_LINES</span>)</li>
+        <li>Overall narrative assessment rendered first</li>
+        <li>Cache versioned as <span class="mono" style="font-size:12px">"bug_analysis:v2"</span></li>
+      </ul>
+      <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px">Bug Record Shape</div>
+      <div class="code-block" style="font-size:11px">
+{
+  <span class="tok-str">"line"</span>: <span class="tok-num">47</span>,
+  <span class="tok-str">"severity"</span>: <span class="tok-str">"critical"</span>,
+  <span class="tok-str">"description"</span>: <span class="tok-str">"Unhandled None dereference"</span>,
+  <span class="tok-str">"runtime_impact"</span>: <span class="tok-str">"AttributeError crash at runtime"</span>,
+  <span class="tok-str">"root_cause"</span>: <span class="tok-str">"fetch_user() may return None"</span>,
+  <span class="tok-str">"suggestion"</span>: <span class="tok-str">"Add None guard before .name access"</span>,
+  <span class="tok-str">"original_snippet"</span>: <span class="tok-str">"user = fetch_user(id)\nprint(user.name)"</span>,
+  <span class="tok-str">"fixed_snippet"</span>: <span class="tok-str">"user = fetch_user(id)\nif user: print(user.name)"</span>
+}
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:10px">Live Result Preview</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:10px;font-style:italic">"3 issues found: 1 critical security flaw, 1 major logic error, 1 minor style issue..."</div>
+        <div class="bug-item">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+            <span class="badge badge-crit">🔴 critical</span>
+            <span style="font-size:13px;font-weight:600">Line 47</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted)">Unhandled None dereference — user.name crash</div>
+        </div>
+        <div class="bug-item major">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+            <span class="badge badge-major">🟠 major</span>
+            <span style="font-size:13px;font-weight:600">Line 83</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted)">SQL injection via string concatenation</div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px">Code Comparison View</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div>
+            <div style="font-size:10px;color:var(--red);margin-bottom:4px;font-weight:600">ORIGINAL</div>
+            <div class="code-block" style="font-size:10px;padding:8px;border-color:rgba(248,81,73,.3)">user = <span class="tok-fn">fetch</span>(id)
+print(user.name)</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--green);margin-bottom:4px;font-weight:600">FIXED</div>
+            <div class="code-block" style="font-size:10px;padding:8px;border-color:rgba(63,185,80,.3)"><span class="tok-kw">if</span> user :=<span class="tok-fn"> fetch</span>(id):
+  print(user.name)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 14 — FEATURE: STATIC ANALYSIS
+══════════════════════════════════════════════════════ -->
+<section class="slide left-align" id="s14">
+  <div class="slide-number">14 / 26</div>
+  <div class="tag tag-orange">Phase 1 · Static Analysis</div>
+  <h2 class="grad-orange">🔍 Static Analysis Agent</h2>
+  <div class="divider div-orange" style="margin-left:0"></div>
+  <div class="col2 mt-12 w-1000" style="align-items:flex-start">
+    <div>
+      <p style="font-size:15px;margin-bottom:16px">Two-layer approach: a <strong style="color:var(--orange)">real linter</strong> (flake8/ESLint) plus <strong style="color:var(--purple)">AI semantic analysis</strong>.</p>
+      <div class="card" style="margin-bottom:12px;border-color:rgba(210,153,34,.3)">
+        <div style="font-size:13px;font-weight:700;color:var(--orange);margin-bottom:8px">Layer 1 — Linter</div>
+        <ul class="dot">
+          <li>Python → flake8 subprocess, parses <span class="mono" style="font-size:11px">path:line:col: CODE message</span></li>
+          <li>JS/TS → ESLint subprocess with <span class="mono" style="font-size:11px">--format json</span></li>
+          <li>If not installed: <span class="mono" style="font-size:11px">skipped=True</span> (graceful fallback)</li>
+        </ul>
+      </div>
+      <div class="card" style="border-color:rgba(188,140,255,.3)">
+        <div style="font-size:13px;font-weight:700;color:var(--purple);margin-bottom:8px">Layer 2 — AI Semantic</div>
+        <ul class="dot">
+          <li>Design smells and dead code detection</li>
+          <li>Security anti-patterns (hardcoded secrets, unsafe eval)</li>
+          <li>Performance issues (N+1 queries, unnecessary copies)</li>
+          <li>Maintainability issues and error-handling gaps</li>
+          <li>Feeds downstream Code Design + PR Comments agents</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:10px">Sample Output</div>
+      <div class="card" style="margin-bottom:10px">
+        <div style="font-size:12px;font-weight:600;color:var(--orange);margin-bottom:6px">Linter Findings</div>
+        <div style="font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--muted)">
+          <div style="padding:3px 0;border-bottom:1px solid var(--border)"><span style="color:var(--red)">E501</span> main.py:23 — line too long (92 &gt; 79 chars)</div>
+          <div style="padding:3px 0;border-bottom:1px solid var(--border)"><span style="color:var(--orange)">W291</span> main.py:41 — trailing whitespace</div>
+          <div style="padding:3px 0"><span style="color:var(--red)">F841</span> utils.py:17 — local variable 'x' assigned but never used</div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-size:12px;font-weight:600;color:var(--purple);margin-bottom:6px">Semantic Findings</div>
+        <div class="bug-item major" style="margin:4px 0">
+          <div style="font-size:12px;font-weight:600;margin-bottom:3px">Security — Hardcoded API Key</div>
+          <div style="font-size:11px;color:var(--muted)">api_key = "sk-..." found at line 12. Move to environment variable.</div>
+        </div>
+        <div class="bug-item minor" style="margin:4px 0;border-left-color:var(--purple)">
+          <div style="font-size:12px;font-weight:600;margin-bottom:3px">Design Smell — God Function</div>
+          <div style="font-size:11px;color:var(--muted)">process_all() handles 7 distinct concerns. Split into focused functions.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 15 — FEATURE: CODE FLOW
+══════════════════════════════════════════════════════ -->
+<section class="slide left-align" id="s15">
+  <div class="slide-number">15 / 26</div>
+  <div class="tag tag-blue">Phase 1 · Code Flow</div>
+  <h2 class="grad-blue">🌊 Code Flow Agent</h2>
+  <div class="divider div-blue" style="margin-left:0"></div>
+  <div class="col2 mt-12 w-1000" style="align-items:flex-start">
+    <div>
+      <p style="font-size:15px;margin-bottom:16px">Produces a <strong style="color:var(--accent)">technical wiki-style execution narrative</strong> for new team members onboarding to an unfamiliar codebase.</p>
+      <ul class="check" style="margin-bottom:16px">
+        <li>Chunks at <strong>4,000 tokens</strong> with line overlap for continuity</li>
+        <li>Entry-point identification (main, event handlers, API routes)</li>
+        <li>Step-by-step execution walkthrough with callee references</li>
+        <li>Multi-chunk: synthesis call combines narratives into one doc</li>
+        <li>Outputs structured Markdown for documentation portals</li>
+        <li>Flow context reused by Mermaid Diagram agent (no extra Bedrock call)</li>
+      </ul>
+      <div class="code-block" style="font-size:12px">
+<span class="tok-cmt"># Returns</span>
+{
+  <span class="tok-str">"markdown"</span>: <span class="tok-str">"## Entry Points\n..."</span>,
+  <span class="tok-str">"summary"</span>: <span class="tok-str">"REST API serving 5 endpoints..."</span>,
+  <span class="tok-str">"entry_points"</span>: [<span class="tok-str">"app.run()"</span>, <span class="tok-str">"handle_request()"</span>],
+  <span class="tok-str">"steps"</span>: [...]
+}
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:12px">Execution Flow Diagram</div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div class="flow-node" style="border-color:rgba(88,166,255,.5);color:var(--accent);width:100%">main() — Entry Point</div>
+          <div class="flow-arrow">↓</div>
+          <div style="display:flex;gap:8px;width:100%">
+            <div class="flow-node" style="flex:1;font-size:12px;border-color:rgba(63,185,80,.4);color:var(--green)">parse_args()</div>
+            <div class="flow-node" style="flex:1;font-size:12px;border-color:rgba(188,140,255,.4);color:var(--purple)">load_config()</div>
+          </div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-node" style="border-color:rgba(210,153,34,.5);color:var(--orange);width:100%">run_analysis_pipeline()</div>
+          <div class="flow-arrow">↓</div>
+          <div style="display:flex;gap:8px;width:100%">
+            <div class="flow-node" style="flex:1;font-size:11px;border-color:rgba(57,211,83,.4);color:var(--cyan)">Phase 1<br>Parallel</div>
+            <div class="flow-node" style="flex:1;font-size:11px;border-color:rgba(224,123,57,.4);color:var(--orange)">Phase 2<br>Context</div>
+            <div class="flow-node" style="flex:1;font-size:11px;border-color:rgba(44,160,44,.4);color:var(--green)">Phase 3<br>Synth</div>
+          </div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-node" style="border-color:rgba(248,81,73,.4);color:var(--red);width:100%">save_results() → DuckDB</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 16 — FEATURE: REQUIREMENTS
+══════════════════════════════════════════════════════ -->
+<section class="slide left-align" id="s16">
+  <div class="slide-number">16 / 26</div>
+  <div class="tag tag-green">Phase 1 · Requirements</div>
+  <h2 class="grad-green">📋 Requirement Analysis Agent</h2>
+  <div class="divider div-green" style="margin-left:0"></div>
+  <div class="col2 mt-12 w-1000" style="align-items:flex-start">
+    <div>
+      <p style="font-size:15px;margin-bottom:16px">Reverse-engineers <strong style="color:var(--green)">structured software requirements</strong> from existing code — useful for legacy systems with no original specs.</p>
+      <ul class="check" style="margin-bottom:16px">
+        <li>Each requirement gets a unique ID: <span class="mono" style="font-size:12px">REQ-001, REQ-002…</span></li>
+        <li>Maps requirements to component and source lines</li>
+        <li>Multi-chunk synthesis renumbers REQ IDs sequentially</li>
+        <li>Separates Functional and Non-Functional requirements</li>
+        <li>Exports as formatted Markdown requirements document</li>
+      </ul>
+      <div class="card" style="border-color:rgba(63,185,80,.3)">
+        <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:8px">Returns</div>
+        <div class="code-block" style="font-size:11px">
+{
+  <span class="tok-str">"markdown"</span>: <span class="tok-str">"# Requirements\n\n## Functional\n..."</span>,
+  <span class="tok-str">"summary"</span>: <span class="tok-str">"12 requirements extracted"</span>,
+  <span class="tok-str">"requirements"</span>: [
+    {
+      <span class="tok-str">"id"</span>: <span class="tok-str">"REQ-001"</span>,
+      <span class="tok-str">"type"</span>: <span class="tok-str">"functional"</span>,
+      <span class="tok-str">"description"</span>: <span class="tok-str">"System shall authenticate users"</span>,
+      <span class="tok-str">"source_lines"</span>: [<span class="tok-num">12</span>, <span class="tok-num">45</span>]
+    }
+  ]
+}
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:12px">Sample Requirements Document</div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px">Functional Requirements</div>
+        <div style="padding:8px 12px;background:var(--surface2);border-radius:6px;margin-bottom:6px;border-left:3px solid var(--green)">
+          <div style="font-size:12px;font-weight:600;color:var(--accent)">REQ-001</div>
+          <div style="font-size:12px;color:var(--text);margin-top:2px">The system shall accept code input from GitHub, Gitea, and local file paths.</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">Lines: 12–47 · component: source_selector</div>
+        </div>
+        <div style="padding:8px 12px;background:var(--surface2);border-radius:6px;margin-bottom:12px;border-left:3px solid var(--green)">
+          <div style="font-size:12px;font-weight:600;color:var(--accent)">REQ-002</div>
+          <div style="font-size:12px;color:var(--text);margin-top:2px">The system shall run selected analysis agents and return results within the session.</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">Lines: 58–120 · component: orchestrator</div>
+        </div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px">Non-Functional Requirements</div>
+        <div style="padding:8px 12px;background:var(--surface2);border-radius:6px;border-left:3px solid var(--purple)">
+          <div style="font-size:12px;font-weight:600;color:var(--purple)">REQ-009</div>
+          <div style="font-size:12px;color:var(--text);margin-top:2px">The system shall not block the UI thread during analysis execution.</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">Lines: 42–46 · component: 1_Analysis.py</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 17 — FEATURE: CODE DESIGN
+══════════════════════════════════════════════════════ -->
+<section class="slide left-align" id="s17">
+  <div class="slide-number">17 / 26</div>
+  <div class="tag tag-orange">Phase 2 · Code Design</div>
+  <h2 class="grad-orange">🏗️ Code Design Agent</h2>
+  <div class="divider div-orange" style="margin-left:0"></div>
+  <div class="col2 mt-12 w-1000" style="align-items:flex-start">
+    <div>
+      <p style="font-size:14px;color:var(--muted);margin-bottom:16px">The most complex agent — uses a <strong style="color:var(--orange)">3-turn conversation</strong> with Bedrock to produce a full architectural design document.</p>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+        <div class="card" style="border-color:rgba(88,166,255,.3);padding:12px 14px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="font-size:22px;font-weight:800;color:var(--accent);min-width:32px">T1</div>
+            <div>
+              <div style="font-size:13px;font-weight:600">Understand — 6,000 tokens</div>
+              <div style="font-size:12px;color:var(--muted)">Reads chunked code → produces structural notes</div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="border-color:rgba(210,153,34,.3);padding:12px 14px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="font-size:22px;font-weight:800;color:var(--orange);min-width:32px">T2</div>
+            <div>
+              <div style="font-size:13px;font-weight:600">Analyse — with Phase 1 context</div>
+              <div style="font-size:12px;color:var(--muted)">T1 + bug_results + static_results → structured JSON</div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="border-color:rgba(63,185,80,.3);padding:12px 14px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="font-size:22px;font-weight:800;color:var(--green);min-width:32px">T3</div>
+            <div>
+              <div style="font-size:13px;font-weight:600">Document</div>
+              <div style="font-size:12px;color:var(--muted)">T2 JSON → 9-section markdown design document</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div style="font-size:13px;font-weight:700;color:var(--orange);margin-bottom:10px">9-Section Design Document</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div style="padding:6px 10px;background:var(--surface2);border-radius:6px;font-size:12px"><span style="color:var(--muted)">§1</span> Executive Summary</div>
+          <div style="padding:6px 10px;background:var(--surface2);border-radius:6px;font-size:12px"><span style="color:var(--muted)">§2</span> Architecture Overview</div>
+          <div style="padding:6px 10px;background:var(--surface2);border-radius:6px;font-size:12px"><span style="color:var(--muted)">§3</span> Responsibilities &amp; Scope</div>
+          <div style="padding:6px 10px;background:var(--surface2);border-radius:6px;font-size:12px"><span style="color:var(--muted)">§4</span> Interface &amp; Public API</div>
+          <div style="padding:6px 10px;background:var(--surface2);border-radius:6px;font-size:12px"><span style="color:var(--muted)">§5</span> Data Flow</div>
+          <div style="padding:6px 10px;background:var(--surface2);border-radius:6px;font-size:12px"><span style="color:var(--muted)">§6</span> Design Decisions</div>
+          <div style="padding:6px 10px;background:var(--surface2);border-radius:6px;font-size:12px"><span style="color:var(--muted)">§7</span> Known Issues &amp; Tech Debt</div>
+          <div style="padding:6px 10px;background:var(--surface2);border-radius:6px;font-size:12px"><span style="color:var(--muted)">§8</span> Improvement Roadmap</div>
+          <div style="padding:6px 10px;background:var(--surface2);border-radius:6px;font-size:12px;grid-column:span 2"><span style="color:var(--muted)">§9</span> Dependencies</div>
+        </div>
+        <div style="margin-top:12px;font-size:12px;color:var(--muted);border-top:1px solid var(--border);padding-top:10px">
+          <strong>Fallbacks:</strong> T2 JSON parse fail → stores raw response. T3 fail → returns structured T2 fields, empty design_document.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 18 — FEATURE: MERMAID
+══════════════════════════════════════════════════════ -->
+<section class="slide left-align" id="s18">
+  <div class="slide-number">18 / 26</div>
+  <div class="tag tag-purple">Phase 2 · Mermaid</div>
+  <h2 class="grad-purple">📐 Mermaid Diagram Agent</h2>
+  <div class="divider div-purple" style="margin-left:0"></div>
+  <div class="col2 mt-12 w-1000" style="align-items:flex-start">
+    <div>
+      <p style="font-size:14px;color:var(--muted);margin-bottom:14px">Generates <strong style="color:var(--purple)">live-rendered architecture diagrams</strong> directly in the browser using Mermaid.js v10.</p>
+      <ul class="check" style="margin-bottom:14px">
+        <li>Reuses Code Flow context — no extra Bedrock call for comprehension</li>
+        <li>Three diagram types: <span class="badge badge-blue">flowchart</span> <span class="badge badge-purple">sequence</span> <span class="badge badge-blue">class</span></li>
+        <li>Raw Mermaid source always shown in collapsible expander</li>
+        <li>Rendered via <span class="mono" style="font-size:11px">mermaid.render()</span> async API — no startOnLoad</li>
+        <li>Inline rendering via <span class="mono" style="font-size:11px">st.components.v1.html</span></li>
+      </ul>
+      <div class="code-block" style="font-size:12px">
+<span class="tok-cmt">## Flowchart Example</span>
+<span class="tok-kw">graph</span> TD
+  UI[<span class="tok-str">"Streamlit UI"</span>] --> ORC[<span class="tok-str">"Orchestrator"</span>]
+  ORC --> P1[<span class="tok-str">"Phase 1 Agents"</span>]
+  P1 --> P2[<span class="tok-str">"Phase 2 Agents"</span>]
+  P2 --> P3[<span class="tok-str">"Phase 3 Agents"</span>]
+  P1 &amp; P2 &amp; P3 --> DB[(<span class="tok-str">"DuckDB"</span>)]
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;color:var(--purple);margin-bottom:10px">Rendered Diagram Preview</div>
+        <div style="background:#f8fafc;border-radius:8px;padding:16px;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap">
+          <div style="background:#dbeafe;border:2px solid #3b82f6;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;color:#1e40af">Streamlit UI</div>
+          <div style="color:#94a3b8;font-size:18px">→</div>
+          <div style="background:#f0fdf4;border:2px solid #22c55e;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;color:#166534">Orchestrator</div>
+          <div style="color:#94a3b8;font-size:18px">→</div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="background:#fef3c7;border:2px solid #f59e0b;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;color:#92400e">Phase 1</div>
+            <div style="background:#fce7f3;border:2px solid #ec4899;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;color:#9d174d">Phase 2</div>
+            <div style="background:#ede9fe;border:2px solid #8b5cf6;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;color:#4c1d95">Phase 3</div>
+          </div>
+          <div style="color:#94a3b8;font-size:18px">→</div>
+          <div style="background:#f0fdf4;border:2px solid #22c55e;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;color:#166534;border-radius:50px">DuckDB</div>
+        </div>
+        <div style="margin-top:10px;padding:8px 12px;background:var(--surface2);border-radius:6px;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace">
+          ▼ Mermaid Source (collapsible)
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-size:12px;color:var(--muted)">
+          <strong>Context optimization:</strong> When code_flow result is available from Phase 1, it is passed directly as context to the Mermaid agent — avoiding a separate Bedrock comprehension call and producing more accurate call-relationship diagrams.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 19 — FEATURE: PR COMMENTS
+══════════════════════════════════════════════════════ -->
+<section class="slide left-align" id="s19">
+  <div class="slide-number">19 / 26</div>
+  <div class="tag tag-green">Phase 3 · Synthesis</div>
+  <h2 class="grad-green">💬 PR Comment Generator</h2>
+  <div class="divider div-green" style="margin-left:0"></div>
+  <div class="col2 mt-12 w-1000" style="align-items:flex-start">
+    <div>
+      <p style="font-size:14px;color:var(--muted);margin-bottom:14px">Turns automated findings into <strong style="color:var(--green)">human-quality GitHub pull request review comments</strong>. A single Bedrock call with merged Phase 1 context.</p>
+      <ul class="check" style="margin-bottom:16px">
+        <li>Receives merged <span class="mono" style="font-size:12px">bug_findings + static_findings</span> from Phase 1</li>
+        <li>Inline comments: file, line, severity, and engineering insight</li>
+        <li>Adds context beyond simply restating the finding</li>
+        <li>Top-level PR summary: must-fix, nice-to-have, positives</li>
+        <li>Constructive, collegial tone suitable for real code reviews</li>
+        <li>Single Bedrock call — Phase 1 results eliminate re-analysis</li>
+      </ul>
+      <div class="code-block" style="font-size:12px">
+{
+  <span class="tok-str">"comments"</span>: [
+    {
+      <span class="tok-str">"file"</span>: <span class="tok-str">"src/auth.py"</span>,
+      <span class="tok-str">"line"</span>: <span class="tok-num">47</span>,
+      <span class="tok-str">"severity"</span>: <span class="tok-str">"critical"</span>,
+      <span class="tok-str">"body"</span>: <span class="tok-str">"**[Critical]** `fetch_user()` can return None..."</span>
+    }
+  ],
+  <span class="tok-str">"summary"</span>: <span class="tok-str">"## Review Summary\n..."</span>
+}
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:12px">Sample PR Review Output</div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#0d1117">AI</div>
+            <div>
+              <div style="font-size:12px;font-weight:600">AI Reviewer</div>
+              <div style="font-size:11px;color:var(--muted)">src/auth.py · line 47</div>
+            </div>
+            <span class="badge badge-crit" style="margin-left:auto">critical</span>
+          </div>
+          <div style="font-size:12px;line-height:1.6;color:var(--text)">
+            <strong>[Critical]</strong> <span class="mono">fetch_user()</span> returns <span class="mono" style="color:var(--orange)">None</span> when the user is not found, but the caller on line 48 immediately accesses <span class="mono">.name</span> without a guard. This will raise <span class="mono" style="color:var(--red)">AttributeError</span> in production when an unknown user ID is passed.
+            <br><br>
+            <span style="color:var(--green)">**Suggestion:**</span> Add a <span class="mono">if user is None: raise UserNotFoundError(user_id)</span> check before accessing the attribute.
+          </div>
+        </div>
+        <div style="padding:10px;background:rgba(63,185,80,.06);border:1px solid rgba(63,185,80,.2);border-radius:8px;font-size:12px">
+          <div style="font-weight:600;margin-bottom:6px">## PR Summary</div>
+          <div style="color:var(--red)">🔴 Must Fix: 2 critical issues</div>
+          <div style="color:var(--orange)">🟠 Recommended: 3 improvements</div>
+          <div style="color:var(--green)">✅ Positive: Good test coverage on utils.py</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 20 — FEATURE: COMMIT ANALYSIS
+══════════════════════════════════════════════════════ -->
+<section class="slide left-align" id="s20">
+  <div class="slide-number">20 / 26</div>
+  <div class="tag tag-purple">Standalone Agent</div>
+  <h2 class="grad-purple">📜 Commit Analysis Agent</h2>
+  <div class="divider div-purple" style="margin-left:0"></div>
+  <div class="col2 mt-12 w-1000" style="align-items:flex-start">
+    <div>
+      <p style="font-size:14px;color:var(--muted);margin-bottom:14px">Assesses git commit history for <strong style="color:var(--purple)">release readiness, risk level, and change impact</strong>. Standalone — runs from the Commits page directly.</p>
+      <ul class="check" style="margin-bottom:16px">
+        <li>Works directly from GitHub or Gitea repository URL</li>
+        <li>Batches commits <strong>20 at a time</strong> per Bedrock call</li>
+        <li>Synthesis call combines batch results into final report</li>
+        <li>Risk level extraction: High / Medium / Low</li>
+        <li>Auto-generated changelog: Added / Changed / Removed</li>
+        <li>Per-commit quality rating with explanation</li>
+      </ul>
+      <div class="code-block" style="font-size:12px">
+{
+  <span class="tok-str">"markdown"</span>: <span class="tok-str">"## Commit Analysis Report\n..."</span>,
+  <span class="tok-str">"summary"</span>: <span class="tok-str">"22 commits across 3 releases"</span>,
+  <span class="tok-str">"risk_level"</span>: <span class="tok-str">"medium"</span>
+}
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div style="font-size:13px;font-weight:700;color:var(--purple);margin-bottom:12px">Sample Commit Report</div>
+        <div style="padding:10px;background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.3);border-radius:8px;margin-bottom:10px">
+          <div style="font-size:13px;font-weight:700;color:var(--orange);margin-bottom:6px">🟠 Risk Level: Medium</div>
+          <div style="font-size:12px;color:var(--muted)">22 commits · 3 breaking changes · schema migrations detected</div>
+        </div>
+        <div style="font-size:12px;font-weight:600;margin-bottom:8px">Changelog</div>
+        <div style="padding:8px;background:var(--surface2);border-radius:6px;font-size:12px;line-height:2">
+          <div style="color:var(--green)">✅ Added: Native file Browse button for path inputs</div>
+          <div style="color:var(--green)">✅ Added: Language auto-detect toggle in sidebar</div>
+          <div style="color:var(--orange)">🔄 Changed: Mermaid renderer uses async render() API</div>
+          <div style="color:var(--red)">🗑️ Removed: Legacy startOnLoad initialization</div>
+        </div>
+        <div style="font-size:12px;font-weight:600;margin:10px 0 8px">Per-Commit Quality</div>
+        <div style="font-size:11px;display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;justify-content:space-between;padding:5px 8px;background:var(--surface2);border-radius:5px">
+            <span class="mono" style="color:var(--muted)">b28c7fc</span>
+            <span>feat: language toggle</span>
+            <span style="color:var(--green)">Good</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:5px 8px;background:var(--surface2);border-radius:5px">
+            <span class="mono" style="color:var(--muted)">2e41712</span>
+            <span>feat: Browse button</span>
+            <span style="color:var(--green)">Good</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:5px 8px;background:var(--surface2);border-radius:5px">
+            <span class="mono" style="color:var(--muted)">c092fa4</span>
+            <span>fix: mermaid render</span>
+            <span style="color:var(--orange)">Needs Improvement</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 21 — DATABASE SCHEMA
+══════════════════════════════════════════════════════ -->
+<section class="slide center" id="s21">
+  <div class="slide-number">21 / 26</div>
+  <div class="tag tag-blue">Data Layer</div>
+  <h2 class="grad-blue">DuckDB Schema</h2>
+  <div class="divider div-blue"></div>
+  <div style="display:flex;gap:14px;margin-top:16px;flex-wrap:wrap;justify-content:center;max-width:1020px">
+    <div class="db-table">
+      <div class="db-table-head">jobs</div>
+      <div class="db-table-row"><span class="db-pk">id</span><span class="db-type">VARCHAR PK</span></div>
+      <div class="db-table-row"><span>status</span><span class="db-type">VARCHAR</span></div>
+      <div class="db-table-row"><span>source_type</span><span class="db-type">VARCHAR</span></div>
+      <div class="db-table-row"><span>features</span><span class="db-type">VARCHAR[]</span></div>
+      <div class="db-table-row"><span>result_json</span><span class="db-type">JSON</span></div>
+      <div class="db-table-row"><span>created_at</span><span class="db-type">TIMESTAMP</span></div>
+    </div>
+    <div class="db-table">
+      <div class="db-table-head">results_cache</div>
+      <div class="db-table-row"><span class="db-pk">id</span><span class="db-type">VARCHAR PK</span></div>
+      <div class="db-table-row"><span class="db-fk">job_id</span><span class="db-type">FK → jobs</span></div>
+      <div class="db-table-row"><span>feature</span><span class="db-type">VARCHAR</span></div>
+      <div class="db-table-row"><span>file_hash</span><span class="db-type">VARCHAR</span></div>
+      <div class="db-table-row"><span>language</span><span class="db-type">VARCHAR</span></div>
+      <div class="db-table-row"><span>result_json</span><span class="db-type">JSON</span></div>
+    </div>
+    <div class="db-table">
+      <div class="db-table-head">analysis_history</div>
+      <div class="db-table-row"><span class="db-pk">id</span><span class="db-type">VARCHAR PK</span></div>
+      <div class="db-table-row"><span class="db-fk">job_id</span><span class="db-type">FK → jobs</span></div>
+      <div class="db-table-row"><span>feature</span><span class="db-type">VARCHAR</span></div>
+      <div class="db-table-row"><span>source_ref</span><span class="db-type">VARCHAR</span></div>
+      <div class="db-table-row"><span>summary</span><span class="db-type">TEXT</span></div>
+      <div class="db-table-row"><span>created_at</span><span class="db-type">TIMESTAMP</span></div>
+    </div>
+    <div class="db-table">
+      <div class="db-table-head">prompt_presets</div>
+      <div class="db-table-row"><span class="db-pk">id</span><span class="db-type">VARCHAR PK</span></div>
+      <div class="db-table-row"><span>name</span><span class="db-type">VARCHAR</span></div>
+      <div class="db-table-row"><span>feature</span><span class="db-type">VARCHAR</span></div>
+      <div class="db-table-row"><span>system_prompt</span><span class="db-type">TEXT</span></div>
+      <div class="db-table-row"><span>extra_instructions</span><span class="db-type">TEXT</span></div>
+    </div>
+    <div class="db-table">
+      <div class="db-table-head">sidebar_profiles</div>
+      <div class="db-table-row"><span class="db-pk">id</span><span class="db-type">VARCHAR PK</span></div>
+      <div class="db-table-row"><span>name</span><span class="db-type">VARCHAR</span></div>
+      <div class="db-table-row"><span>source_type</span><span class="db-type">VARCHAR</span></div>
+      <div class="db-table-row"><span>features</span><span class="db-type">VARCHAR[]</span></div>
+      <div class="db-table-row"><span>mermaid_type</span><span class="db-type">VARCHAR</span></div>
+      <div class="db-table-row"><span>updated_at</span><span class="db-type">TIMESTAMP</span></div>
+    </div>
+    <div class="db-table">
+      <div class="db-table-head">commit_snapshots</div>
+      <div class="db-table-row"><span class="db-pk">id</span><span class="db-type">VARCHAR PK</span></div>
+      <div class="db-table-row"><span class="db-fk">repo_id</span><span class="db-type">FK → repo_meta</span></div>
+      <div class="db-table-row"><span>commit_sha</span><span class="db-type">VARCHAR UNIQUE</span></div>
+      <div class="db-table-row"><span>author</span><span class="db-type">VARCHAR</span></div>
+      <div class="db-table-row"><span>message</span><span class="db-type">TEXT</span></div>
+      <div class="db-table-row"><span>files_changed</span><span class="db-type">VARCHAR[]</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 22 — CACHING STRATEGY
+══════════════════════════════════════════════════════ -->
+<section class="slide center" id="s22">
+  <div class="slide-number">22 / 26</div>
+  <div class="tag tag-green">Performance</div>
+  <h2 class="grad-green">Composite Caching Strategy</h2>
+  <div class="divider div-green"></div>
+  <div class="col2 mt-16 w-1000" style="align-items:flex-start">
+    <div>
+      <div class="card" style="margin-bottom:14px;border-color:rgba(63,185,80,.3)">
+        <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:10px">Cache Key Design</div>
+        <div class="code-block" style="font-size:12px">
+key = SHA256(
+  file_hash    <span class="tok-cmt"># content changes</span>
+  + <span class="tok-str">":"</span> + feature  <span class="tok-cmt"># agent name</span>
+  + <span class="tok-str">":"</span> + language <span class="tok-cmt"># lang influences prompts</span>
+  + <span class="tok-str">":"</span> + prompt   <span class="tok-cmt"># encodes mode too</span>
+)
+        </div>
+      </div>
+      <div class="card" style="border-color:rgba(88,166,255,.3)">
+        <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:10px">Schema Versioning</div>
+        <p style="font-size:13px;margin-bottom:8px">When an agent's output schema changes (new fields), the feature key is bumped:</p>
+        <div class="code-block" style="font-size:12px">
+<span class="tok-cmt"># Old entries remain but never hit</span>
+<span class="tok-str">"bug_analysis"</span>    <span class="tok-cmt"># v1 — ignored</span>
+<span class="tok-str">"bug_analysis:v2"</span> <span class="tok-cmt"># v2 — active</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;color:var(--orange);margin-bottom:10px">Cache Hit Flow</div>
+        <div class="cache-flow" style="flex-direction:column;align-items:flex-start;gap:8px">
+          <div class="cache-box cache-hit" style="width:100%">Agent called</div>
+          <div style="color:var(--muted);padding-left:8px;font-size:13px">↓ compute_cache_key()</div>
+          <div class="cache-box cache-hit" style="width:100%">SELECT from results_cache</div>
+          <div style="display:flex;gap:10px;width:100%">
+            <div style="flex:1;text-align:center">
+              <div style="color:var(--green);font-size:12px;margin-bottom:4px">Row found</div>
+              <div class="cache-box cache-hit" style="font-size:12px">Return cached result<br>⚡ &lt;1 second</div>
+            </div>
+            <div style="flex:1;text-align:center">
+              <div style="color:var(--orange);font-size:12px;margin-bottom:4px">Cache miss</div>
+              <div class="cache-box cache-miss" style="font-size:12px">Call Bedrock<br>write_cache + history</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px">Performance Impact</div>
+        <div style="font-size:13px;display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Cache hit (all features)</span><span style="color:var(--green)">< 1 second</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Small file, all 8 agents</span><span style="color:var(--orange)">20 – 60 sec</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Large file (chunked)</span><span style="color:var(--orange)">60 – 180 sec</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Multi-file (10 files)</span><span style="color:var(--red)">2 – 10 min</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 23 — MULTI-FILE & CHUNKING
+══════════════════════════════════════════════════════ -->
+<section class="slide center" id="s23">
+  <div class="slide-number">23 / 26</div>
+  <div class="tag tag-orange">Data Handling</div>
+  <h2 class="grad-orange">Multi-File & Token-Aware Chunking</h2>
+  <div class="divider div-orange"></div>
+  <div class="col2 mt-16 w-1000" style="align-items:flex-start">
+    <div>
+      <h3 style="font-size:15px;margin-bottom:12px;color:var(--text)">Multi-File Support</h3>
+      <div class="card" style="margin-bottom:12px">
+        <div style="font-size:12px;font-family:'JetBrains Mono',monospace;line-height:2;color:var(--muted)">
+          <div><span style="color:var(--accent)">local:</span> /path/a.py<span style="color:var(--orange)">::</span>/path/b.py<span style="color:var(--orange)">::</span>/path/c.py</div>
+          <div><span style="color:var(--accent)">folder scan:</span> scan_folder_recursive() → up to 50 files</div>
+          <div><span style="color:var(--muted)">skips:</span> .git, .venv, __pycache__</div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-size:13px;font-weight:700;color:var(--orange);margin-bottom:8px">Multi-File Result Structure</div>
+        <div class="code-block" style="font-size:11px">
+{
+  <span class="tok-str">"bug_analysis"</span>: {
+    <span class="tok-str">"_multi_file"</span>: <span class="tok-kw">true</span>,
+    <span class="tok-str">"summary"</span>: <span class="tok-str">"3 file(s) analysed."</span>,
+    <span class="tok-str">"files"</span>: {
+      <span class="tok-str">"src/foo.py"</span>: { <span class="tok-str">"bugs"</span>: [...] },
+      <span class="tok-str">"src/bar.py"</span>: { <span class="tok-str">"bugs"</span>: [...] }
+    }
+  }
+}
+        </div>
+      </div>
+    </div>
+    <div>
+      <h3 style="font-size:15px;margin-bottom:12px;color:var(--text)">Token-Aware Chunker</h3>
+      <div class="card" style="margin-bottom:12px">
+        <div class="code-block" style="font-size:12px">
+<span class="tok-kw">def</span> <span class="tok-fn">chunk_by_lines</span>(
+  content: str,
+  max_tokens: int = <span class="tok-num">3000</span>,
+  overlap_lines: int = <span class="tok-num">0</span>
+) -> list[dict]
+
+<span class="tok-cmt"># Token estimate: len(text) // 4</span>
+<span class="tok-cmt"># Each chunk: {content, start_line,</span>
+<span class="tok-cmt">#               end_line, token_count}</span>
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px">Per-Agent Token Budgets</div>
+        <div style="font-size:12px">
+          <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span>bug_analysis</span><span class="mono">3,000 tokens/chunk</span></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span>code_flow</span><span class="mono">4,000 tokens/chunk</span></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span>requirement</span><span class="mono">4,000 tokens/chunk</span></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span>code_design T1</span><span class="mono">6,000 tokens/chunk</span></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0"><span>commit_analysis</span><span class="mono">20 commits/call</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 24 — SECURITY & TESTING
+══════════════════════════════════════════════════════ -->
+<section class="slide center" id="s24">
+  <div class="slide-number">24 / 26</div>
+  <div class="tag tag-red">Quality & Security</div>
+  <h2 style="background:linear-gradient(135deg,#f85149,#ff7b72);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Security & Testing</h2>
+  <div class="divider" style="background:var(--red)"></div>
+  <div class="col2 mt-16 w-1000" style="align-items:flex-start">
+    <div>
+      <h3 style="font-size:15px;margin-bottom:12px;color:var(--red)">Security Controls</h3>
+      <div class="card" style="margin-bottom:10px;border-color:rgba(248,81,73,.2)">
+        <ul class="check">
+          <li>All credentials in <span class="mono" style="font-size:12px">.env</span> — never in code or logs</li>
+          <li>DuckDB queries use parameterized statements</li>
+          <li>Settings page masks credential values in UI</li>
+          <li>Custom prompts appended — never replace system prompt position</li>
+          <li>Uploaded files written to temp dir, not persisted</li>
+        </ul>
+      </div>
+      <div class="code-block" style="font-size:12px">
+<span class="tok-cmt"># SQL injection prevention</span>
+conn.<span class="tok-fn">execute</span>(
+  <span class="tok-str">"SELECT * FROM jobs WHERE id = ?"</span>,
+  [job_id]  <span class="tok-cmt"># parameterized — safe</span>
+)
+<span class="tok-cmt"># Never: f"...WHERE id = '{job_id}'"</span>
+      </div>
+    </div>
+    <div>
+      <h3 style="font-size:15px;margin-bottom:12px;color:var(--green)">59-Test Pyramid</h3>
+      <div style="display:flex;flex-direction:column;align-items:center;width:100%;gap:4px;margin-bottom:12px">
+        <div style="background:rgba(88,166,255,.1);border:1px solid rgba(88,166,255,.3);border-radius:6px;width:60%;padding:8px;text-align:center;font-size:13px">
+          <div style="color:var(--accent);font-weight:600">Integration Tests</div>
+          <div style="font-size:11px;color:var(--muted)">test_schema.py · test_fetch_github.py</div>
+        </div>
+        <div style="background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.3);border-radius:6px;width:80%;padding:8px;text-align:center;font-size:13px">
+          <div style="color:var(--green);font-weight:600">Unit Tests (mocked LLM)</div>
+          <div style="font-size:11px;color:var(--muted)">test_bug_analysis · test_chunk_file · test_queries</div>
+        </div>
+        <div style="background:rgba(188,140,255,.1);border:1px solid rgba(188,140,255,.3);border-radius:6px;width:100%;padding:8px;text-align:center;font-size:13px">
+          <div style="color:var(--purple);font-weight:600">Config &amp; Foundation Tests</div>
+          <div style="font-size:11px;color:var(--muted)">test_config.py · env validation · DB singleton</div>
+        </div>
+      </div>
+      <div class="card" style="font-size:12px">
+        <ul class="dot">
+          <li>In-memory DuckDB via conftest fixture</li>
+          <li>Full job lifecycle: pending → running → completed</li>
+          <li>Cache hit/miss logic with matching and differing params</li>
+          <li>Disabled agents never invoked via ENABLED_AGENTS</li>
+          <li>Multi-file results have <span class="mono">_multi_file: True</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 25 — FUTURE ROADMAP
+══════════════════════════════════════════════════════ -->
+<section class="slide left-align" id="s25">
+  <div class="slide-number">25 / 26</div>
+  <div class="tag tag-purple">Roadmap</div>
+  <h2 class="grad-purple" style="text-align:left">Future Roadmap</h2>
+  <div class="divider div-purple" style="margin-left:0"></div>
+  <div class="col2 mt-12 w-1000" style="align-items:flex-start">
+    <div>
+      <div class="roadmap-item">
+        <div class="roadmap-icon">⚡</div>
+        <div><div class="roadmap-title">Parallel Multi-File Processing</div><div class="roadmap-desc">ThreadPoolExecutor for concurrent file analysis — 10 files at 1× latency instead of 10×</div></div>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-icon">🐙</div>
+        <div><div class="roadmap-title">GitHub/Gitea Multi-File Support</div><div class="roadmap-desc">Analyze all files in a repo directory without manual path specification</div></div>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-icon">🔔</div>
+        <div><div class="roadmap-title">Webhook Integration</div><div class="roadmap-desc">Trigger analysis automatically on PR open or push events via webhook endpoint</div></div>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-icon">🔐</div>
+        <div><div class="roadmap-title">User Authentication</div><div class="roadmap-desc">Basic login gate for shared team deployments with per-user history isolation</div></div>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-icon">📊</div>
+        <div><div class="roadmap-title">CI/CD Export (SARIF / JUnit)</div><div class="roadmap-desc">Export findings as SARIF or JUnit XML for GitHub Actions / Jenkins integration</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="roadmap-item">
+        <div class="roadmap-icon">📡</div>
+        <div><div class="roadmap-title">Streaming Results</div><div class="roadmap-desc">Stream Bedrock responses to show partial results as they arrive — eliminate wait time</div></div>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-icon">🎛️</div>
+        <div><div class="roadmap-title">Model Selection per Agent</div><div class="roadmap-desc">Allow each agent to use a different Claude model — e.g., Haiku for cheap lint, Opus for design</div></div>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-icon">🦙</div>
+        <div><div class="roadmap-title">Local LLM Support</div><div class="roadmap-desc">Swap Bedrock for Ollama or other local inference for air-gapped / cost-free deployments</div></div>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-icon">🗑️</div>
+        <div><div class="roadmap-title">Cache TTL &amp; Eviction</div><div class="roadmap-desc">Time-based or size-based cache cleanup to prevent indefinite growth of arena.db</div></div>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-icon">🧩</div>
+        <div><div class="roadmap-title">VS Code Extension</div><div class="roadmap-desc">Trigger analysis from the editor context menu with results in a side panel</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 26 — SUMMARY
+══════════════════════════════════════════════════════ -->
+<section class="slide center" id="s26">
+  <div class="title-bg"></div>
+  <div class="slide-number">26 / 26</div>
+  <div class="tag tag-blue">Summary</div>
+  <h2 class="grad-blue" style="font-size:42px">AI Code Maniac at a Glance</h2>
+  <div class="divider div-blue"></div>
+  <div class="card-grid grid-4 mt-20" style="max-width:900px">
+    <div class="big-stat"><div class="big-stat-num grad-blue">8</div><div class="big-stat-lbl">Specialized<br>AI Agents</div></div>
+    <div class="big-stat"><div class="big-stat-num grad-green">3</div><div class="big-stat-lbl">Orchestrated<br>Pipeline Phases</div></div>
+    <div class="big-stat"><div class="big-stat-num grad-purple">8</div><div class="big-stat-lbl">DuckDB<br>Tables</div></div>
+    <div class="big-stat"><div class="big-stat-num grad-orange">59</div><div class="big-stat-lbl">Automated<br>Tests</div></div>
+  </div>
+  <div class="card-grid grid-3 mt-20" style="max-width:900px">
+    <div class="card center" style="border-color:rgba(88,166,255,.3)">
+      <div style="font-size:22px;margin-bottom:8px">⚡</div>
+      <div style="font-size:14px;font-weight:700;color:var(--accent);margin-bottom:5px">Parallel & Cached</div>
+      <p style="font-size:12px">Phase 1 runs in parallel. SHA-256 cache eliminates redundant Bedrock calls on unchanged files.</p>
+    </div>
+    <div class="card center" style="border-color:rgba(63,185,80,.3)">
+      <div style="font-size:22px;margin-bottom:8px">🔗</div>
+      <div style="font-size:14px;font-weight:700;color:var(--green);margin-bottom:5px">Context-Aware Pipeline</div>
+      <p style="font-size:12px">Phase 2 agents consume Phase 1 results — Code Design sees bugs as design symptoms, not isolated issues.</p>
+    </div>
+    <div class="card center" style="border-color:rgba(188,140,255,.3)">
+      <div style="font-size:22px;margin-bottom:8px">📦</div>
+      <div style="font-size:14px;font-weight:700;color:var(--purple);margin-bottom:5px">Self-Contained</div>
+      <p style="font-size:12px">One DuckDB file, one startup.bat. No external servers, no cloud databases, no mandatory SaaS dependencies.</p>
+    </div>
+  </div>
+  <p class="lead mt-20" style="font-size:14px;color:var(--muted)">
+    AG-UC-1128 &nbsp;·&nbsp; AWS Bedrock · Strands Agents · Streamlit · DuckDB &nbsp;·&nbsp; Python 3.11+
+  </p>
+</section>
+
+</div><!-- #deck -->
+
+<!-- Navigation -->
+<div id="nav">
+  <button id="btn-prev" onclick="go(-1)" disabled>‹</button>
+  <span id="slide-indicator">1 / 26</span>
+  <button id="btn-next" onclick="go(1)">›</button>
+</div>
+
+<script>
+  const TOTAL = 26;
+  let cur = 1;
+
+  function go(dir) {
+    const next = cur + dir;
+    if (next < 1 || next > TOTAL) return;
+    document.getElementById('s' + cur).classList.remove('active');
+    document.getElementById('s' + cur).classList.add(dir > 0 ? 'prev' : '');
+    if (dir < 0) document.getElementById('s' + (cur)).classList.remove('prev');
+    cur = next;
+    const slides = document.querySelectorAll('.slide');
+    slides.forEach(s => { s.classList.remove('active', 'prev'); });
+    for (let i = 1; i <= TOTAL; i++) {
+      document.getElementById('s' + i).classList.remove('active', 'prev');
+    }
+    document.getElementById('s' + cur).classList.add('active');
+    document.getElementById('slide-indicator').textContent = cur + ' / ' + TOTAL;
+    document.getElementById('btn-prev').disabled = (cur === 1);
+    document.getElementById('btn-next').disabled = (cur === TOTAL);
+    document.getElementById('progress').style.width = ((cur / TOTAL) * 100) + '%';
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') go(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp') go(-1);
+  });
+
+  // Init progress
+  document.getElementById('progress').style.width = ((1 / TOTAL) * 100) + '%';
+</script>
+</body>
+</html>

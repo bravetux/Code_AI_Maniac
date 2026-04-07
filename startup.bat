@@ -2,7 +2,7 @@
 setlocal EnableDelayedExpansion
 
 echo ============================================================
-echo  AI Arena - Startup
+echo  AI Code Maniac - Startup
 echo ============================================================
 
 :: ── 1. Locate Python ────────────────────────────────────────────
@@ -134,7 +134,7 @@ set PYTHONPATH=%~dp0
 :: ── 9. Launch the app ───────────────────────────────────────────
 echo.
 echo ============================================================
-echo  Starting AI Arena...
+echo  Starting AI Code Maniac...
 echo  Open http://localhost:8501 in your browser
 echo  Press Ctrl+C to stop
 echo ============================================================

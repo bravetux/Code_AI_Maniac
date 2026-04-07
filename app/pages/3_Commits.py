@@ -10,7 +10,7 @@ from agents.commit_analysis import run_commit_analysis
 from config.settings import get_settings
 from app.components.result_tabs import render_results
 
-st.set_page_config(page_title="Commits — AI Arena", layout="wide")
+st.set_page_config(page_title="Commits — AI Code Maniac", layout="wide")
 st.title("Commit Analysis")
 
 conn = get_connection()

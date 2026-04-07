@@ -151,9 +151,11 @@ def _run_features_for_file(conn, job_id, file_info, features, language,
     # ── Phase 3: synthesis agents ─────────────────────────────────────────────
     if "comment_generator" in feat_set:
         _emit(conn, job_id, "phase", message="Phase 3 — Synthesis")
+        # comment_generator doesn't use raw content — pass filtered common
+        common_no_content = {k: v for k, v in common.items() if k != "content"}
         file_results["comment_generator"] = _run_agent(
             conn, job_id, "comment_generator", run_comment_generation, file_path,
-            {**common,
+            {**common_no_content,
              "bug_results":    file_results.get("bug_analysis"),
              "static_results": file_results.get("static_analysis")},
         )
