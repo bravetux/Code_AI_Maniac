@@ -1,6 +1,7 @@
 import streamlit as st
 from db.queries.presets import list_presets
 from config.settings import get_settings, ALL_AGENTS
+from config.prompt_templates import TEMPLATE_CATEGORIES
 
 # All agents in display order with their UI labels
 ALL_FEATURES: dict[str, str] = {
@@ -72,6 +73,22 @@ def render_feature_selector(conn) -> dict:
     custom_prompt = ""
     extra = ""
     with st.expander("Advanced / Fine-tune"):
+        # Built-in enhanced templates
+        template_options = ["None"] + TEMPLATE_CATEGORIES
+        chosen_template = st.selectbox(
+            "Enhanced Template",
+            template_options,
+            key="sidebar_enhanced_template",
+            help="Built-in expert prompt templates that enhance analysis depth and quality.",
+        )
+        st.caption({
+            "Deep Analysis": "Multi-pass chain-of-thought with root-cause tracing",
+            "Security Focused": "STRIDE + OWASP Top 10 threat modelling",
+            "Architecture Reverse Engineering": "Pattern recognition and design archaeology",
+            "Quick Scan": "Rapid top-5 findings with traffic-light rating",
+            "Report Generator": "Formal publication-quality audit reports",
+        }.get(chosen_template, ""))
+
         all_presets = list_presets(conn)
         # Only show presets whose feature is currently enabled
         presets = [p for p in all_presets if p.get("feature") in enabled]
@@ -137,4 +154,5 @@ def render_feature_selector(conn) -> dict:
         "language": language,
         "custom_prompt": custom_prompt if custom_prompt else None,
         "mermaid_type": mermaid_type,
+        "template_category": chosen_template if chosen_template != "None" else None,
     }
