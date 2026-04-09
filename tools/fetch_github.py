@@ -19,7 +19,7 @@ def fetch_github_file(repo: str, file_path: str, branch: str, token: str,
                       end_line: int | None = None) -> dict:
     """Fetch a file from a GitHub repository."""
     try:
-        g = Github(token)
+        g = Github(token) if token else Github()
         r = g.get_repo(repo)
         contents = r.get_contents(file_path, ref=branch)
         full_content = contents.decoded_content.decode("utf-8", errors="replace")
@@ -44,14 +44,17 @@ def fetch_github_file(repo: str, file_path: str, branch: str, token: str,
             "extension": os.path.splitext(file_path)[1].lstrip("."),
         }
     except GithubException as e:
-        return {"error": f"GitHub error: {e.status} {e.data}", "file_path": file_path}
+        msg = f"GitHub error: {e.status} {e.data}"
+        if e.status in (401, 403, 404) and not token:
+            msg += " — this repository may be private. Provide a GitHub token to access it."
+        return {"error": msg, "file_path": file_path}
 
 
 @tool
 def fetch_github_pr_diff(repo: str, pr_number: int, token: str) -> dict:
     """Fetch the diff of a GitHub pull request."""
     try:
-        g = Github(token)
+        g = Github(token) if token else Github()
         r = g.get_repo(repo)
         pr = r.get_pull(pr_number)
         files = [
@@ -60,6 +63,9 @@ def fetch_github_pr_diff(repo: str, pr_number: int, token: str) -> dict:
         ]
         return {"repo": repo, "pr_number": pr_number, "files": files}
     except GithubException as e:
-        return {"error": f"GitHub error: {e.status} {e.data}"}
+        msg = f"GitHub error: {e.status} {e.data}"
+        if e.status in (401, 403, 404) and not token:
+            msg += " — this repository may be private. Provide a GitHub token to access it."
+        return {"error": msg}
     except Exception as e:
         return {"error": str(e)}

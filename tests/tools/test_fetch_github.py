@@ -49,3 +49,28 @@ def test_fetch_github_pr_diff():
 
     assert len(result["files"]) == 1
     assert result["files"][0]["filename"] == "src/main.py"
+
+
+def test_fetch_public_repo_no_token():
+    """Public repo should work without a token."""
+    result = fetch_github_file(
+        repo="octocat/Hello-World",
+        file_path="README",
+        branch="master",
+        token=None,
+    )
+    assert "error" not in result
+    assert "content" in result
+    assert len(result["content"]) > 0
+
+
+def test_fetch_private_repo_no_token():
+    """Private repo without token should give helpful error."""
+    result = fetch_github_file(
+        repo="bravetux/some-private-repo-that-doesnt-exist",
+        file_path="README.md",
+        branch="main",
+        token=None,
+    )
+    assert "error" in result
+    assert "private" in result["error"].lower() or "GitHub error" in result["error"]
