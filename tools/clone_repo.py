@@ -86,3 +86,63 @@ def clone_or_pull(repo_slug: str, branch: str = "main",
     except subprocess.TimeoutExpired:
         return {"path": dest, "status": "error",
                 "error": "Git operation timed out (clone may be too large)"}
+
+
+_LOG_SEP = "---COMMIT_SEP---"
+_FIELD_SEP = "---FIELD_SEP---"
+
+
+def get_git_log(repo_path: str, limit: int | None = None) -> list[dict]:
+    """Extract commit history from a local git repo.
+
+    Args:
+        repo_path: Path to the cloned repo
+        limit: Max commits to return. None = all commits.
+
+    Returns: List of {"sha", "message", "author", "date", "files_changed"}
+    """
+    # Use tformat (terminator) so each commit ends with the separator on its own line
+    fmt = _FIELD_SEP.join(["%H", "%s", "%an", "%aI"])
+    cmd = [
+        "git", "-C", repo_path, "log",
+        f"--pretty=tformat:{_LOG_SEP}{fmt}",
+        "--name-only",
+    ]
+    if limit is not None:
+        cmd.extend(["-n", str(limit)])
+
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+    if result.returncode != 0:
+        return []
+
+    raw = result.stdout.strip()
+    if not raw:
+        return []
+
+    commits = []
+    current_commit: dict | None = None
+
+    for line in raw.splitlines():
+        if line.startswith(_LOG_SEP):
+            # Save previous commit
+            if current_commit is not None:
+                commits.append(current_commit)
+            # Parse header: ---COMMIT_SEP---SHA---FIELD_SEP---msg---FIELD_SEP---author---FIELD_SEP---date
+            header = line[len(_LOG_SEP):]
+            parts = header.split(_FIELD_SEP)
+            current_commit = {
+                "sha": parts[0][:8] if len(parts) > 0 else "",
+                "message": parts[1] if len(parts) > 1 else "",
+                "author": parts[2] if len(parts) > 2 else "",
+                "date": parts[3] if len(parts) > 3 else "",
+                "files_changed": [],
+            }
+        elif current_commit is not None:
+            stripped = line.strip()
+            if stripped:
+                current_commit["files_changed"].append(stripped)
+
+    if current_commit is not None:
+        commits.append(current_commit)
+
+    return commits

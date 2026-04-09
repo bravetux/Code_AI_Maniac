@@ -50,3 +50,30 @@ def test_clone_invalid_repo(tmp_path, monkeypatch):
     monkeypatch.setattr("tools.clone_repo.REPOS_BASE", str(tmp_path / "repos"))
     result = clone_or_pull("nonexistent-user-xyz/no-such-repo-999", branch="main")
     assert "error" in result
+
+
+from tools.clone_repo import get_git_log
+
+
+def test_get_git_log_with_limit(tmp_path, monkeypatch):
+    """Get limited commits from a cloned repo."""
+    monkeypatch.setattr("tools.clone_repo.REPOS_BASE", str(tmp_path / "repos"))
+    clone_or_pull("bravetux/Code_AI_Maniac", branch="main")
+    path = os.path.join(str(tmp_path / "repos"), "bravetux", "Code_AI_Maniac")
+    commits = get_git_log(path, limit=5)
+    assert len(commits) == 5
+    assert "sha" in commits[0]
+    assert "message" in commits[0]
+    assert "author" in commits[0]
+    assert "date" in commits[0]
+    assert "files_changed" in commits[0]
+
+
+def test_get_git_log_all(tmp_path, monkeypatch):
+    """Get all commits (limit=None)."""
+    monkeypatch.setattr("tools.clone_repo.REPOS_BASE", str(tmp_path / "repos"))
+    clone_or_pull("bravetux/Code_AI_Maniac", branch="main")
+    path = os.path.join(str(tmp_path / "repos"), "bravetux", "Code_AI_Maniac")
+    commits = get_git_log(path, limit=None)
+    assert len(commits) >= 1
+    assert all("sha" in c for c in commits)
