@@ -36,6 +36,7 @@ if run_clicked:
         language=feature_config["language"] or None,
         features=feature_config["features"],
         custom_prompt=feature_config["custom_prompt"],
+        template_category=feature_config.get("template_category"),
     )
     st.session_state["current_job_id"] = job_id
 
