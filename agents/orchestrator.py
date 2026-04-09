@@ -49,8 +49,14 @@ def _fetch_files(job: dict) -> list[dict]:
 
     elif source_type == "github":
         parts  = source_ref.split("::")   # owner/repo :: branch :: path
+        token  = s.github_token
+        try:
+            import streamlit as st
+            token = st.session_state.get("github_token_override", token)
+        except Exception:
+            pass
         result = fetch_github_file(repo=parts[0], file_path=parts[2],
-                                   branch=parts[1], token=s.github_token)
+                                   branch=parts[1], token=token or None)
         if "error" in result:
             raise RuntimeError(result["error"])
         return [{"file_path": parts[2], "content": result["content"],
