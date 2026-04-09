@@ -27,6 +27,7 @@ _STATEMENTS = [
     )""",
     # Migration: add result_json to existing databases that predate this column
     "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS result_json JSON",
+    "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS template_category VARCHAR",
     """CREATE TABLE IF NOT EXISTS results_cache (
         id           VARCHAR PRIMARY KEY,
         job_id       VARCHAR NOT NULL,

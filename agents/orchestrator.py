@@ -15,6 +15,7 @@ from tools.fetch_github import fetch_github_file
 from tools.fetch_gitea import fetch_gitea_file
 from tools.language_detect import detect_language
 from config.settings import get_settings
+from config.prompt_templates import apply_template
 
 
 def _fetch_files(job: dict) -> list[dict]:
@@ -85,8 +86,14 @@ def _emit(conn, job_id, event_type, agent=None, file_path=None, message=None):
         pass
 
 
-def _run_agent(conn, job_id, agent_key, fn, file_path, kwargs) -> dict:
+def _run_agent(conn, job_id, agent_key, fn, file_path, kwargs,
+               template_category=None) -> dict:
     """Run a single agent, emit start/cached/complete/error events, return result."""
+    if template_category:
+        kwargs = dict(kwargs)
+        kwargs["custom_prompt"] = apply_template(
+            template_category, agent_key, kwargs.get("custom_prompt")
+        )
     _emit(conn, job_id, "start", agent=agent_key, file_path=file_path)
     try:
         result = fn(**kwargs)
@@ -104,7 +111,7 @@ def _run_agent(conn, job_id, agent_key, fn, file_path, kwargs) -> dict:
 
 
 def _run_features_for_file(conn, job_id, file_info, features, language,
-                            custom_prompt) -> dict:
+                            custom_prompt, template_category=None) -> dict:
     """Run all applicable features on a single file. Returns {feature: result}."""
     file_path  = file_info["file_path"]
     content    = file_info["content"]
@@ -133,7 +140,7 @@ def _run_features_for_file(conn, job_id, file_info, features, language,
 
     for feat in phase1:
         file_results[feat] = _run_agent(conn, job_id, feat, standalone[feat],
-                                        file_path, common)
+                                        file_path, common, template_category)
 
     # ── Phase 2: context-aware agents ─────────────────────────────────────────
     phase2 = [f for f in ("code_design", "mermaid") if f in feat_set]
@@ -146,12 +153,14 @@ def _run_features_for_file(conn, job_id, file_info, features, language,
             {**common,
              "bug_results":    file_results.get("bug_analysis"),
              "static_results": file_results.get("static_analysis")},
+            template_category,
         )
 
     if "mermaid" in feat_set:
         file_results["mermaid"] = _run_agent(
             conn, job_id, "mermaid", run_mermaid, file_path,
             {**common, "flow_context": file_results.get("code_flow")},
+            template_category,
         )
 
     # ── Phase 3: synthesis agents ─────────────────────────────────────────────
@@ -164,6 +173,7 @@ def _run_features_for_file(conn, job_id, file_info, features, language,
             {**common_no_content,
              "bug_results":    file_results.get("bug_analysis"),
              "static_results": file_results.get("static_analysis")},
+            template_category,
         )
 
     return file_results
@@ -208,6 +218,7 @@ def run_analysis(conn: duckdb.DuckDBPyConnection, job_id: str) -> dict:
     features = [f for f in (job["features"] or []) if f in enabled]
     language = job.get("language")
     custom_prompt = job.get("custom_prompt")
+    template_category = job.get("template_category")
     results  = {}
 
     try:
@@ -222,7 +233,8 @@ def run_analysis(conn: duckdb.DuckDBPyConnection, job_id: str) -> dict:
             # ── Single file ───────────────────────────────────────────────
             effective_lang = language or detect_language(files[0]["file_path"])
             results = _run_features_for_file(
-                conn, job_id, files[0], features, effective_lang, custom_prompt
+                conn, job_id, files[0], features, effective_lang, custom_prompt,
+                template_category,
             )
         else:
             # ── Multiple files ────────────────────────────────────────────
@@ -231,7 +243,8 @@ def run_analysis(conn: duckdb.DuckDBPyConnection, job_id: str) -> dict:
                 # Auto-detect per file — different files in a folder may differ
                 effective_lang = language or detect_language(file_info["file_path"])
                 file_results = _run_features_for_file(
-                    conn, job_id, file_info, features, effective_lang, custom_prompt
+                    conn, job_id, file_info, features, effective_lang, custom_prompt,
+                    template_category,
                 )
                 per_file.append((file_info["file_path"], file_results))
             results = _merge_multi_file_results(per_file, features)

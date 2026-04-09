@@ -6,12 +6,13 @@ import duckdb
 
 def create_job(conn: duckdb.DuckDBPyConnection, source_type: str, source_ref: str,
                language: str | None, features: list[str],
-               custom_prompt: str | None = None) -> str:
+               custom_prompt: str | None = None,
+               template_category: str | None = None) -> str:
     job_id = str(uuid.uuid4())
     conn.execute(
-        """INSERT INTO jobs (id, source_type, source_ref, language, features, custom_prompt)
-           VALUES (?, ?, ?, ?, ?, ?)""",
-        [job_id, source_type, source_ref, language, features, custom_prompt]
+        """INSERT INTO jobs (id, source_type, source_ref, language, features, custom_prompt, template_category)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        [job_id, source_type, source_ref, language, features, custom_prompt, template_category]
     )
     return job_id
 
