@@ -3,6 +3,7 @@ import tempfile
 import streamlit as st
 from config.settings import get_settings
 from tools.fetch_local import scan_folder_recursive
+from tools.clone_repo import parse_github_url, clone_or_pull
 
 
 def _pick_file() -> str:
@@ -170,14 +171,135 @@ def render_source_selector() -> dict:
 
     elif source_type == "GitHub":
         result["source_type"] = "github"
-        repo = st.text_input("Repository (owner/repo)", placeholder="octocat/Hello-World")
-        branch = st.text_input("Branch", value="main")
-        file_path = st.text_input("File path", placeholder="src/main.py")
-        token = st.text_input("GitHub token", value=s.github_token or "", type="password")
-        if repo and branch and file_path:
-            result["source_ref"] = f"{repo}::{branch}::{file_path}"
+
+        url_input = st.text_input(
+            "GitHub URL / Repository",
+            placeholder="https://github.com/owner/repo.git  or  owner/repo",
+            key="github_url_input",
+        )
+        branch = st.text_input("Branch", value="main", key="github_branch")
+        token = st.text_input(
+            "GitHub token",
+            value=s.github_token or "",
+            type="password",
+            help="Optional — only needed for private repos",
+            key="github_token_input",
+        )
         if token and token != s.github_token:
             st.session_state["github_token_override"] = token
+
+        effective_token = token or s.github_token or None
+
+        # --- Parse URL into owner/repo ---
+        parsed = None
+        if url_input:
+            try:
+                parsed = parse_github_url(url_input)
+            except ValueError:
+                st.error("Could not parse GitHub URL. Use `owner/repo` or a full URL.")
+
+        # --- Clone & Browse / Re-pull ---
+        if parsed:
+            repo_slug = parsed["slug"]
+            clone_dest = os.path.join("data", "repos", parsed["owner"], parsed["repo"])
+            already_cloned = os.path.isdir(os.path.join(clone_dest, ".git"))
+
+            col_clone, col_pull = st.columns(2)
+            with col_clone:
+                if st.button(
+                    "🔄 Re-pull" if already_cloned else "📥 Clone & Browse",
+                    key="clone_btn",
+                    type="primary",
+                ):
+                    with st.spinner("Cloning repository..." if not already_cloned
+                                    else "Pulling latest changes..."):
+                        clone_result = clone_or_pull(
+                            repo_slug, branch=branch, token=effective_token
+                        )
+                    if "error" in clone_result:
+                        st.error(clone_result["error"])
+                    else:
+                        st.session_state["cloned_repo_path"] = clone_result["path"]
+                        st.session_state["cloned_repo_slug"] = repo_slug
+                        st.success(
+                            f"{'Pulled' if clone_result['status'] == 'pulled' else 'Cloned'}"
+                            f" to `{clone_result['path']}`"
+                        )
+
+            if already_cloned and "cloned_repo_path" not in st.session_state:
+                st.session_state["cloned_repo_path"] = clone_dest
+                st.session_state["cloned_repo_slug"] = repo_slug
+
+            # --- File selection from cloned repo (folder-recursive reuse) ---
+            cloned_path = st.session_state.get("cloned_repo_path")
+            if cloned_path and os.path.isdir(cloned_path):
+                st.divider()
+                st.subheader("Select files to analyse")
+
+                with st.expander("Filter by extension", expanded=False):
+                    use_filter = st.checkbox(
+                        "Filter by extension", value=True,
+                        key="gh_folder_ext_filter",
+                    )
+                    if use_filter:
+                        chosen_exts = st.multiselect(
+                            "Extensions to include",
+                            options=_DEFAULT_EXTENSIONS,
+                            default=_DEFAULT_EXTENSIONS,
+                            key="gh_folder_exts",
+                        )
+                    else:
+                        chosen_exts = None
+
+                all_files = scan_folder_recursive(
+                    cloned_path,
+                    extensions=chosen_exts if use_filter else None,
+                )
+                total_found = len(all_files)
+
+                if total_found == 0:
+                    st.info("No matching files found in the cloned repo.")
+                else:
+                    st.caption(
+                        f"Found **{total_found}** file(s). "
+                        f"Limit: **{max_files}** (MAX_FILES in .env)."
+                    )
+
+                    rel_map = {
+                        os.path.relpath(p, cloned_path): p for p in all_files
+                    }
+                    rel_paths = list(rel_map.keys())
+                    default_selected = rel_paths[:max_files]
+
+                    selected_rel = st.multiselect(
+                        f"Select files to analyse (max {max_files})",
+                        options=rel_paths,
+                        default=default_selected,
+                        key="gh_folder_file_select",
+                    )
+
+                    if len(selected_rel) > max_files:
+                        st.error(
+                            f"Too many files selected ({len(selected_rel)}). "
+                            f"Please deselect down to {max_files}."
+                        )
+                        selected_rel = selected_rel[:max_files]
+
+                    if selected_rel:
+                        selected_abs = [rel_map[r] for r in selected_rel]
+                        # Treat cloned files as local source
+                        result["source_type"] = "local"
+                        result["source_ref"] = "::".join(selected_abs)
+                        st.caption(f"{len(selected_rel)} file(s) selected.")
+
+            # --- Fallback: single file via API (no clone needed) ---
+            elif not cloned_path:
+                st.divider()
+                file_path = st.text_input("Or enter a single file path (API fetch)",
+                                          placeholder="src/main.py",
+                                          key="github_file_path")
+                if parsed and branch and file_path:
+                    result["source_ref"] = f"{repo_slug}::{branch}::{file_path}"
 
     elif source_type == "Gitea":
         result["source_type"] = "gitea"
