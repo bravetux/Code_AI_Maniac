@@ -22,7 +22,16 @@ source = st.radio("Source", ["GitHub (Clone)", "GitHub (API)", "Gitea"], horizon
 
 custom_prompt = None
 with st.expander("Advanced / Fine-tune"):
+    from config.prompt_templates import TEMPLATE_CATEGORIES, apply_template
+    template_options = ["None"] + TEMPLATE_CATEGORIES
+    chosen_template = st.selectbox(
+        "Enhanced Template", template_options,
+        key="commits_enhanced_template",
+        help="Built-in expert prompt templates that enhance analysis depth and quality.",
+    )
     custom_prompt = st.text_area("System Prompt override", height=80) or None
+    if chosen_template != "None":
+        custom_prompt = apply_template(chosen_template, "commit_analysis", custom_prompt)
 
 if source == "GitHub (Clone)":
     url_input = st.text_input(
