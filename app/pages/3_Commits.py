@@ -31,7 +31,7 @@ with st.expander("Advanced / Fine-tune"):
     )
     custom_prompt = st.text_area("System Prompt override", height=80) or None
     if chosen_template != "None":
-        custom_prompt = apply_template(chosen_template, "commit_analysis", custom_prompt)
+        custom_prompt = apply_template(chosen_template, "commit_analysis", custom_prompt, language=None)
 
 if source == "GitHub (Clone)":
     url_input = st.text_input(

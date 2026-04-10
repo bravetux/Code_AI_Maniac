@@ -87,6 +87,14 @@ def render_feature_selector(conn) -> dict:
             "Architecture Reverse Engineering": "Pattern recognition and design archaeology",
             "Quick Scan": "Rapid top-5 findings with traffic-light rating",
             "Report Generator": "Formal publication-quality audit reports",
+            "Language Expert": "Auto-selected language-family-specific analysis",
+            "Performance Deep Dive": "Algorithmic complexity, memory, I/O, caching analysis",
+            "Compliance: SOC 2": "Trust Service Criteria compliance mapping",
+            "Compliance: GDPR": "Data protection and privacy regulation analysis",
+            "Compliance: PCI-DSS": "Payment card data security standard checks",
+            "Compliance: HIPAA": "Healthcare data protection compliance",
+            "Compliance: ISO 27001": "Information security management controls",
+            "Compliance: Generic Audit": "Framework-agnostic compliance analysis",
         }.get(chosen_template, ""))
 
         all_presets = list_presets(conn)
