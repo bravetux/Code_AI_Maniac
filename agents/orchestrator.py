@@ -92,7 +92,8 @@ def _run_agent(conn, job_id, agent_key, fn, file_path, kwargs,
     if template_category:
         kwargs = dict(kwargs)
         kwargs["custom_prompt"] = apply_template(
-            template_category, agent_key, kwargs.get("custom_prompt")
+            template_category, agent_key, kwargs.get("custom_prompt"),
+            language=kwargs.get("language"),
         )
     _emit(conn, job_id, "start", agent=agent_key, file_path=file_path)
     try:

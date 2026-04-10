@@ -30,6 +30,14 @@ TEMPLATE_CATEGORIES: list[str] = [
     "Architecture Reverse Engineering",
     "Quick Scan",
     "Report Generator",
+    "Language Expert",
+    "Performance Deep Dive",
+    "Compliance: SOC 2",
+    "Compliance: GDPR",
+    "Compliance: PCI-DSS",
+    "Compliance: HIPAA",
+    "Compliance: ISO 27001",
+    "Compliance: Generic Audit",
 ]
 
 # ---------------------------------------------------------------------------
@@ -1202,6 +1210,19 @@ TEMPLATES: list[PromptTemplate] = [
 ]
 
 # ---------------------------------------------------------------------------
+# Merge templates from sub-modules
+# ---------------------------------------------------------------------------
+
+from config.templates.language_expert import LANGUAGE_EXPERT_TEMPLATES, LANGUAGE_INDEX
+from config.templates.compliance import COMPLIANCE_TEMPLATES
+from config.templates.performance import PERFORMANCE_TEMPLATES, PERFORMANCE_ADDONS
+from config.language_families import get_language_family
+
+TEMPLATES.extend(LANGUAGE_EXPERT_TEMPLATES)
+TEMPLATES.extend(COMPLIANCE_TEMPLATES)
+TEMPLATES.extend(PERFORMANCE_TEMPLATES)
+
+# ---------------------------------------------------------------------------
 # Lookup helpers
 # ---------------------------------------------------------------------------
 
@@ -1220,10 +1241,16 @@ def get_template(category: str, agent: str) -> PromptTemplate | None:
     return _INDEX.get((category, agent))
 
 
+def _merge_text(base: str, addon: str) -> str:
+    """Combine a base template with a language-family addon."""
+    return f"{base}\n\n{addon}"
+
+
 def apply_template(
     category: str | None,
     agent: str,
     custom_prompt: str | None,
+    language: str | None = None,
 ) -> str | None:
     """Merge a template into *custom_prompt* using APPEND mode.
 
@@ -1233,16 +1260,41 @@ def apply_template(
     - *custom_prompt* starts with ``__append__``   ->  prepend template before user text
     - *custom_prompt* is in overwrite mode          ->  user override wins; skip template
 
+    Language-aware categories:
+    - **Language Expert** — selects template by language family (via LANGUAGE_INDEX)
+    - **Performance Deep Dive** — merges universal template + family addon (via PERFORMANCE_ADDONS)
+
     This keeps the user in full control: overwrite mode always beats templates.
     """
     if not category:
         return custom_prompt
 
-    template = get_template(category, agent)
-    if template is None:
-        return custom_prompt
+    family = get_language_family(language)
 
-    text = template.prompt_text
+    # --- Language Expert: look up by family instead of category ---
+    if category == "Language Expert":
+        template = LANGUAGE_INDEX.get((family, agent))
+        if template is None:
+            # Fall back to generic
+            template = LANGUAGE_INDEX.get(("generic", agent))
+        if template is None:
+            return custom_prompt
+        text = template.prompt_text
+    # --- Performance Deep Dive: universal + optional addon ---
+    elif category == "Performance Deep Dive":
+        template = get_template(category, agent)
+        if template is None:
+            return custom_prompt
+        text = template.prompt_text
+        addon = PERFORMANCE_ADDONS.get((family, agent))
+        if addon:
+            text = _merge_text(text, addon)
+    # --- All other categories: standard lookup ---
+    else:
+        template = get_template(category, agent)
+        if template is None:
+            return custom_prompt
+        text = template.prompt_text
 
     if not custom_prompt:
         return f"{_APPEND_PREFIX}{text}"
