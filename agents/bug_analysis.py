@@ -80,6 +80,18 @@ def run_bug_analysis(conn: duckdb.DuckDBPyConnection, job_id: str,
             # If JSON parsing fails, treat entire response as narrative
             narratives.append(raw)
 
+    # Normalise severity — templates may instruct high/medium/low instead of
+    # the expected critical/major/minor, causing bugs to vanish from the UI.
+    _SEV_MAP = {
+        "critical": "critical", "high": "critical", "error": "critical",
+        "major": "major", "medium": "major", "warning": "major",
+        "minor": "minor", "low": "minor", "info": "minor",
+        "suggestion": "minor", "note": "minor", "trivial": "minor",
+    }
+    for bug in all_bugs:
+        raw = (bug.get("severity") or "").strip().lower()
+        bug["severity"] = _SEV_MAP.get(raw, "minor")
+
     # Deduplicate by (line, description)
     seen = set()
     deduped = []

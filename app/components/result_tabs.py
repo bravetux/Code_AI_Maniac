@@ -138,6 +138,17 @@ def _download_row(feature: str, result: dict, md_label: str = "⬇ MD") -> None:
 
 # ── Bug Analysis ──────────────────────────────────────────────────────────────
 
+def _normalize_severity(raw: str) -> str:
+    """Map variant severity labels back to critical / major / minor."""
+    _MAP = {
+        "critical": "critical", "high": "critical", "error": "critical",
+        "major": "major", "medium": "major", "warning": "major",
+        "minor": "minor", "low": "minor", "info": "minor",
+        "suggestion": "minor", "note": "minor", "trivial": "minor",
+    }
+    return _MAP.get((raw or "").strip().lower(), "minor")
+
+
 def _render_bugs(result: dict, language: str = "") -> None:
     bugs = result.get("bugs", [])
     narrative = result.get("narrative", "")
@@ -155,6 +166,10 @@ def _render_bugs(result: dict, language: str = "") -> None:
         if not narrative:
             st.success("No bugs found.")
         return
+
+    # Normalise severity so template-driven variants (high/medium/low) map correctly
+    for bug in bugs:
+        bug["severity"] = _normalize_severity(bug.get("severity", ""))
 
     # Summary count as a quiet caption above the grouped bug list
     if summary:
