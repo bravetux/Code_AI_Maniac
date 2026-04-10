@@ -2,7 +2,7 @@ import json
 import re
 import duckdb
 from strands import Agent
-from agents._bedrock import make_bedrock_model, resolve_prompt
+from agents._bedrock import make_bedrock_model, resolve_prompt, parse_json_response
 from tools.chunk_file import chunk_by_lines
 from tools.cache import check_cache, write_cache
 from db.queries.history import add_history
@@ -145,12 +145,8 @@ def run_code_design(conn: duckdb.DuckDBPyConnection, job_id: str,
     turn2 = "\n\n".join(context_parts) + f"\n\n{_TURN2_INSTRUCTION}"
     raw = str(agent(turn2))
 
-    text = raw.strip()
-    text = re.sub(r"^```(?:json)?\n?", "", text)
-    text = re.sub(r"\n?```$", "", text)
-
     try:
-        result = json.loads(text)
+        result = parse_json_response(raw)
     except (json.JSONDecodeError, ValueError):
         # Turn 2 failed — store raw response, skip Turn 3
         result = {

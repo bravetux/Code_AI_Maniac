@@ -16,6 +16,7 @@ from tools.fetch_gitea import fetch_gitea_file
 from tools.language_detect import detect_language
 from config.settings import get_settings
 from config.prompt_templates import apply_template
+from app.components.result_tabs import save_reports_to_disk
 
 
 def _fetch_files(job: dict) -> list[dict]:
@@ -252,6 +253,16 @@ def run_analysis(conn: duckdb.DuckDBPyConnection, job_id: str) -> dict:
 
         save_job_results(conn, job_id, results)
         update_job_status(conn, job_id, "completed")
+
+        # Auto-save reports to disk
+        try:
+            source_ref = job.get("source_ref", "")
+            saved = save_reports_to_disk(results, source_ref=source_ref)
+            if saved:
+                _emit(conn, job_id, "complete",
+                      message=f"Auto-saved {len(saved)} report(s) to Reports/")
+        except Exception:
+            pass  # non-critical — don't fail the job
 
     except Exception as e:
         results["error"] = str(e)

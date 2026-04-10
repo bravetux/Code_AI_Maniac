@@ -463,6 +463,49 @@ def _source_basename(source_ref: str) -> str:
     return name if name else "report"
 
 
+def save_reports_to_disk(results: dict, source_ref: str = "",
+                         reports_root: str = "Reports") -> list[str]:
+    """
+    Write one Markdown report per (source file x feature) into a timestamped
+    sub-directory of reports_root.  Standalone — no Streamlit dependency.
+    Returns list of written file paths.
+    """
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    reports_dir = os.path.join(reports_root, ts)
+    os.makedirs(reports_dir, exist_ok=True)
+    written = []
+
+    for feature in FEATURE_LABELS:
+        if feature not in results:
+            continue
+        result = results[feature]
+        suffix = _FEATURE_SUFFIX.get(feature, f"_{feature}.md")
+
+        if result.get("_multi_file"):
+            for file_path, file_result in result.get("files", {}).items():
+                base = os.path.basename(file_path) or "report"
+                out_path = os.path.join(reports_dir, f"{base}{suffix}")
+                try:
+                    content = _to_markdown(feature, file_result)
+                    with open(out_path, "w", encoding="utf-8") as fh:
+                        fh.write(content)
+                    written.append(out_path)
+                except Exception:
+                    pass
+        else:
+            base = _source_basename(source_ref)
+            out_path = os.path.join(reports_dir, f"{base}{suffix}")
+            try:
+                content = _to_markdown(feature, result)
+                with open(out_path, "w", encoding="utf-8") as fh:
+                    fh.write(content)
+                written.append(out_path)
+            except Exception:
+                pass
+
+    return written
+
+
 def _save_all_reports(results: dict, reports_dir: str, source_ref: str = "") -> list[str]:
     """
     Write one Markdown report per (source file × feature) into reports_dir.

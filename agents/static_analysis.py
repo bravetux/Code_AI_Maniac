@@ -2,7 +2,7 @@ import json
 import re
 import duckdb
 from strands import Agent
-from agents._bedrock import make_bedrock_model, resolve_prompt
+from agents._bedrock import make_bedrock_model, resolve_prompt, parse_json_response
 from tools.run_linter import run_linter
 from tools.chunk_file import chunk_by_lines
 from tools.cache import check_cache, write_cache
@@ -68,10 +68,8 @@ def run_static_analysis(conn: duckdb.DuckDBPyConnection, job_id: str,
                   f"Source code (lines {chunk['start_line']}-{chunk['end_line']}):\n"
                   f"{chunk['content']}")
         raw = str(agent(prompt))
-        text = re.sub(r"^```(?:json)?\n?", "", raw.strip())
-        text = re.sub(r"\n?```$", "", text)
         try:
-            parsed = json.loads(text)
+            parsed = parse_json_response(raw)
             all_semantic.extend(parsed.get("semantic_findings", []))
             if parsed.get("narrative"):
                 narratives.append(parsed["narrative"])

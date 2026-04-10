@@ -2,7 +2,7 @@ import json
 import re
 import duckdb
 from strands import Agent
-from agents._bedrock import make_bedrock_model, resolve_prompt
+from agents._bedrock import make_bedrock_model, resolve_prompt, parse_json_response
 from tools.chunk_file import chunk_by_lines
 from tools.cache import check_cache, write_cache
 from db.queries.history import add_history
@@ -41,11 +41,7 @@ Return a JSON object:
 If no bugs are found, return {"bugs": [], "narrative": "<your assessment of why the code is sound>", "summary": "No bugs found."}"""
 
 
-def _parse_json_response(text: str) -> dict:
-    text = text.strip()
-    text = re.sub(r"^```(?:json)?\n?", "", text)
-    text = re.sub(r"\n?```$", "", text)
-    return json.loads(text)
+_parse_json_response = parse_json_response
 
 
 _CACHE_KEY = "bug_analysis:v2"   # bump when output schema changes

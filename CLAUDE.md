@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**AG-UC-1128** — AI Arena: a multi-agent code analysis platform with a Streamlit frontend and AWS Strands + Bedrock backend.
+**AG-UC-1128** — AI Code Maniac: a multi-agent code analysis platform with a Streamlit frontend and AWS Strands + Bedrock backend.
 
 Key capabilities:
 - Accept code from GitHub/Gitea repositories or local files

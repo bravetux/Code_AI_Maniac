@@ -1,8 +1,70 @@
+import json
+import re
+
 import boto3
 from strands.models import BedrockModel
 from config.settings import get_settings
 
 _APPEND_PREFIX = "__append__\n"
+
+
+def parse_json_response(text: str) -> dict:
+    """Extract a JSON object from an LLM response that may contain reasoning text.
+
+    Handles:
+    - Pure JSON
+    - JSON wrapped in ```json ... ``` code fences
+    - JSON embedded after reasoning / chain-of-thought text
+    """
+    text = text.strip()
+
+    # 1. Try raw text directly (pure JSON response)
+    try:
+        return json.loads(text)
+    except (json.JSONDecodeError, ValueError):
+        pass
+
+    # 2. Try extracting from ```json ... ``` code fences (first match)
+    fence_match = re.search(r"```(?:json)?\s*\n(.*?)\n```", text, re.DOTALL)
+    if fence_match:
+        try:
+            return json.loads(fence_match.group(1))
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+    # 3. Try to find the outermost { ... } JSON object
+    start = text.find("{")
+    if start != -1:
+        depth = 0
+        in_str = False
+        escape = False
+        for i in range(start, len(text)):
+            ch = text[i]
+            if escape:
+                escape = False
+                continue
+            if ch == "\\":
+                escape = True
+                continue
+            if ch == '"' and not escape:
+                in_str = not in_str
+                continue
+            if in_str:
+                continue
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    try:
+                        return json.loads(text[start:i + 1])
+                    except (json.JSONDecodeError, ValueError):
+                        break
+
+    # 4. Strip leading/trailing fences as last resort
+    stripped = re.sub(r"^```(?:json)?\n?", "", text)
+    stripped = re.sub(r"\n?```$", "", stripped)
+    return json.loads(stripped)
 
 
 def resolve_prompt(custom_prompt: str | None, base_prompt: str) -> str:

@@ -2,7 +2,7 @@ import json
 import re
 import duckdb
 from strands import Agent
-from agents._bedrock import make_bedrock_model, resolve_prompt
+from agents._bedrock import make_bedrock_model, resolve_prompt, parse_json_response
 from tools.cache import check_cache, write_cache
 from db.queries.history import add_history
 
@@ -72,10 +72,8 @@ def run_comment_generation(conn: duckdb.DuckDBPyConnection, job_id: str,
 
     prompt = "\n\n".join(context_parts)
     raw = str(agent(prompt))
-    text = re.sub(r"^```(?:json)?\n?", "", raw.strip())
-    text = re.sub(r"\n?```$", "", text)
     try:
-        result = json.loads(text)
+        result = parse_json_response(raw)
     except (json.JSONDecodeError, ValueError):
         result = {"comments": [], "summary": raw}
 
