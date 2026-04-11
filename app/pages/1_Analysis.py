@@ -59,72 +59,107 @@ if not job:
     st.stop()
 
 _AGENT_LABELS = {
-    "bug_analysis":      "Bug Analysis",
-    "static_analysis":   "Static Analysis",
-    "code_flow":         "Code Flow",
-    "requirement":       "Requirements",
-    "code_design":       "Code Design",
-    "mermaid":           "Mermaid Diagram",
-    "comment_generator": "PR Comments",
-    "commit_analysis":   "Commit Analysis",
+    "bug_analysis":        "Bug Analysis",
+    "static_analysis":     "Static Analysis",
+    "code_flow":           "Code Flow",
+    "requirement":         "Requirements",
+    "code_design":         "Code Design",
+    "mermaid":             "Mermaid Diagram",
+    "comment_generator":   "PR Comments",
+    "commit_analysis":     "Commit Analysis",
+    "report_per_file":     "Per-File Report",
+    "report_consolidated": "Consolidated Report",
 }
 
 _EVENT_ICON = {
-    "fetch":    "📂",
-    "phase":    "—",
-    "start":    "🔄",
-    "complete": "✅",
-    "cached":   "⚡",
-    "error":    "❌",
+    "fetch":           "📂",
+    "phase":           "—",
+    "start":           "🔄",
+    "complete":        "✅",
+    "cached":          "⚡",
+    "error":           "❌",
+    "report_start":    "📝",
+    "report_complete": "📄",
+    "report_error":    "❌",
 }
 
 
 def _render_live_progress(conn, job_id: str, job: dict) -> None:
     features = job.get("features") or []
-    total    = len([f for f in features if f != "commit_analysis"])
-
+    analysis_features = [f for f in features if f != "commit_analysis"]
     events = get_events(conn, job_id)
-    done   = sum(1 for e in events if e["event_type"] in ("complete", "cached", "error"))
-    pct    = min(int((done / max(total, 1)) * 100), 99)   # cap at 99 until truly done
 
-    st.progress(pct, text=f"Analyzing… {done}/{total} agents done")
+    # Count source files from fetch events
+    file_count = 1  # default
+    for ev in events:
+        if ev["event_type"] == "fetch" and ev.get("message", "").startswith("Loaded"):
+            msg = ev["message"]
+            try:
+                file_count = int(msg.split()[1])
+            except (IndexError, ValueError):
+                pass
 
+    # ── Phase 1: Analysis progress ───────────────────────────────────────
+    analysis_total = len(analysis_features) * file_count
+    analysis_done = sum(1 for e in events
+                        if e["event_type"] in ("complete", "cached", "error")
+                        and e.get("agent") not in ("report_per_file", "report_consolidated"))
+    analysis_pct = min(int((analysis_done / max(analysis_total, 1)) * 100), 99)
+
+    # Check if analysis is truly done (report events have started)
+    report_events = [e for e in events if e["event_type"].startswith("report_")]
+    analysis_finished = len(report_events) > 0 or analysis_done >= analysis_total
+
+    if analysis_finished:
+        st.progress(100, text=f"Analysis complete — {analysis_done}/{analysis_total} agents done")
+    else:
+        st.progress(analysis_pct, text=f"Analyzing… {analysis_done}/{analysis_total} agents done")
+
+    # ── Phase 2: Report generation progress ──────────────────────────────
+    if report_events:
+        report_done = sum(1 for e in report_events if e["event_type"] == "report_complete")
+        report_started = sum(1 for e in report_events if e["event_type"] == "report_start")
+        report_total = max(report_started, report_done, 1)
+        report_pct = min(int((report_done / report_total) * 100), 99)
+        st.progress(report_pct, text=f"Generating reports… {report_done}/{report_total}")
+
+    # ── Live Activity Log ────────────────────────────────────────────────
     with st.container(border=True):
         st.markdown("##### Live Activity")
         if not events:
             st.caption("Starting up…")
         for ev in events:
-            etype     = ev["event_type"]
-            agent     = ev.get("agent") or ""
-            fpath     = ev.get("file_path") or ""
-            message   = ev.get("message") or ""
-            icon      = _EVENT_ICON.get(etype, "•")
-            fname     = os.path.basename(fpath) if fpath else ""
-            label     = _AGENT_LABELS.get(agent, agent)
+            etype   = ev["event_type"]
+            agent   = ev.get("agent") or ""
+            fpath   = ev.get("file_path") or ""
+            message = ev.get("message") or ""
+            icon    = _EVENT_ICON.get(etype, "•")
+            fname   = os.path.basename(fpath) if fpath else ""
+            label   = _AGENT_LABELS.get(agent, agent)
 
             if etype == "phase":
                 st.markdown(f"&nbsp;&nbsp;**{message}**")
             elif etype == "fetch":
                 st.markdown(f"{icon} &nbsp; {message}")
-            elif etype == "start":
+            elif etype in ("start", "report_start"):
                 st.markdown(
                     f"&nbsp;&nbsp;&nbsp;&nbsp;{icon} &nbsp; **{label}**"
                     + (f" &nbsp; `{fname}`" if fname else "")
                     + " &nbsp; *running…*"
                 )
-            elif etype == "cached":
+            elif etype in ("cached",):
                 st.markdown(
                     f"&nbsp;&nbsp;&nbsp;&nbsp;{icon} &nbsp; **{label}**"
                     + (f" &nbsp; `{fname}`" if fname else "")
                     + f" &nbsp; *cache hit* — {message}"
                 )
-            elif etype == "complete":
+            elif etype in ("complete", "report_complete"):
                 st.markdown(
                     f"&nbsp;&nbsp;&nbsp;&nbsp;{icon} &nbsp; **{label}**"
                     + (f" &nbsp; `{fname}`" if fname else "")
                     + (f" &nbsp; — {message}" if message else "")
                 )
-            elif etype == "error":
+            elif etype in ("error", "report_error"):
                 st.markdown(
                     f"&nbsp;&nbsp;&nbsp;&nbsp;{icon} &nbsp; **{label}**"
                     + (f" &nbsp; `{fname}`" if fname else "")
