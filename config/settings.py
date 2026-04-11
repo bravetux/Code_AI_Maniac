@@ -47,6 +47,13 @@ class Settings(BaseSettings):
     #   ENABLED_AGENTS=code_design,requirement,code_flow,mermaid
     enabled_agents: str = "all"
 
+    # ── Report generation ────────────────────────────────────────────────────
+    report_per_file: bool = True
+    report_consolidated: bool = True
+    report_format_md: bool = True
+    report_format_html: bool = True
+    consolidated_mode: str = Field(default="hybrid", pattern=r"^(hybrid|llm|template)$")
+
     @property
     def enabled_agent_set(self) -> frozenset[str]:
         """Return the set of enabled agent keys.

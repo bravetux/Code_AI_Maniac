@@ -88,3 +88,37 @@ def test_enabled_agents_whitespace_tolerant(monkeypatch):
     assert "bug_analysis" in s.enabled_agent_set
     assert "code_design" in s.enabled_agent_set
     get_settings.cache_clear()
+
+
+# ── Report generation settings ────────────────────────────────────────────────
+
+def test_report_settings_defaults(test_settings):
+    assert test_settings.report_per_file is True
+    assert test_settings.report_consolidated is True
+    assert test_settings.report_format_md is True
+    assert test_settings.report_format_html is True
+    assert test_settings.consolidated_mode == "hybrid"
+
+
+def test_consolidated_mode_custom(monkeypatch):
+    from config.settings import get_settings
+    monkeypatch.setenv("CONSOLIDATED_MODE", "llm")
+    get_settings.cache_clear()
+    s = get_settings()
+    assert s.consolidated_mode == "llm"
+    get_settings.cache_clear()
+
+
+def test_consolidated_mode_invalid():
+    from config.settings import Settings
+    with pytest.raises(ValidationError):
+        Settings(consolidated_mode="invalid_mode")
+
+
+def test_report_per_file_toggle(monkeypatch):
+    from config.settings import get_settings
+    monkeypatch.setenv("REPORT_PER_FILE", "false")
+    get_settings.cache_clear()
+    s = get_settings()
+    assert s.report_per_file is False
+    get_settings.cache_clear()
