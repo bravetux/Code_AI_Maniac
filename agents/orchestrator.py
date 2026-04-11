@@ -1,4 +1,6 @@
+import os
 import traceback
+from datetime import datetime
 import duckdb
 from db.queries.jobs import get_job, update_job_status, save_job_results
 from db.queries.job_events import add_event
@@ -10,13 +12,15 @@ from agents.requirement import run_requirement_analysis
 from agents.static_analysis import run_static_analysis
 from agents.comment_generator import run_comment_generation
 from agents.commit_analysis import run_commit_analysis
+from agents.report_per_file import generate_per_file_report
+from agents.report_consolidated import generate_consolidated_report
 from tools.fetch_local import fetch_local_file
 from tools.fetch_github import fetch_github_file
 from tools.fetch_gitea import fetch_gitea_file
 from tools.language_detect import detect_language
+from tools.python_html_converter import convert_md_to_html
 from config.settings import get_settings
 from config.prompt_templates import apply_template
-from app.components.result_tabs import save_reports_to_disk
 
 
 def _fetch_files(job: dict) -> list[dict]:
@@ -204,6 +208,84 @@ def _merge_multi_file_results(per_file: list[tuple[str, dict]],
     return merged
 
 
+def _generate_reports(conn, job_id, per_file_data, features, language,
+                      reports_dir, emit_fn) -> list[str]:
+    """Phase 2: generate per-file and consolidated reports.
+    Returns list of written file paths."""
+    s = get_settings()
+    written = []
+
+    if not s.report_per_file and not s.report_consolidated:
+        return written
+
+    os.makedirs(reports_dir, exist_ok=True)
+    per_file_dir = os.path.join(reports_dir, "per_file")
+    per_file_reports = []
+
+    # ── Per-file reports ─────────────────────────────────────────────────
+    if s.report_per_file:
+        os.makedirs(per_file_dir, exist_ok=True)
+        for file_path, file_results in per_file_data:
+            basename = os.path.basename(file_path) or "report"
+            name_stem = os.path.splitext(basename)[0]
+            emit_fn(conn, job_id, "report_start", agent="report_per_file",
+                    file_path=file_path, message=f"Generating report for {basename}")
+
+            md_content = generate_per_file_report(file_path, file_results, language)
+            per_file_reports.append(md_content)
+
+            if s.report_format_md:
+                md_path = os.path.join(per_file_dir, f"{name_stem}.md")
+                with open(md_path, "w", encoding="utf-8") as fh:
+                    fh.write(md_content)
+                written.append(md_path)
+
+            if s.report_format_html:
+                html_path = os.path.join(per_file_dir, f"{name_stem}.html")
+                html_content = convert_md_to_html(md_content, title=f"Report — {basename}")
+                with open(html_path, "w", encoding="utf-8") as fh:
+                    fh.write(html_content)
+                written.append(html_path)
+
+            emit_fn(conn, job_id, "report_complete", agent="report_per_file",
+                    file_path=file_path, message=f"Report saved for {basename}")
+
+    # ── Consolidated report ──────────────────────────────────────────────
+    if s.report_consolidated and per_file_data:
+        emit_fn(conn, job_id, "report_start", agent="report_consolidated",
+                message="Generating consolidated report")
+
+        all_results = {fp: fr for fp, fr in per_file_data}
+        file_paths = [fp for fp, _ in per_file_data]
+
+        md_content = generate_consolidated_report(
+            per_file_reports=per_file_reports,
+            all_results=all_results,
+            file_paths=file_paths,
+            features=[f for f in features if f != "commit_analysis"],
+            language=language,
+            mode=s.consolidated_mode,
+        )
+
+        if s.report_format_md:
+            md_path = os.path.join(reports_dir, "consolidated_report.md")
+            with open(md_path, "w", encoding="utf-8") as fh:
+                fh.write(md_content)
+            written.append(md_path)
+
+        if s.report_format_html:
+            html_path = os.path.join(reports_dir, "consolidated_report.html")
+            html_content = convert_md_to_html(md_content, title="Consolidated Analysis Report")
+            with open(html_path, "w", encoding="utf-8") as fh:
+                fh.write(html_content)
+            written.append(html_path)
+
+        emit_fn(conn, job_id, "report_complete", agent="report_consolidated",
+                message=f"Consolidated report saved ({len(file_paths)} files)")
+
+    return written
+
+
 def run_analysis(conn: duckdb.DuckDBPyConnection, job_id: str) -> dict:
     """
     Orchestrate all selected features for a job.
@@ -254,13 +336,23 @@ def run_analysis(conn: duckdb.DuckDBPyConnection, job_id: str) -> dict:
         save_job_results(conn, job_id, results)
         update_job_status(conn, job_id, "completed")
 
-        # Auto-save reports to disk
+        # ── Phase 2: Report generation ───────────────────────────────────
+        if len(files) == 1:
+            _per_file_data = [(files[0]["file_path"], results)]
+        else:
+            _per_file_data = per_file
+
         try:
-            source_ref = job.get("source_ref", "")
-            saved = save_reports_to_disk(results, source_ref=source_ref)
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            reports_dir = os.path.join("Reports", ts)
+            saved = _generate_reports(
+                conn, job_id, _per_file_data, features,
+                language or detect_language(files[0]["file_path"]),
+                reports_dir, _emit,
+            )
             if saved:
-                _emit(conn, job_id, "complete",
-                      message=f"Auto-saved {len(saved)} report(s) to Reports/")
+                _emit(conn, job_id, "report_complete",
+                      message=f"Saved {len(saved)} report file(s) to Reports/")
         except Exception:
             pass  # non-critical — don't fail the job
 
