@@ -469,6 +469,10 @@ def save_reports_to_disk(results: dict, source_ref: str = "",
     Write one Markdown report per (source file x feature) into a timestamped
     sub-directory of reports_root.  Standalone — no Streamlit dependency.
     Returns list of written file paths.
+
+    Note: This is the legacy per-feature save used by the manual "Save All
+    Reports" button.  The orchestrator now uses _generate_reports() for
+    per-file and consolidated reports.
     """
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     reports_dir = os.path.join(reports_root, ts)
