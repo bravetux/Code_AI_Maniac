@@ -85,30 +85,30 @@ div.cta-wrap [data-testid="stBaseButton-primary"]:hover {
 /* ── Pipeline row ───────────────────────────────────────────────────────── */
 .pipe-box {
     background: #0d0d16;
-    border: 1px solid #1a1a2e;
+    border: 1px solid #2a2a40;
     border-radius: 10px;
-    padding: 1rem .6rem;
+    padding: 1.2rem .8rem;
     text-align: center;
 }
 .pipe-phase {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 16px;
-    font-weight: 600;
-    letter-spacing: .12em;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: .1em;
     text-transform: uppercase;
 }
 .pipe-name {
     font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 500;
-    color: #9a9aae;
-    margin-top: .2rem;
+    color: #c8c8d8;
+    margin-top: .3rem;
 }
 .pipe-count {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    color: #3d3d52;
-    margin-top: .15rem;
+    font-size: 14px;
+    color: #8888a0;
+    margin-top: .2rem;
 }
 
 /* ── Section headers ────────────────────────────────────────────────────── */
