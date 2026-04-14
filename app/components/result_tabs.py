@@ -20,6 +20,9 @@ FEATURE_LABELS = {
 _SEVERITY_ICON = {"critical": "🔴", "major": "🟠", "minor": "🟡", "suggestion": "🔵"}
 _RISK_ICON     = {"high": "🔴", "medium": "🟠", "low": "🟢"}
 
+# Security features are rendered by security_results.py, not here
+_SECURITY_FEATURES = {"secret_scan", "dependency_analysis", "threat_model"}
+
 _FEATURE_SUFFIX = {
     "bug_analysis":      "_bug_analysis.md",
     "code_design":       "_code_design.md",
@@ -40,7 +43,7 @@ def render_results(results: dict, source_ref: str = "") -> None:
         st.info("No results to display.")
         return
 
-    features = [f for f in FEATURE_LABELS if f in results]  # display-order
+    features = [f for f in FEATURE_LABELS if f in results and f not in _SECURITY_FEATURES]
     if not features:
         if "error" in results:
             st.error(f"Analysis error: {results['error']}")
