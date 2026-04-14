@@ -122,3 +122,76 @@ def test_report_per_file_toggle(monkeypatch):
     s = get_settings()
     assert s.report_per_file is False
     get_settings.cache_clear()
+
+
+# ── Security testing settings ────────────────────────────────────────────────
+
+def test_secret_scan_mode_default(test_settings):
+    assert test_settings.secret_scan_mode == "warn"
+
+
+def test_secret_scan_mode_custom(monkeypatch):
+    from config.settings import get_settings
+    monkeypatch.setenv("SECRET_SCAN_MODE", "block")
+    get_settings.cache_clear()
+    s = get_settings()
+    assert s.secret_scan_mode == "block"
+    get_settings.cache_clear()
+
+
+def test_secret_scan_mode_invalid():
+    from config.settings import Settings
+    with pytest.raises(ValidationError):
+        Settings(secret_scan_mode="invalid")
+
+
+def test_sca_cve_backend_default(test_settings):
+    assert test_settings.sca_cve_backend == "osv_llm"
+
+
+def test_sca_cve_backend_custom(monkeypatch):
+    from config.settings import get_settings
+    monkeypatch.setenv("SCA_CVE_BACKEND", "nvd")
+    get_settings.cache_clear()
+    s = get_settings()
+    assert s.sca_cve_backend == "nvd"
+    get_settings.cache_clear()
+
+
+def test_sca_cve_backend_invalid():
+    from config.settings import Settings
+    with pytest.raises(ValidationError):
+        Settings(sca_cve_backend="invalid")
+
+
+def test_sca_auto_discover_default(test_settings):
+    assert test_settings.sca_auto_discover is True
+
+
+def test_sca_auto_discover_toggle(monkeypatch):
+    from config.settings import get_settings
+    monkeypatch.setenv("SCA_AUTO_DISCOVER", "false")
+    get_settings.cache_clear()
+    s = get_settings()
+    assert s.sca_auto_discover is False
+    get_settings.cache_clear()
+
+
+def test_nvd_api_key_default(test_settings):
+    assert test_settings.nvd_api_key == ""
+
+
+def test_all_agents_includes_security(test_settings):
+    from config.settings import ALL_AGENTS
+    assert "secret_scan" in ALL_AGENTS
+    assert "dependency_analysis" in ALL_AGENTS
+    assert "threat_model" in ALL_AGENTS
+
+
+def test_enabled_agents_security_subset(monkeypatch):
+    from config.settings import get_settings
+    monkeypatch.setenv("ENABLED_AGENTS", "secret_scan,threat_model")
+    get_settings.cache_clear()
+    s = get_settings()
+    assert s.enabled_agent_set == frozenset({"secret_scan", "threat_model"})
+    get_settings.cache_clear()

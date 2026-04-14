@@ -14,6 +14,9 @@ ALL_AGENTS: frozenset[str] = frozenset({
     "static_analysis",
     "comment_generator",
     "commit_analysis",
+    "secret_scan",
+    "dependency_analysis",
+    "threat_model",
 })
 
 
@@ -53,6 +56,12 @@ class Settings(BaseSettings):
     report_format_md: bool = True
     report_format_html: bool = True
     consolidated_mode: str = Field(default="hybrid", pattern=r"^(hybrid|llm|template)$")
+
+    # ── Security testing ─────────────────────────────────────────────────────
+    secret_scan_mode: str = Field(default="warn", pattern=r"^(block|redact|warn)$")
+    sca_cve_backend: str = Field(default="osv_llm", pattern=r"^(osv|nvd|github|llm|osv_llm)$")
+    sca_auto_discover: bool = True
+    nvd_api_key: str = ""
 
     @property
     def enabled_agent_set(self) -> frozenset[str]:
