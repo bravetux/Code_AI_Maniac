@@ -59,11 +59,11 @@ def render_feature_selector(conn) -> dict:
         language = ""
         st.caption("Language will be auto-detected from the file extension.")
 
-    st.subheader("Features")
     selected = []
-    for key, label in active_features.items():
-        if st.checkbox(label, key=f"feature_{key}"):
-            selected.append(key)
+    with st.expander("Features", expanded=True):
+        for key, label in active_features.items():
+            if st.checkbox(label, key=f"feature_{key}"):
+                selected.append(key)
 
     mermaid_type = "flowchart"
     if "mermaid" in selected:

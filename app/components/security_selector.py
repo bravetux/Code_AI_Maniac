@@ -26,18 +26,17 @@ def render_security_selector() -> dict:
         return {"security_features": [], "threat_model_mode": "formal"}
 
     st.divider()
-    st.subheader("Security Testing")
-
     selected = []
-    for key, label in active_security.items():
-        if st.checkbox(label, key=f"security_{key}"):
-            selected.append(key)
-
     threat_model_mode = "formal"
-    if "threat_model" in selected:
-        mode_label = st.selectbox("Threat model mode", THREAT_MODEL_MODES,
-                                  key="sidebar_threat_model_mode")
-        threat_model_mode = _MODE_MAP.get(mode_label, "formal")
+    with st.expander("Security Testing", expanded=True):
+        for key, label in active_security.items():
+            if st.checkbox(label, key=f"security_{key}"):
+                selected.append(key)
+
+        if "threat_model" in selected:
+            mode_label = st.selectbox("Threat model mode", THREAT_MODEL_MODES,
+                                      key="sidebar_threat_model_mode")
+            threat_model_mode = _MODE_MAP.get(mode_label, "formal")
 
     return {
         "security_features": selected,
