@@ -512,7 +512,7 @@ with st.container():
         if st.button(
             "\u2002Start Analysis  \u2192",
             type="primary",
-            use_container_width=True,
+            width="stretch",
             key="bottom_cta",
         ):
             st.switch_page("pages/1_Analysis.py")

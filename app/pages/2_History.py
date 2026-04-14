@@ -56,7 +56,7 @@ edited = st.data_editor(
     },
     disabled=["id", "created_at", "feature", "language", "source_ref", "summary"],
     hide_index=True,
-    use_container_width=True,
+    width="stretch",
     key="history_selector",
 )
 
@@ -132,7 +132,7 @@ for i, row in enumerate(rows):
         pd.to_datetime(row["created_at"]).strftime("%Y-%m-%d %H:%M:%S"),
         row["summary"],
     ]
-st.dataframe(pd.DataFrame(overview_data), use_container_width=True, hide_index=True)
+st.dataframe(pd.DataFrame(overview_data), width="stretch", hide_index=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -256,7 +256,7 @@ if client_clicked:
             for i, (label, m) in enumerate(zip(col_labels, col_metrics)):
                 comp_data[label] = [str(m.get(k, "—")) for k in ordered_keys]
 
-            st.dataframe(pd.DataFrame(comp_data), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(comp_data), width="stretch", hide_index=True)
 
             # Highlight best for numeric issue counts (lower = better)
             numeric_rows = []
@@ -333,7 +333,7 @@ if ai_clicked:
             q_data["Accuracy (1-5)"].append(q.get("accuracy", "—"))
             q_data["Actionability (1-5)"].append(q.get("actionability", "—"))
             q_data["Notes"].append(q.get("notes", ""))
-        st.dataframe(pd.DataFrame(q_data), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(q_data), width="stretch", hide_index=True)
 
     # ── Key differences ──────────────────────────────────────────────────────
     differences = ai_result.get("differences", [])
@@ -352,7 +352,7 @@ if ai_clicked:
             sig = d.get("significance", "medium")
             icon = _SEVERITY_ICON.get(sig, "⚪")
             diff_data["Significance"].append(f"{icon} {sig}")
-        st.dataframe(pd.DataFrame(diff_data), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(diff_data), width="stretch", hide_index=True)
 
     # ── Common findings ──────────────────────────────────────────────────────
     common = ai_result.get("common_findings", [])

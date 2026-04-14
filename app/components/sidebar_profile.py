@@ -42,7 +42,7 @@ def render_sidebar_profile(conn) -> None:
             label_visibility="collapsed",
             key="_profile_select",
         )
-        if col_load.button("Load", key="_profile_load", use_container_width=True):
+        if col_load.button("Load", key="_profile_load", width="stretch"):
             if chosen:
                 profile = get_profile(conn, chosen)
                 if profile:
@@ -52,7 +52,7 @@ def render_sidebar_profile(conn) -> None:
             else:
                 st.warning("Select a profile to load.")
 
-        if col_del.button("Del", key="_profile_del", use_container_width=True,
+        if col_del.button("Del", key="_profile_del", width="stretch",
                           type="secondary"):
             if chosen:
                 target = next((p for p in profiles if p["name"] == chosen), None)

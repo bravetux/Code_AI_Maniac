@@ -15,7 +15,7 @@ presets = list_presets(conn)
 
 if presets:
     df = pd.DataFrame(presets)[["name", "feature", "system_prompt", "extra_instructions", "created_at"]]
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df, width="stretch")
 
     st.subheader("Delete Preset")
     preset_to_delete = st.selectbox("Select preset to delete",
