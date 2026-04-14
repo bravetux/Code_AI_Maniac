@@ -254,9 +254,9 @@ st.markdown(
 )
 st.markdown(
     '<div class="hero-sub">'
-    "10 specialized AI agents dissect your code across bugs, design, "
-    "flow, diagrams, requirements, and more &mdash; then synthesize "
-    "everything into polished, professional reports."
+    "13 specialized AI agents dissect your code across bugs, design, "
+    "flow, security, dependencies, threat modelling, and more &mdash; "
+    "then synthesize everything into polished, professional reports."
     "</div>",
     unsafe_allow_html=True,
 )
@@ -280,11 +280,13 @@ st.divider()
 st.markdown("")
 
 _pipe_data = [
-    ("Phase 1", "Foundation", "4 agents", "#00c8ff"),
+    ("Phase 0", "Security Gate", "Pre-flight scan", "#ff6080"),
+    ("Phase 1", "Foundation", "5 agents", "#00c8ff"),
     ("Phase 2", "Context-Aware", "2 agents", "#ffb020"),
-    ("Phase 3", "Synthesis", "1 agent", "#22d68a"),
-    ("Phase 4", "Reporting", "2 agents", "#ff4060"),
-    ("Standalone", "Commits", "1 agent", "#a37eff"),
+    ("Phase 3", "Synthesis", "2 agents", "#22d68a"),
+    ("Phase 4", "Threat Model", "1 agent", "#ff4060"),
+    ("Phase 5", "Reporting", "2 agents", "#a37eff"),
+    ("Standalone", "Commits", "1 agent", "#c080ff"),
 ]
 
 pipe_cols = st.columns(len(_pipe_data))
@@ -319,7 +321,7 @@ if jobs:
     c1.metric("Analyses Run", total)
     c2.metric("Completed", completed)
     c3.metric("Languages", languages)
-    c4.metric("AI Agents", 10)
+    c4.metric("AI Agents", 13)
 
     st.markdown("")
 
@@ -332,7 +334,7 @@ st.divider()
 st.markdown("")
 st.markdown('<div class="sec-over">Capabilities</div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="sec-title">10 Agents. One Pipeline.</div>',
+    '<div class="sec-title">13 Agents. One Pipeline.</div>',
     unsafe_allow_html=True,
 )
 st.markdown("")
@@ -417,6 +419,45 @@ _FEATURES = [
         ],
     },
     {
+        "icon": "\U0001f510",
+        "name": "Secret Scan",
+        "phase": "Phase 0 + 3 \u2014 Security",
+        "color": "#ff6080",
+        "desc": "Two-layer secret detection: regex pre-flight gate + AI deep scan.",
+        "points": [
+            "Phase 0: regex scan before Bedrock",
+            "Block / Redact / Warn modes",
+            "AI finds encoded & split secrets",
+            "Validates pre-flight findings",
+        ],
+    },
+    {
+        "icon": "\U0001f4e6",
+        "name": "Dependency Analysis",
+        "phase": "Phase 1 \u2014 Foundation",
+        "color": "#00c8ff",
+        "desc": "Multi-ecosystem SCA with 5 pluggable CVE backends.",
+        "points": [
+            "Python, JS, Java, C#, Go, Rust, C/C++",
+            "OSV, NVD, GitHub Advisory, LLM, Hybrid",
+            "Auto-discovers dependency files",
+            "Prioritized remediation plan",
+        ],
+    },
+    {
+        "icon": "\U0001f6e1\ufe0f",
+        "name": "Threat Model",
+        "phase": "Phase 4 \u2014 Threat Model",
+        "color": "#ff4060",
+        "desc": "STRIDE formal analysis or attacker-narrative reports.",
+        "points": [
+            "Trust boundaries & attack surface",
+            "STRIDE-per-element threat table",
+            "Attacker narrative with PoC code",
+            "Original vs Fixed code comparison",
+        ],
+    },
+    {
         "icon": "\U0001f4ac",
         "name": "PR Comments",
         "phase": "Phase 3 \u2014 Synthesis",
@@ -433,7 +474,7 @@ _FEATURES = [
         "icon": "\U0001f4dc",
         "name": "Commit Analysis",
         "phase": "Standalone",
-        "color": "#a37eff",
+        "color": "#c080ff",
         "desc": "Assesses commit history for risk and quality.",
         "points": [
             "Risk: High / Medium / Low",
@@ -445,8 +486,8 @@ _FEATURES = [
     {
         "icon": "\U0001f4c4",
         "name": "Per-File Report",
-        "phase": "Phase 4 \u2014 Reporting",
-        "color": "#ff4060",
+        "phase": "Phase 5 \u2014 Reporting",
+        "color": "#a37eff",
         "desc": "Assembles all results per file into one document.",
         "points": [
             "All features in one Markdown report",
@@ -458,8 +499,8 @@ _FEATURES = [
     {
         "icon": "\U0001f4da",
         "name": "Consolidated Report",
-        "phase": "Phase 4 \u2014 Reporting",
-        "color": "#ff4060",
+        "phase": "Phase 5 \u2014 Reporting",
+        "color": "#a37eff",
         "desc": "Synthesizes everything into a cohesive narrative.",
         "points": [
             "Executive summary & architecture",
