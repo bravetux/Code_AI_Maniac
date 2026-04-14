@@ -175,6 +175,23 @@ def _render_threat_model_formal(result: dict) -> None:
                 if t.get("existing_mitigation"):
                     st.markdown(f"**Existing mitigation:** {t['existing_mitigation']}")
                 st.markdown(f"**Recommended:** {t.get('recommended_mitigation', '')}")
+                original = t.get("original_code", "")
+                fixed = t.get("fixed_code", "")
+                if original or fixed:
+                    st.divider()
+                    col_orig, col_fix = st.columns(2)
+                    with col_orig:
+                        st.markdown("**Original Code**")
+                        if original:
+                            st.code(original, line_numbers=True)
+                        else:
+                            st.caption("No original snippet provided.")
+                    with col_fix:
+                        st.markdown("**Fixed Code**")
+                        if fixed:
+                            st.code(fixed, line_numbers=True)
+                        else:
+                            st.caption("No fix snippet provided.")
                 if t.get("related_findings"):
                     st.caption("Related: " + ", ".join(t["related_findings"]))
     mermaid_src = result.get("data_flow_mermaid", "")
@@ -210,6 +227,23 @@ def _render_threat_model_attacker(result: dict) -> None:
                 st.markdown("**Proof of Concept:**")
                 st.code(s["proof_of_concept"])
             st.markdown(f"**Mitigation:** {s.get('mitigation', '')}")
+            original = s.get("original_code", "")
+            fixed = s.get("fixed_code", "")
+            if original or fixed:
+                st.divider()
+                col_orig, col_fix = st.columns(2)
+                with col_orig:
+                    st.markdown("**Original Code**")
+                    if original:
+                        st.code(original, line_numbers=True)
+                    else:
+                        st.caption("No original snippet provided.")
+                with col_fix:
+                    st.markdown("**Fixed Code**")
+                    if fixed:
+                        st.code(fixed, line_numbers=True)
+                    else:
+                        st.caption("No fix snippet provided.")
             if s.get("related_findings"):
                 st.caption("Related: " + ", ".join(s["related_findings"]))
 

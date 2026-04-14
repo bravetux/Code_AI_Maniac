@@ -45,6 +45,8 @@ Return a JSON object:
       "risk_score": "<critical|major|minor>",
       "existing_mitigation": "<what defenses exist>",
       "recommended_mitigation": "<what to add>",
+      "original_code": "<the vulnerable code snippet from the source>",
+      "fixed_code": "<the corrected code snippet that mitigates the threat>",
       "related_findings": ["<agent:detail>"]
     }
   ],
@@ -72,6 +74,8 @@ Return a JSON object:
       "impact": "<business impact>",
       "proof_of_concept": "<pseudocode or exploit description>",
       "mitigation": "<defensive measures>",
+      "original_code": "<the vulnerable code snippet from the source>",
+      "fixed_code": "<the corrected code snippet that mitigates the threat>",
       "related_findings": ["<agent:detail>"]
     }
   ],
