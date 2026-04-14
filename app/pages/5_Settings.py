@@ -35,6 +35,17 @@ col2.text_input("Gitea URL", value=s.gitea_url or "(not set)", disabled=True,
 col2.text_input("Gitea Token", value="••••••" if s.gitea_token else "(not set)",
                 disabled=True, help="Set via GITEA_TOKEN in .env")
 
+# ── Security Testing ──────────────────────────────────────────
+st.header("Security Testing")
+st.text_input("Secret Scan Mode", value=s.secret_scan_mode, disabled=True,
+              help="Set via SECRET_SCAN_MODE in .env. Values: block, redact, warn")
+st.text_input("SCA CVE Backend", value=s.sca_cve_backend, disabled=True,
+              help="Set via SCA_CVE_BACKEND in .env. Values: osv, nvd, github, llm, osv_llm")
+st.text_input("SCA Auto-Discover", value=str(s.sca_auto_discover), disabled=True,
+              help="Set via SCA_AUTO_DISCOVER in .env. Auto-discover dependency files from repo")
+st.text_input("NVD API Key", value="••••••" if s.nvd_api_key else "(not set)", disabled=True,
+              help="Set via NVD_API_KEY in .env. Required for NVD backend")
+
 # ── Database Backup / Restore ────────────────────────────────────
 st.header("Database Backup & Restore")
 st.caption(f"Database file: `{os.path.abspath(s.db_path)}`")
