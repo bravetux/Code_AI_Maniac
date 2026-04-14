@@ -59,7 +59,7 @@ header[data-testid="stHeader"] {
     font-family: 'DM Sans', sans-serif;
     font-size: 1.1rem;
     line-height: 1.65;
-    color: #6b6b80;
+    color: #b0b0c8;
     max-width: 620px;
 }
 
@@ -118,7 +118,7 @@ div.cta-wrap [data-testid="stBaseButton-primary"]:hover {
     font-weight: 600;
     letter-spacing: .15em;
     text-transform: uppercase;
-    color: #3d3d52;
+    color: #9090aa;
     text-align: center;
 }
 .sec-title {
@@ -173,7 +173,7 @@ div[data-testid="stVerticalBlock"] .feature-card {
 .fc-desc {
     font-family: 'DM Sans', sans-serif;
     font-size: .85rem;
-    color: #6b6b80;
+    color: #b0b0c8;
     line-height: 1.55;
     margin-bottom: .8rem;
 }
@@ -185,7 +185,7 @@ div[data-testid="stVerticalBlock"] .feature-card {
 .fc-list li {
     font-family: 'DM Sans', sans-serif;
     font-size: .78rem;
-    color: #4d4d64;
+    color: #9898b0;
     line-height: 1.6;
     padding-left: .9rem;
     position: relative;
@@ -207,7 +207,7 @@ div[data-testid="stMetric"] {
 }
 div[data-testid="stMetric"] label {
     font-family: 'DM Sans', sans-serif !important;
-    color: #3d3d52 !important;
+    color: #9090aa !important;
     font-size: .75rem !important;
     letter-spacing: .08em !important;
     text-transform: uppercase !important;
@@ -223,7 +223,7 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
 .bottom-tag {
     font-family: 'DM Sans', sans-serif;
     font-size: .9rem;
-    color: #3d3d52;
+    color: #9898b0;
     text-align: center;
     margin-bottom: 1rem;
 }
