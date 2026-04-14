@@ -54,9 +54,9 @@ def render_security_results(results: dict) -> None:
                 continue
             c1, c2, _ = st.columns([1, 1, 6])
             c1.download_button("\u2b07 JSON", data=json.dumps(result, indent=2, ensure_ascii=False),
-                               file_name=f"{feature}_result.json", mime="application/json", key=f"dl_json_{feature}")
+                               file_name=f"{feature}_result.json", mime="application/json", key=f"sec_dl_json_{feature}")
             c2.download_button("\u2b07 MD", data=_to_markdown(feature, result),
-                               file_name=f"{feature}_result.md", mime="text/markdown", key=f"dl_md_{feature}")
+                               file_name=f"{feature}_result.md", mime="text/markdown", key=f"sec_dl_md_{feature}")
             st.divider()
             if feature == "secret_scan":
                 _render_secret_scan(result)
