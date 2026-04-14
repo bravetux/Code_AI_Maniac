@@ -158,9 +158,26 @@ def _normalize_severity(raw: str) -> str:
     return _MAP.get((raw or "").strip().lower(), "minor")
 
 
+def _clean_narrative(text: str) -> str:
+    """Strip embedded JSON from narrative text that the LLM sometimes includes."""
+    if not text:
+        return text
+    # Find where JSON blob starts and remove everything from there
+    brace_pos = text.find("{")
+    if brace_pos > 0:
+        # Only strip if there's meaningful text before the JSON
+        before = text[:brace_pos].strip()
+        if before:
+            return before
+    elif brace_pos == 0:
+        # Entire text is JSON — not a narrative
+        return ""
+    return text
+
+
 def _render_bugs(result: dict, language: str = "") -> None:
     bugs = result.get("bugs", [])
-    narrative = result.get("narrative", "")
+    narrative = _clean_narrative(result.get("narrative", ""))
     summary = result.get("summary", "")
     lang = (language or "python").lower()
 
@@ -357,7 +374,7 @@ def _render_static(result: dict) -> None:
     if result.get("summary"):
         st.info(result["summary"])
 
-    narrative = result.get("narrative", "")
+    narrative = _clean_narrative(result.get("narrative", ""))
     if narrative:
         with st.container(border=True):
             st.markdown("**Overall assessment**")

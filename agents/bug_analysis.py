@@ -73,8 +73,15 @@ def run_bug_analysis(conn: duckdb.DuckDBPyConnection, job_id: str,
             if parsed.get("narrative"):
                 narratives.append(parsed["narrative"])
         except (json.JSONDecodeError, ValueError):
-            # If JSON parsing fails, treat entire response as narrative
-            narratives.append(raw)
+            # Extract any reasoning text before the JSON blob
+            brace_pos = raw.find("{")
+            if brace_pos > 0:
+                pre_text = raw[:brace_pos].strip()
+                if pre_text:
+                    narratives.append(pre_text)
+            elif brace_pos < 0:
+                # No JSON at all — use as narrative
+                narratives.append(raw)
 
     # Normalise severity — templates may instruct high/medium/low instead of
     # the expected critical/major/minor, causing bugs to vanish from the UI.

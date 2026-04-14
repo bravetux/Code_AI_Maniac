@@ -104,7 +104,13 @@ def run_secret_scan(conn: duckdb.DuckDBPyConnection, job_id: str,
             if parsed.get("narrative"):
                 narratives.append(parsed["narrative"])
         except (json.JSONDecodeError, ValueError):
-            narratives.append(raw)
+            brace_pos = raw.find("{")
+            if brace_pos > 0:
+                pre_text = raw[:brace_pos].strip()
+                if pre_text:
+                    narratives.append(pre_text)
+            elif brace_pos < 0:
+                narratives.append(raw)
 
     # Deduplicate by (line, type)
     seen = set()
