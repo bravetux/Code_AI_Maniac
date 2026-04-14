@@ -12,6 +12,9 @@ from agents.requirement import run_requirement_analysis
 from agents.static_analysis import run_static_analysis
 from agents.comment_generator import run_comment_generation
 from agents.commit_analysis import run_commit_analysis
+from agents.dependency_analysis import run_dependency_analysis
+from agents.secret_scan import run_secret_scan
+from agents.threat_model import run_threat_model
 from agents.report_per_file import generate_per_file_report
 from agents.report_consolidated import generate_consolidated_report
 from tools.fetch_local import fetch_local_file
@@ -19,6 +22,7 @@ from tools.fetch_github import fetch_github_file
 from tools.fetch_gitea import fetch_gitea_file
 from tools.language_detect import detect_language
 from tools.python_html_converter import convert_md_to_html
+from tools.secret_scanner import scan_secrets
 from config.settings import get_settings
 from config.prompt_templates import apply_template
 
@@ -117,7 +121,8 @@ def _run_agent(conn, job_id, agent_key, fn, file_path, kwargs,
 
 
 def _run_features_for_file(conn, job_id, file_info, features, language,
-                            custom_prompt, template_category=None) -> dict:
+                            custom_prompt, template_category=None,
+                            phase0_results=None, threat_model_mode=None) -> dict:
     """Run all applicable features on a single file. Returns {feature: result}."""
     file_path  = file_info["file_path"]
     content    = file_info["content"]
@@ -131,17 +136,18 @@ def _run_features_for_file(conn, job_id, file_info, features, language,
     feat_set = set(features)
 
     # ── Phase 1: foundation agents (no dependencies) ──────────────────────────
-    phase1 = [f for f in ("bug_analysis", "static_analysis", "code_flow", "requirement")
+    phase1 = [f for f in ("bug_analysis", "static_analysis", "code_flow", "requirement", "dependency_analysis")
               if f in feat_set]
 
     if phase1:
         _emit(conn, job_id, "phase", message="Phase 1 — Foundation")
 
     standalone = {
-        "bug_analysis":    run_bug_analysis,
-        "static_analysis": run_static_analysis,
-        "code_flow":       run_code_flow,
-        "requirement":     run_requirement_analysis,
+        "bug_analysis":        run_bug_analysis,
+        "static_analysis":     run_static_analysis,
+        "code_flow":           run_code_flow,
+        "requirement":         run_requirement_analysis,
+        "dependency_analysis": run_dependency_analysis,
     }
 
     for feat in phase1:
@@ -170,8 +176,11 @@ def _run_features_for_file(conn, job_id, file_info, features, language,
         )
 
     # ── Phase 3: synthesis agents ─────────────────────────────────────────────
-    if "comment_generator" in feat_set:
+    phase3 = [f for f in ("comment_generator", "secret_scan") if f in feat_set]
+    if phase3:
         _emit(conn, job_id, "phase", message="Phase 3 — Synthesis")
+
+    if "comment_generator" in feat_set:
         # comment_generator doesn't use raw content — pass filtered common
         common_no_content = {k: v for k, v in common.items() if k != "content"}
         file_results["comment_generator"] = _run_agent(
@@ -179,6 +188,29 @@ def _run_features_for_file(conn, job_id, file_info, features, language,
             {**common_no_content,
              "bug_results":    file_results.get("bug_analysis"),
              "static_results": file_results.get("static_analysis")},
+            template_category,
+        )
+
+    if "secret_scan" in feat_set:
+        file_results["secret_scan"] = _run_agent(
+            conn, job_id, "secret_scan", run_secret_scan, file_path,
+            {**common,
+             "phase0_findings": (phase0_results or {}).get(file_path, {}).get("secrets_found", []),
+             "static_results": file_results.get("static_analysis")},
+            template_category,
+        )
+
+    # ── Phase 4: threat model ────────────────────────────────────────────
+    if "threat_model" in feat_set:
+        _emit(conn, job_id, "phase", message="Phase 4 — Threat Model")
+        file_results["threat_model"] = _run_agent(
+            conn, job_id, "threat_model", run_threat_model, file_path,
+            {**common,
+             "threat_model_mode": threat_model_mode,
+             "bug_results": file_results.get("bug_analysis"),
+             "static_results": file_results.get("static_analysis"),
+             "secret_results": file_results.get("secret_scan"),
+             "dependency_results": file_results.get("dependency_analysis")},
             template_category,
         )
 
@@ -313,12 +345,35 @@ def run_analysis(conn: duckdb.DuckDBPyConnection, job_id: str) -> dict:
               message=f"Loaded {len(files)} file(s) — {fnames}"
                       + (" …" if len(files) > 3 else ""))
 
+        # ── Phase 0: Pre-flight secret scan ──────────────────────────────
+        s = get_settings()
+        feat_set = set(features)
+        phase0_results = {}
+        if "secret_scan" in feat_set:
+            _emit(conn, job_id, "phase", message="Phase 0 — Secret Pre-flight")
+            for file_info in files:
+                scan = scan_secrets(file_info["content"], mode=s.secret_scan_mode)
+                phase0_results[file_info["file_path"]] = scan
+                if scan["secrets_found"]:
+                    _emit(conn, job_id, "start", agent="secret_scan_preflight",
+                          file_path=file_info["file_path"],
+                          message=f"{len(scan['secrets_found'])} secret(s) detected")
+                if scan["action_taken"] == "redact":
+                    file_info["content"] = scan["code"]
+                elif scan["action_taken"] == "block" and scan["secrets_found"]:
+                    results["secret_scan_preflight"] = scan
+                    save_job_results(conn, job_id, results)
+                    update_job_status(conn, job_id, "blocked")
+                    return results
+
         if len(files) == 1:
             # ── Single file ───────────────────────────────────────────────
             effective_lang = language or detect_language(files[0]["file_path"])
             results = _run_features_for_file(
                 conn, job_id, files[0], features, effective_lang, custom_prompt,
                 template_category,
+                phase0_results=phase0_results,
+                threat_model_mode=job.get("threat_model_mode"),
             )
         else:
             # ── Multiple files ────────────────────────────────────────────
@@ -329,6 +384,8 @@ def run_analysis(conn: duckdb.DuckDBPyConnection, job_id: str) -> dict:
                 file_results = _run_features_for_file(
                     conn, job_id, file_info, features, effective_lang, custom_prompt,
                     template_category,
+                    phase0_results=phase0_results,
+                    threat_model_mode=job.get("threat_model_mode"),
                 )
                 per_file.append((file_info["file_path"], file_results))
             results = _merge_multi_file_results(per_file, features)
