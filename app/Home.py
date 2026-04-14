@@ -8,175 +8,514 @@ from db.schema import init_schema
 from db.queries.jobs import list_jobs
 
 st.set_page_config(
-    page_title="AI Code Maniac — Code Analysis",
-    page_icon="🏟",
+    page_title="AI Code Maniac",
+    page_icon="\U0001f3df",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed",
 )
 
 conn = get_connection()
 init_schema(conn)
 
-st.title("AI Code Maniac")
-st.subheader("Multi-Agent Code Analysis Platform")
+# ── Inject custom CSS ────────────────────────────────────────────────────────
+st.markdown(
+    """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap');
 
-tab_dashboard, tab_features = st.tabs(["📊 Dashboard", "✨ Features"])
+/* ── Dark theme overrides ───────────────────────────────────────────────── */
+section[data-testid="stMain"] {
+    background: #06060c !important;
+}
+header[data-testid="stHeader"] {
+    background: transparent !important;
+}
 
-# ── Dashboard ─────────────────────────────────────────────────────────────────
-with tab_dashboard:
-    st.markdown("""
-Navigate using the sidebar:
-- **Analysis** — analyze files for bugs, design docs, flow, diagrams, and more
-- **History** — browse and search past analyses
-- **Commits** — analyze git commit history and changelogs
-- **Presets** — manage saved prompt presets
-- **Settings** — configure credentials, temperature, and database backup
-""")
+/* ── Hero text ──────────────────────────────────────────────────────────── */
+.hero-badge {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .68rem;
+    font-weight: 500;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: #00c8ff;
+    border: 1px solid rgba(0,200,255,.25);
+    border-radius: 100px;
+    padding: .35em 1.2em;
+    background: rgba(0,200,255,.06);
+}
+.hero-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(2rem, 4.5vw, 3.4rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -.03em;
+    color: #e8e8f0;
+    margin: .8rem 0 .6rem;
+}
+.hero-title .acc { color: #00c8ff; }
+.hero-sub {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1.1rem;
+    line-height: 1.65;
+    color: #6b6b80;
+    max-width: 620px;
+}
 
-    jobs = list_jobs(conn, limit=1000)
-    if jobs:
-        import pandas as pd
-        df = pd.DataFrame(jobs)
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Total Analyses Run", len(df))
-        col2.metric("Completed", len(df[df["status"] == "completed"]))
-        col3.metric("Languages Analyzed", df["language"].nunique())
+/* ── CTA button ─────────────────────────────────────────────────────────── */
+div.cta-wrap [data-testid="stBaseButton-primary"] {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-weight: 700 !important;
+    font-size: .95rem !important;
+    letter-spacing: .05em !important;
+    background: linear-gradient(135deg, #00c8ff, #0090cc) !important;
+    color: #000 !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: .85rem 2.6rem !important;
+    box-shadow: 0 0 24px rgba(0,200,255,.12), 0 4px 16px rgba(0,0,0,.35) !important;
+    transition: all .25s ease !important;
+}
+div.cta-wrap [data-testid="stBaseButton-primary"]:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 0 36px rgba(0,200,255,.22), 0 8px 24px rgba(0,0,0,.45) !important;
+}
 
-        st.subheader("Recent Jobs")
-        recent = df.head(10)[["created_at", "completed_at", "status", "source_type", "language", "features"]]
-        st.dataframe(recent, use_container_width=True)
-    else:
-        st.info("No analyses yet. Head to the Analysis page to get started.")
+/* ── Pipeline row ───────────────────────────────────────────────────────── */
+.pipe-box {
+    background: #0d0d16;
+    border: 1px solid #1a1a2e;
+    border-radius: 10px;
+    padding: 1rem .6rem;
+    text-align: center;
+}
+.pipe-phase {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+.pipe-name {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #9a9aae;
+    margin-top: .2rem;
+}
+.pipe-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #3d3d52;
+    margin-top: .15rem;
+}
 
-# ── Features ──────────────────────────────────────────────────────────────────
-with tab_features:
-    st.markdown(
-        "AI Code Maniac runs **8 specialized AI agents** in a coordinated 3-phase pipeline. "
-        "Each agent focuses on a distinct dimension of code quality."
-    )
-    st.divider()
+/* ── Section headers ────────────────────────────────────────────────────── */
+.sec-over {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .65rem;
+    font-weight: 600;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: #3d3d52;
+    text-align: center;
+}
+.sec-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #e8e8f0;
+    text-align: center;
+    letter-spacing: -.02em;
+}
 
-    _FEATURES = [
-        {
-            "icon": "🐛",
-            "name": "Bug Analysis",
-            "phase": "Phase 1 — Foundation",
-            "description": "Detects bugs across severity levels with precise line attribution.",
-            "highlights": [
-                "Critical / Major / Minor severity classification",
-                "Root cause and runtime impact for every finding",
-                "Side-by-side **Original vs Fixed** code comparison",
-                "Configurable context lines around each bug (`BUG_CONTEXT_LINES`)",
-                "Narrative overall assessment before the issue list",
-            ],
-        },
-        {
-            "icon": "🔍",
-            "name": "Static Analysis",
-            "phase": "Phase 1 — Foundation",
-            "description": "Combines a real linter (flake8) with AI-powered semantic checks.",
-            "highlights": [
-                "Flake8 linter findings with rule codes and line numbers",
-                "AI semantic findings: dead code, unreachable paths, anti-patterns",
-                "Narrative overall quality assessment",
-                "Feeds downstream agents (Code Design, PR Comments)",
-            ],
-        },
-        {
-            "icon": "🌊",
-            "name": "Code Flow",
-            "phase": "Phase 1 — Foundation",
-            "description": "Maps the execution path through a file from entry points to outputs.",
-            "highlights": [
-                "Entry-point identification (main functions, event handlers, etc.)",
-                "Step-by-step execution walkthrough with callee references",
-                "Exported as structured Markdown for documentation",
-                "Provides flow context to the Mermaid Diagram agent",
-            ],
-        },
-        {
-            "icon": "📋",
-            "name": "Requirement Design",
-            "phase": "Phase 1 — Foundation",
-            "description": "Reverse-engineers structured software requirements from existing code.",
-            "highlights": [
-                "Assigns unique requirement IDs (REQ-001, REQ-002 …)",
-                "Maps each requirement to its component and source lines",
-                "Outputs a formatted Markdown requirements document",
-                "Useful for generating specs from legacy or undocumented code",
-            ],
-        },
-        {
-            "icon": "🏗️",
-            "name": "Code Design",
-            "phase": "Phase 2 — Context-Aware",
-            "description": "Reviews architecture, patterns, and design quality with full bug/static context.",
-            "highlights": [
-                "Full design document: purpose, patterns, responsibilities",
-                "Design issues prioritised High / Medium / Low",
-                "Improvement roadmap with actionable recommendations",
-                "Public API documentation with signatures and descriptions",
-                "Dependency and data-contract inventory",
-            ],
-        },
-        {
-            "icon": "📐",
-            "name": "Mermaid Diagram",
-            "phase": "Phase 2 — Context-Aware",
-            "description": "Generates live-rendered architecture diagrams from code structure.",
-            "highlights": [
-                "Flowchart, Sequence, and Class diagram types",
-                "Uses code-flow context for accurate call relationships",
-                "Mermaid source always visible alongside rendered diagram",
-                "Inline rendering via Mermaid.js v10 — no external tools needed",
-            ],
-        },
-        {
-            "icon": "💬",
-            "name": "PR Comment Generator",
-            "phase": "Phase 3 — Synthesis",
-            "description": "Turns automated findings into human-quality GitHub pull request reviews.",
-            "highlights": [
-                "Inline comments with file, line, and severity",
-                "Adds engineering insight beyond just restating the finding",
-                "Top-level PR summary: must-fix items, nice-to-haves, positives",
-                "Constructive, collegial tone suitable for real code reviews",
-            ],
-        },
-        {
-            "icon": "📜",
-            "name": "Commit Analysis",
-            "phase": "Standalone",
-            "description": "Assesses git commit history for risk, quality, and change impact.",
-            "highlights": [
-                "Risk level: High / Medium / Low with concern breakdown",
-                "Auto-generated changelog: Added / Changed / Removed",
-                "Per-commit quality rating: Good / Needs Improvement / Poor",
-                "Works directly from a GitHub or Gitea repository",
-            ],
-        },
-    ]
+/* ── Feature cards ──────────────────────────────────────────────────────── */
+div[data-testid="stVerticalBlock"] .feature-card {
+    background: #0d0d16;
+    border: 1px solid #1a1a2e;
+    border-radius: 10px;
+    padding: 1.5rem;
+    height: 100%;
+    transition: background .2s ease, border-color .2s ease;
+}
+.feature-card:hover {
+    background: #13131f;
+    border-color: #252540;
+}
+.fc-phase {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .58rem;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    margin-bottom: .5rem;
+}
+.fc-phase-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    display: inline-block;
+}
+.fc-icon {
+    font-size: 1.4rem;
+    display: block;
+    margin-bottom: .4rem;
+}
+.fc-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #e8e8f0;
+    margin-bottom: .35rem;
+}
+.fc-desc {
+    font-family: 'DM Sans', sans-serif;
+    font-size: .85rem;
+    color: #6b6b80;
+    line-height: 1.55;
+    margin-bottom: .8rem;
+}
+.fc-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.fc-list li {
+    font-family: 'DM Sans', sans-serif;
+    font-size: .78rem;
+    color: #4d4d64;
+    line-height: 1.6;
+    padding-left: .9rem;
+    position: relative;
+}
+.fc-list li::before {
+    content: '\203a';
+    position: absolute;
+    left: 0;
+    font-weight: 700;
+}
 
-    _PHASE_COLOR = {
-        "Phase 1 — Foundation":    "#1f77b4",
-        "Phase 2 — Context-Aware": "#ff7f0e",
-        "Phase 3 — Synthesis":     "#2ca02c",
-        "Standalone":              "#9467bd",
-    }
+/* ── Stats metric overrides ─────────────────────────────────────────────── */
+div[data-testid="stMetric"] {
+    background: #0d0d16;
+    border: 1px solid #1a1a2e;
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+}
+div[data-testid="stMetric"] label {
+    font-family: 'DM Sans', sans-serif !important;
+    color: #3d3d52 !important;
+    font-size: .75rem !important;
+    letter-spacing: .08em !important;
+    text-transform: uppercase !important;
+}
+div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+    font-family: 'JetBrains Mono', monospace !important;
+    color: #e8e8f0 !important;
+    font-size: 1.8rem !important;
+    font-weight: 700 !important;
+}
 
-    # Render in rows of 2
-    for i in range(0, len(_FEATURES), 2):
-        cols = st.columns(2)
-        for col, feat in zip(cols, _FEATURES[i:i + 2]):
-            phase_color = _PHASE_COLOR.get(feat["phase"], "#888")
-            bullet_md = "\n".join(f"- {h}" for h in feat["highlights"])
-            with col:
-                with st.container(border=True):
-                    st.markdown(
-                        f"## {feat['icon']} {feat['name']}\n"
-                        f"<span style='font-size:12px;color:{phase_color};font-weight:600'>"
-                        f"● {feat['phase']}</span>",
-                        unsafe_allow_html=True,
-                    )
-                    st.markdown(f"_{feat['description']}_")
-                    st.markdown(bullet_md)
+/* ── Bottom tagline ─────────────────────────────────────────────────────── */
+.bottom-tag {
+    font-family: 'DM Sans', sans-serif;
+    font-size: .9rem;
+    color: #3d3d52;
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+/* ── Divider subtle ─────────────────────────────────────────────────────── */
+hr {
+    border-color: #1a1a2e !important;
+}
+</style>
+""",
+    unsafe_allow_html=True,
+)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  HERO
+# ═══════════════════════════════════════════════════════════════════════════════
+
+st.markdown("")  # spacer
+
+st.markdown(
+    '<div class="hero-badge">AG-UC-1128 &middot; Multi-Agent Platform</div>',
+    unsafe_allow_html=True,
+)
+st.markdown(
+    '<div class="hero-title">AI Code<span class="acc"> Maniac</span></div>',
+    unsafe_allow_html=True,
+)
+st.markdown(
+    '<div class="hero-sub">'
+    "10 specialized AI agents dissect your code across bugs, design, "
+    "flow, diagrams, requirements, and more &mdash; then synthesize "
+    "everything into polished, professional reports."
+    "</div>",
+    unsafe_allow_html=True,
+)
+
+st.markdown("")  # spacer
+
+# ── Primary CTA ──────────────────────────────────────────────────────────────
+with st.container():
+    st.markdown('<div class="cta-wrap">', unsafe_allow_html=True)
+    if st.button("\u2002Start Analysis  \u2192", type="primary"):
+        st.switch_page("pages/1_Analysis.py")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  PIPELINE STRIP
+# ═══════════════════════════════════════════════════════════════════════════════
+
+st.markdown("")
+st.divider()
+st.markdown("")
+
+_pipe_data = [
+    ("Phase 1", "Foundation", "4 agents", "#00c8ff"),
+    ("Phase 2", "Context-Aware", "2 agents", "#ffb020"),
+    ("Phase 3", "Synthesis", "1 agent", "#22d68a"),
+    ("Phase 4", "Reporting", "2 agents", "#ff4060"),
+    ("Standalone", "Commits", "1 agent", "#a37eff"),
+]
+
+pipe_cols = st.columns(len(_pipe_data))
+for col, (phase, name, count, color) in zip(pipe_cols, _pipe_data):
+    with col:
+        st.markdown(
+            f'<div class="pipe-box">'
+            f'<div class="pipe-phase" style="color:{color};">{phase}</div>'
+            f'<div class="pipe-name">{name}</div>'
+            f'<div class="pipe-count">{count}</div>'
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  DASHBOARD STATS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+st.markdown("")
+
+jobs = list_jobs(conn, limit=1000)
+if jobs:
+    import pandas as pd
+
+    df = pd.DataFrame(jobs)
+    total = len(df)
+    completed = len(df[df["status"] == "completed"])
+    languages = df["language"].nunique()
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Analyses Run", total)
+    c2.metric("Completed", completed)
+    c3.metric("Languages", languages)
+    c4.metric("AI Agents", 10)
+
+    st.markdown("")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  FEATURE CARDS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+st.divider()
+st.markdown("")
+st.markdown('<div class="sec-over">Capabilities</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="sec-title">10 Agents. One Pipeline.</div>',
+    unsafe_allow_html=True,
+)
+st.markdown("")
+
+_FEATURES = [
+    {
+        "icon": "\U0001f41b",
+        "name": "Bug Analysis",
+        "phase": "Phase 1 \u2014 Foundation",
+        "color": "#00c8ff",
+        "desc": "Detects bugs across severity levels with precise line attribution.",
+        "points": [
+            "Critical / Major / Minor severity",
+            "Root cause and runtime impact",
+            "Side-by-side Original vs Fixed code",
+            "Narrative assessment before issues",
+        ],
+    },
+    {
+        "icon": "\U0001f50d",
+        "name": "Static Analysis",
+        "phase": "Phase 1 \u2014 Foundation",
+        "color": "#00c8ff",
+        "desc": "Combines flake8 linting with AI semantic checks.",
+        "points": [
+            "Flake8 findings with rule codes",
+            "Dead code and anti-pattern detection",
+            "Narrative quality assessment",
+            "Feeds downstream agents",
+        ],
+    },
+    {
+        "icon": "\U0001f30a",
+        "name": "Code Flow",
+        "phase": "Phase 1 \u2014 Foundation",
+        "color": "#00c8ff",
+        "desc": "Maps execution paths from entry points to outputs.",
+        "points": [
+            "Entry-point identification",
+            "Step-by-step execution walkthrough",
+            "Structured Markdown output",
+            "Provides context to Mermaid agent",
+        ],
+    },
+    {
+        "icon": "\U0001f4cb",
+        "name": "Requirements",
+        "phase": "Phase 1 \u2014 Foundation",
+        "color": "#00c8ff",
+        "desc": "Reverse-engineers structured requirements from code.",
+        "points": [
+            "Unique IDs: REQ-001, REQ-002 ...",
+            "Maps to components and source lines",
+            "Formatted Markdown requirements doc",
+            "Ideal for legacy / undocumented code",
+        ],
+    },
+    {
+        "icon": "\U0001f3d7\ufe0f",
+        "name": "Code Design",
+        "phase": "Phase 2 \u2014 Context-Aware",
+        "color": "#ffb020",
+        "desc": "Architecture review with full bug and static context.",
+        "points": [
+            "Purpose, patterns, responsibilities",
+            "Design issues: High / Medium / Low",
+            "Improvement roadmap",
+            "Public API docs and dependencies",
+        ],
+    },
+    {
+        "icon": "\U0001f4d0",
+        "name": "Mermaid Diagram",
+        "phase": "Phase 2 \u2014 Context-Aware",
+        "color": "#ffb020",
+        "desc": "Generates live-rendered architecture diagrams.",
+        "points": [
+            "Flowchart, Sequence, Class diagrams",
+            "Uses code-flow for accuracy",
+            "Source alongside rendered diagram",
+            "Inline Mermaid.js v10 rendering",
+        ],
+    },
+    {
+        "icon": "\U0001f4ac",
+        "name": "PR Comments",
+        "phase": "Phase 3 \u2014 Synthesis",
+        "color": "#22d68a",
+        "desc": "Generates human-quality GitHub PR reviews.",
+        "points": [
+            "Inline comments with file and line",
+            "Engineering insight, not just findings",
+            "Top-level summary of must-fixes",
+            "Constructive, collegial tone",
+        ],
+    },
+    {
+        "icon": "\U0001f4dc",
+        "name": "Commit Analysis",
+        "phase": "Standalone",
+        "color": "#a37eff",
+        "desc": "Assesses commit history for risk and quality.",
+        "points": [
+            "Risk: High / Medium / Low",
+            "Auto-generated changelog",
+            "Per-commit quality rating",
+            "Clone, GitHub API, or Gitea",
+        ],
+    },
+    {
+        "icon": "\U0001f4c4",
+        "name": "Per-File Report",
+        "phase": "Phase 4 \u2014 Reporting",
+        "color": "#ff4060",
+        "desc": "Assembles all results per file into one document.",
+        "points": [
+            "All features in one Markdown report",
+            "Logical section ordering",
+            "No extra LLM calls \u2014 instant",
+            "Optional HTML with pro styling",
+        ],
+    },
+    {
+        "icon": "\U0001f4da",
+        "name": "Consolidated Report",
+        "phase": "Phase 4 \u2014 Reporting",
+        "color": "#ff4060",
+        "desc": "Synthesizes everything into a cohesive narrative.",
+        "points": [
+            "Executive summary & architecture",
+            "Three modes: template, hybrid, llm",
+            "Cross-cutting concerns & patterns",
+            "Self-contained HTML output",
+        ],
+    },
+]
+
+# Render in rows of 2
+for i in range(0, len(_FEATURES), 2):
+    row = st.columns(2)
+    for col, feat in zip(row, _FEATURES[i : i + 2]):
+        with col:
+            li_html = "".join(f"<li>{p}</li>" for p in feat["points"])
+            st.markdown(
+                f'<div class="feature-card">'
+                f'<div class="fc-phase" style="color:{feat["color"]};">'
+                f'<span class="fc-phase-dot" style="background:{feat["color"]};"></span>'
+                f'{feat["phase"]}</div>'
+                f'<span class="fc-icon">{feat["icon"]}</span>'
+                f'<div class="fc-name">{feat["name"]}</div>'
+                f'<div class="fc-desc">{feat["desc"]}</div>'
+                f'<ul class="fc-list">{li_html}</ul>'
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  BOTTOM CTA
+# ═══════════════════════════════════════════════════════════════════════════════
+
+st.markdown("")
+st.divider()
+st.markdown("")
+
+st.markdown(
+    '<div class="bottom-tag">'
+    "Select your source. Pick your agents. Get results in minutes."
+    "</div>",
+    unsafe_allow_html=True,
+)
+
+with st.container():
+    _bl, _bc, _br = st.columns([2, 1, 2])
+    with _bc:
+        st.markdown('<div class="cta-wrap">', unsafe_allow_html=True)
+        if st.button(
+            "\u2002Start Analysis  \u2192",
+            type="primary",
+            use_container_width=True,
+            key="bottom_cta",
+        ):
+            st.switch_page("pages/1_Analysis.py")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown("")
