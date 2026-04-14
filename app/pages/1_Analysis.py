@@ -14,6 +14,8 @@ from app.components.source_selector import render_source_selector
 from app.components.feature_selector import render_feature_selector
 from app.components.result_tabs import render_results
 from app.components.sidebar_profile import render_sidebar_profile
+from app.components.security_selector import render_security_selector
+from app.components.security_results import render_security_results, render_preflight_banner
 
 st.set_page_config(page_title="Analysis — AI Code Maniac", layout="wide")
 st.title("Code Analysis")
@@ -25,8 +27,10 @@ with st.sidebar:
     render_sidebar_profile(conn)
     source = render_source_selector()
     feature_config = render_feature_selector(conn)
+    security_config = render_security_selector()
+    all_features = feature_config["features"] + security_config["security_features"]
     run_clicked = st.button("Run Analysis", type="primary",
-                            disabled=not source.get("source_ref") or not feature_config["features"])
+                            disabled=not source.get("source_ref") or not all_features)
 
 if run_clicked:
     job_id = create_job(
@@ -34,7 +38,7 @@ if run_clicked:
         source_type=source["source_type"],
         source_ref=source["source_ref"],
         language=feature_config["language"] or None,
-        features=feature_config["features"],
+        features=feature_config["features"] + security_config["security_features"],
         custom_prompt=feature_config["custom_prompt"],
         template_category=feature_config.get("template_category"),
     )
@@ -69,6 +73,10 @@ _AGENT_LABELS = {
     "commit_analysis":     "Commit Analysis",
     "report_per_file":     "Per-File Report",
     "report_consolidated": "Consolidated Report",
+    "secret_scan":          "Secret Scan",
+    "secret_scan_preflight":"Secret Pre-flight",
+    "dependency_analysis":  "Dependency Analysis",
+    "threat_model":         "Threat Model",
 }
 
 _EVENT_ICON = {
@@ -173,6 +181,7 @@ STATUS_LABEL = {
     "running":   "Analyzing...",
     "completed": "Complete",
     "failed":    "Failed",
+    "blocked":   "Blocked — secrets detected",
 }
 st.caption(f"Job `{job_id[:8]}...` — {STATUS_LABEL.get(status, status)}")
 
@@ -185,8 +194,19 @@ elif status == "completed":
     results = get_job_results(conn, job_id)
     if results:
         render_results(results, source_ref=job.get("source_ref", ""))
+        render_preflight_banner(results)
+        render_security_results(results)
     else:
         st.warning("Analysis completed but no results were saved. Check the terminal for errors.")
+
+elif status == "blocked":
+    results = get_job_results(conn, job_id) or {}
+    render_preflight_banner(results)
+    st.warning("Analysis was blocked by the security pre-flight scanner. "
+               "Remove detected secrets and resubmit, or change SECRET_SCAN_MODE in settings.")
+    if st.button("Clear and start over"):
+        del st.session_state["current_job_id"]
+        st.rerun()
 
 elif status == "failed":
     results = get_job_results(conn, job_id) or {}

@@ -12,6 +12,9 @@ FEATURE_LABELS = {
     "static_analysis":   "Static Analysis",
     "comment_generator": "PR Comments",
     "commit_analysis":   "Commit Analysis",
+    "secret_scan":         "Secret Scan",
+    "dependency_analysis": "Dependency Analysis",
+    "threat_model":        "Threat Model",
 }
 
 _SEVERITY_ICON = {"critical": "🔴", "major": "🟠", "minor": "🟡", "suggestion": "🔵"}
@@ -26,6 +29,9 @@ _FEATURE_SUFFIX = {
     "static_analysis":   "_static_analysis.md",
     "comment_generator": "_pr_comments.md",
     "commit_analysis":   "_commit_analysis.md",
+    "secret_scan":          "_secret_scan.md",
+    "dependency_analysis":  "_dependency_analysis.md",
+    "threat_model":         "_threat_model.md",
 }
 
 
