@@ -7,6 +7,10 @@ from db.connection import get_connection
 from db.schema import init_schema
 from db.queries.jobs import create_job
 from agents.commit_analysis import run_commit_analysis
+from agents.release_notes import run_release_notes
+from agents.developer_activity import run_developer_activity
+from agents.commit_hygiene import run_commit_hygiene
+from agents.churn_analysis import run_churn_analysis
 from config.settings import get_settings
 from app.components.result_tabs import render_results
 from tools.clone_repo import parse_github_url, clone_or_pull, get_git_log
@@ -20,6 +24,43 @@ s = get_settings()
 
 source = st.radio("Source", ["GitHub (Clone)", "GitHub (API)", "Gitea"], horizontal=True)
 
+COMMIT_MODES = {
+    "Commit Analysis": "commit_analysis",
+    "Release Notes": "release_notes",
+    "Developer Activity": "developer_activity",
+    "Commit Hygiene": "commit_hygiene",
+    "Churn Analysis": "churn_analysis",
+}
+
+SPINNER_MSGS = {
+    "Commit Analysis": "Analyzing commits with AI...",
+    "Release Notes": "Generating release notes...",
+    "Developer Activity": "Analyzing developer activity...",
+    "Commit Hygiene": "Auditing commit conventions...",
+    "Churn Analysis": "Analyzing file churn patterns...",
+}
+
+analysis_mode = st.selectbox(
+    "Analysis Mode",
+    list(COMMIT_MODES.keys()),
+    key="commits_analysis_mode",
+    help="**Commit Analysis** — review quality, risk, changelog.  \n"
+         "**Release Notes** — polished user-facing notes.  \n"
+         "**Developer Activity** — contributor stats and patterns.  \n"
+         "**Commit Hygiene** — conventional commits compliance audit.  \n"
+         "**Churn Analysis** — file hotspot detection (clone only).",
+)
+
+# Source-availability warnings
+source_has_files = (source == "GitHub (Clone)")
+if analysis_mode == "Churn Analysis" and not source_has_files:
+    st.warning("⚠️ Churn Analysis requires file change data. Switch to **GitHub (Clone)** source.")
+if analysis_mode == "Developer Activity" and not source_has_files:
+    st.info("Developer Activity works best with clone data (dates + files). "
+            "Results from API sources will be limited to author/message analysis.")
+
+can_run = not (analysis_mode == "Churn Analysis" and not source_has_files)
+
 custom_prompt = None
 with st.expander("Advanced / Fine-tune"):
     from config.prompt_templates import TEMPLATE_CATEGORIES, apply_template
@@ -31,7 +72,37 @@ with st.expander("Advanced / Fine-tune"):
     )
     custom_prompt = st.text_area("System Prompt override", height=80) or None
     if chosen_template != "None":
-        custom_prompt = apply_template(chosen_template, "commit_analysis", custom_prompt, language=None)
+        feature_key = COMMIT_MODES.get(analysis_mode, "commit_analysis")
+        custom_prompt = apply_template(chosen_template, feature_key, custom_prompt, language=None)
+
+
+def _run_selected_analysis(conn, job_id, repo_ref, commits, custom_prompt, mode):
+    """Run the selected analysis mode and return (feature_key, result)."""
+    if mode == "Release Notes":
+        return "release_notes", run_release_notes(
+            conn=conn, job_id=job_id, repo_ref=repo_ref,
+            commits=commits, custom_prompt=custom_prompt,
+        )
+    elif mode == "Developer Activity":
+        return "developer_activity", run_developer_activity(
+            conn=conn, job_id=job_id, repo_ref=repo_ref,
+            commits=commits, custom_prompt=custom_prompt,
+        )
+    elif mode == "Commit Hygiene":
+        return "commit_hygiene", run_commit_hygiene(
+            conn=conn, job_id=job_id, repo_ref=repo_ref,
+            commits=commits, custom_prompt=custom_prompt,
+        )
+    elif mode == "Churn Analysis":
+        return "churn_analysis", run_churn_analysis(
+            conn=conn, job_id=job_id, repo_ref=repo_ref,
+            commits=commits, custom_prompt=custom_prompt,
+        )
+    else:
+        return "commit_analysis", run_commit_analysis(
+            conn=conn, job_id=job_id, repo_ref=repo_ref,
+            commits=commits, custom_prompt=custom_prompt,
+        )
 
 if source == "GitHub (Clone)":
     url_input = st.text_input(
@@ -63,6 +134,7 @@ if source == "GitHub (Clone)":
             st.error("Could not parse GitHub URL. Use `owner/repo` or a full URL.")
 
     if st.button("Clone & Analyze Commits", type="primary",
+                 disabled=not can_run,
                  key="clone_analyze_btn") and parsed:
         repo_slug = parsed["slug"]
 
@@ -79,18 +151,18 @@ if source == "GitHub (Clone)":
 
             if commits:
                 st.info(f"Found {len(commits)} commit(s).")
+                feature_key = COMMIT_MODES[analysis_mode]
                 job_id = create_job(
                     conn, source_type="github",
                     source_ref=f"{repo_slug}::{branch}",
-                    language=None, features=["commit_analysis"],
+                    language=None, features=[feature_key],
                 )
-                with st.spinner("Analyzing commits with AI..."):
-                    result = run_commit_analysis(
-                        conn=conn, job_id=job_id,
-                        repo_ref=f"{repo_slug}::{branch}",
-                        commits=commits, custom_prompt=custom_prompt,
+                with st.spinner(SPINNER_MSGS.get(analysis_mode, "Analyzing...")):
+                    fkey, result = _run_selected_analysis(
+                        conn, job_id, f"{repo_slug}::{branch}",
+                        commits, custom_prompt, analysis_mode,
                     )
-                render_results({"commit_analysis": result})
+                render_results({fkey: result})
             else:
                 st.warning("No commits found in the repository.")
 
@@ -106,6 +178,7 @@ elif source == "GitHub (API)":
                        key="commits_limit_api")
 
     if st.button("Fetch & Analyze Commits", type="primary",
+                 disabled=not can_run,
                  key="api_analyze_btn") and repo:
         effective_token = token or s.github_token or None
         with st.spinner("Fetching commits via API..."):
@@ -123,18 +196,18 @@ elif source == "GitHub (API)":
                 st.error(f"GitHub API error: {e}")
 
         if commits:
+            feature_key = COMMIT_MODES[analysis_mode]
             job_id = create_job(
                 conn, source_type="github",
                 source_ref=f"{repo}::{branch}",
-                language=None, features=["commit_analysis"],
+                language=None, features=[feature_key],
             )
-            with st.spinner("Analyzing commits with AI..."):
-                result = run_commit_analysis(
-                    conn=conn, job_id=job_id,
-                    repo_ref=f"{repo}::{branch}",
-                    commits=commits, custom_prompt=custom_prompt,
+            with st.spinner(SPINNER_MSGS.get(analysis_mode, "Analyzing...")):
+                fkey, result = _run_selected_analysis(
+                    conn, job_id, f"{repo}::{branch}",
+                    commits, custom_prompt, analysis_mode,
                 )
-            render_results({"commit_analysis": result})
+            render_results({fkey: result})
         elif not st.session_state.get("_api_error"):
             st.warning("No commits found or fetch failed.")
 
@@ -146,6 +219,7 @@ else:  # Gitea
                        key="commits_limit_gitea")
 
     if st.button("Fetch & Analyze Commits", type="primary",
+                 disabled=not can_run,
                  key="gitea_analyze_btn") and repo:
         with st.spinner("Fetching commits from Gitea..."):
             result = fetch_gitea_commits(
@@ -155,17 +229,17 @@ else:  # Gitea
             commits = result.get("commits", [])
 
         if commits:
+            feature_key = COMMIT_MODES[analysis_mode]
             job_id = create_job(
                 conn, source_type="gitea",
                 source_ref=f"{repo}::{branch}",
-                language=None, features=["commit_analysis"],
+                language=None, features=[feature_key],
             )
-            with st.spinner("Analyzing commits with AI..."):
-                result = run_commit_analysis(
-                    conn=conn, job_id=job_id,
-                    repo_ref=f"{repo}::{branch}",
-                    commits=commits, custom_prompt=custom_prompt,
+            with st.spinner(SPINNER_MSGS.get(analysis_mode, "Analyzing...")):
+                fkey, result = _run_selected_analysis(
+                    conn, job_id, f"{repo}::{branch}",
+                    commits, custom_prompt, analysis_mode,
                 )
-            render_results({"commit_analysis": result})
+            render_results({fkey: result})
         else:
             st.warning("No commits found or fetch failed.")

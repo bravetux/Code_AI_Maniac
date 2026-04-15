@@ -4,13 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**AG-UC-1128** — AI Code Maniac: a multi-agent code analysis platform with a Streamlit frontend and AWS Strands + Bedrock backend.
+**AI Code Maniac** — a multi-agent code analysis platform with a Streamlit frontend and AWS Strands + Bedrock backend.
 
 Key capabilities:
 - Accept code from GitHub/Gitea repositories or local files
 - Support specifying line ranges within a file or entire files (up to 50 files)
 - Use Amazon Bedrock (Claude 3.5 Sonnet) via Strands Agents as the LLM backend
-- 8 specialized agents: Bug Analysis, Code Design, Code Flow, Mermaid Diagrams, Requirements, Static Analysis, PR Comments, Commit Analysis
+- 27 specialized agents across code analysis, commit analysis, and security
+  - **Code Analysis (Phase 1):** Bug Analysis, Static Analysis, Code Flow, Requirements, Dependency Analysis, Code Complexity, Test Coverage, Duplication Detection, Performance Analysis, Type Safety, Architecture Mapper, License Compliance, Change Impact, Doxygen Docs, C Test Generator
+  - **Code Analysis (Phase 2):** Code Design, Mermaid Diagrams, Refactoring Advisor, API Doc Generator, PR Comments
+  - **Security (Phase 3-4):** Secret Scan, Threat Model
+  - **Commit Analysis:** Commit Analysis, Release Notes, Developer Activity, Commit Hygiene, Churn Analysis
 - DuckDB local storage for jobs, cache, chunks, history, and presets
 
 ## Tech Stack
@@ -58,12 +62,21 @@ OrchestratorAgent (agents/orchestrator.py)
   ├── Routes and parallelizes sub-agent calls
   └── Aggregates results back to Streamlit
        ↕
-  Sub-Agents (agents/):
-  bug_analysis | code_design | code_flow | mermaid
-  requirement  | static_analysis | comment_generator | commit_analysis
+  Sub-Agents (agents/) — 27 total:
+  Phase 1: bug_analysis | static_analysis | code_flow | requirement
+           dependency_analysis | code_complexity | test_coverage
+           duplication_detection | performance_analysis | type_safety
+           architecture_mapper | license_compliance | change_impact
+           doxygen | c_test_generator
+  Phase 2: code_design | mermaid | refactoring_advisor | api_doc_generator
+  Phase 3: comment_generator | secret_scan
+  Phase 4: threat_model
+  Commit:  commit_analysis | release_notes | developer_activity
+           commit_hygiene | churn_analysis
        ↕
   Shared Tool Layer (tools/):
-  fetch_local | fetch_github | fetch_gitea | chunk_file | run_linter | cache
+  fetch_local | fetch_github | fetch_gitea | chunk_file | run_linter
+  cache | run_doxygen | web_scraper
        ↕
   DuckDB (data/arena.db)
        ↕

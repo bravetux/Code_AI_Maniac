@@ -3,16 +3,87 @@ from db.queries.presets import list_presets
 from config.settings import get_settings, ALL_AGENTS
 from config.prompt_templates import TEMPLATE_CATEGORIES
 
-# All agents in display order with their UI labels
+# Flat lookup: agent_key → display label (used by other modules)
 ALL_FEATURES: dict[str, str] = {
-    "bug_analysis":      "Bug Analysis",
-    "code_design":       "Code Design",
-    "code_flow":         "Code Flow",
-    "mermaid":           "Mermaid Diagram",
-    "requirement":       "Requirement Design",
-    "static_analysis":   "Static Analysis",
-    "comment_generator": "PR Comment Generator",
-    "commit_analysis":   "Commit Analysis",
+    "bug_analysis":         "Bug Analysis",
+    "static_analysis":      "Static Analysis",
+    "code_complexity":      "Code Complexity",
+    "duplication_detection": "Duplication Detection",
+    "type_safety":          "Type Safety",
+    "code_flow":            "Code Flow",
+    "requirement":          "Requirement Design",
+    "code_design":          "Code Design",
+    "architecture_mapper":  "Architecture Mapper",
+    "mermaid":              "Mermaid Diagram",
+    "performance_analysis": "Performance Analysis",
+    "refactoring_advisor":  "Refactoring Advisor",
+    "test_coverage":        "Test Coverage",
+    "c_test_generator":     "C Test Generator",
+    "change_impact":        "Change Impact",
+    "license_compliance":   "License Compliance",
+    "api_doc_generator":    "API Doc Generator",
+    "doxygen":              "Doxygen Docs",
+    "comment_generator":    "PR Comment Generator",
+    "commit_analysis":      "Commit Analysis",
+}
+
+# Grouped categories for sidebar display
+FEATURE_GROUPS: list[tuple[str, list[tuple[str, str]]]] = [
+    ("Code Quality & Metrics", [
+        ("bug_analysis",         "Bug Analysis"),
+        ("static_analysis",      "Static Analysis"),
+        ("code_complexity",      "Code Complexity"),
+        ("duplication_detection", "Duplication Detection"),
+        ("type_safety",          "Type Safety"),
+    ]),
+    ("Code Understanding", [
+        ("code_flow",            "Code Flow"),
+        ("requirement",          "Requirement Design"),
+        ("code_design",          "Code Design"),
+        ("architecture_mapper",  "Architecture Mapper"),
+        ("mermaid",              "Mermaid Diagram"),
+        ("doxygen",              "Doxygen Docs"),
+    ]),
+    ("Performance & Optimization", [
+        ("performance_analysis", "Performance Analysis"),
+        ("refactoring_advisor",  "Refactoring Advisor"),
+    ]),
+    ("Testing & Maintenance", [
+        ("test_coverage",        "Test Coverage"),
+        ("c_test_generator",     "C Test Generator"),
+        ("change_impact",        "Change Impact"),
+    ]),
+    ("Security & Compliance", [
+        ("license_compliance",   "License Compliance"),
+    ]),
+    ("Documentation & Review", [
+        ("api_doc_generator",    "API Doc Generator"),
+        ("comment_generator",    "PR Comment Generator"),
+    ]),
+]
+
+# Hover tooltips for each feature checkbox
+FEATURE_HELP: dict[str, str] = {
+    "bug_analysis":         "Finds bugs, security issues, and logic errors with severity, root cause, runtime impact, and concrete fix suggestions.",
+    "static_analysis":      "Two-layer analysis: flake8/ESLint linting + LLM semantic scan for design smells, security anti-patterns, and performance issues.",
+    "code_complexity":      "Cyclomatic and cognitive complexity metrics, maintainability index, per-function breakdown, and hotspot identification.",
+    "duplication_detection": "Detects exact and near-duplicate code blocks, DRY violations, and suggests extractions with before/after code.",
+    "type_safety":          "Audits type hint coverage, flags missing annotations and type issues, suggests advanced typing patterns.",
+    "code_flow":            "Generates a technical wiki-style execution-flow narrative documenting entry points, data transformations, and control flow.",
+    "requirement":          "Reverse-engineers functional and non-functional requirements from code in REQ-NNN format with source line references.",
+    "code_design":          "3-turn principal-architect design review producing a 9-section design document with API, dependencies, and improvement roadmap.",
+    "architecture_mapper":  "Maps module dependencies, import/export analysis, coupling metrics, layer violations, and generates a Mermaid component diagram.",
+    "mermaid":              "Generates flowchart, sequence, or class diagrams as valid Mermaid syntax.",
+    "performance_analysis": "Big-O time and space complexity per function, N+1 query detection, caching opportunities, and scalability assessment.",
+    "refactoring_advisor":  "Identifies code smells (God Class, Feature Envy, Long Method, etc.) and recommends Fowler-catalogue refactorings with before/after code.",
+    "test_coverage":        "Analyses code structure to identify untested functions, missing edge cases, and generates test case suggestions with skeleton code.",
+    "c_test_generator":     "Generates Python pytest + ctypes test files for C code: type-safe bindings, happy path, edge cases, error handling. Saved to Reports/.",
+    "change_impact":        "Estimates blast radius for code modifications: public API surface, downstream dependents, change scenarios, and side effect mapping.",
+    "license_compliance":   "Detects license headers and dependency licenses, checks compatibility matrix, flags copyleft obligations and missing attributions.",
+    "api_doc_generator":    "Generates comprehensive API documentation: module overview, class/function reference, usage examples, and error handling.",
+    "doxygen":              "Adds Doxygen comment headers to C/C++ functions and generates HTML documentation via the Doxygen tool.",
+    "comment_generator":    "Produces GitHub-style PR review comments by combining bug and static analysis findings into actionable feedback.",
+    "commit_analysis":      "Reviews commit history for release readiness: commit quality, synthesized changelog, risk assessment, and recommendations.",
 }
 
 MERMAID_TYPES = ["flowchart", "sequence", "class"]
@@ -61,9 +132,28 @@ def render_feature_selector(conn) -> dict:
 
     selected = []
     with st.expander("Features", expanded=True):
-        for key, label in active_features.items():
-            if st.checkbox(label, key=f"feature_{key}"):
-                selected.append(key)
+        # Select / Deselect all
+        all_keys = [k for _, feats in FEATURE_GROUPS for k, _ in feats if k in active_features]
+        col1, col2 = st.columns(2)
+        if col1.button("Select All", key="feature_select_all_btn", use_container_width=True):
+            for k in all_keys:
+                st.session_state[f"feature_{k}"] = True
+            st.rerun()
+        if col2.button("Clear All", key="feature_clear_all_btn", use_container_width=True):
+            for k in all_keys:
+                st.session_state[f"feature_{k}"] = False
+            st.rerun()
+
+        for group_name, features in FEATURE_GROUPS:
+            # Filter to only enabled agents in this group
+            group_active = [(k, lbl) for k, lbl in features if k in active_features]
+            if not group_active:
+                continue
+            st.caption(f"**{group_name}**")
+            for key, label in group_active:
+                if st.checkbox(label, key=f"feature_{key}",
+                               help=FEATURE_HELP.get(key)):
+                    selected.append(key)
 
     mermaid_type = "flowchart"
     if "mermaid" in selected:

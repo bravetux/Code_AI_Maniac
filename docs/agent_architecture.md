@@ -1,6 +1,6 @@
 # AI Code Maniac — Agent Architecture & Code Flow
 
-**AG-UC-1128** | Updated: 2026-04-04
+**AI Code Maniac** | Updated: 2026-04-04
 
 This document describes the internal architecture of each agent, the orchestration pipeline that coordinates them, and the detailed code flow from user action to rendered result.
 
@@ -11,25 +11,47 @@ This document describes the internal architecture of each agent, the orchestrati
 1. [Pipeline Overview](#1-pipeline-overview)
 2. [Orchestrator Code Flow](#2-orchestrator-code-flow)
 3. [Agent Execution Contract](#3-agent-execution-contract)
-4. [Phase 1 Agents — Foundation](#4-phase-1-agents--foundation)
+4. [Phase 1 Agents — Foundation (15 agents)](#4-phase-1-agents--foundation)
    - 4.1 [Bug Analysis](#41-bug-analysis)
    - 4.2 [Static Analysis](#42-static-analysis)
    - 4.3 [Code Flow](#43-code-flow)
    - 4.4 [Requirement Analysis](#44-requirement-analysis)
-5. [Phase 2 Agents — Context-Aware](#5-phase-2-agents--context-aware)
+   - 4.5 [Dependency Analysis](#45-dependency-analysis)
+   - 4.6 [Code Complexity](#46-code-complexity)
+   - 4.7 [Test Coverage](#47-test-coverage)
+   - 4.8 [Duplication Detection](#48-duplication-detection)
+   - 4.9 [Performance Analysis](#49-performance-analysis)
+   - 4.10 [Type Safety](#410-type-safety)
+   - 4.11 [Architecture Mapper](#411-architecture-mapper)
+   - 4.12 [License Compliance](#412-license-compliance)
+   - 4.13 [Change Impact](#413-change-impact)
+   - 4.14 [Doxygen Docs](#414-doxygen-docs)
+   - 4.15 [C Test Generator](#415-c-test-generator)
+5. [Phase 2 Agents — Context-Aware (4 agents)](#5-phase-2-agents--context-aware)
    - 5.1 [Code Design (3-Turn)](#51-code-design-3-turn)
    - 5.2 [Mermaid Diagrams](#52-mermaid-diagrams)
+   - 5.3 [Refactoring Advisor](#53-refactoring-advisor)
+   - 5.4 [API Doc Generator](#54-api-doc-generator)
 6. [Phase 3 Agents — Synthesis](#6-phase-3-agents--synthesis)
    - 6.1 [PR Comment Generator](#61-pr-comment-generator)
-7. [Special Agent — Commit Analysis](#7-special-agent--commit-analysis)
-8. [Shared Infrastructure](#8-shared-infrastructure)
-   - 8.1 [Bedrock Model Factory](#81-bedrock-model-factory)
-   - 8.2 [Cache Layer](#82-cache-layer)
-   - 8.3 [Chunker](#83-chunker)
-   - 8.4 [Linter Runner](#84-linter-runner)
-9. [Inter-Agent Data Flow](#9-inter-agent-data-flow)
-10. [End-to-End Sequence Diagram](#10-end-to-end-sequence-diagram)
-11. [Agent Output Schemas](#11-agent-output-schemas)
+   - 6.2 [Secret Scan](#62-secret-scan)
+7. [Phase 4 — Threat Model](#7-phase-4--threat-model)
+8. [Commit Analysis Agents (5 modes)](#8-commit-analysis-agents)
+   - 8.1 [Commit Analysis](#81-commit-analysis)
+   - 8.2 [Release Notes](#82-release-notes)
+   - 8.3 [Developer Activity](#83-developer-activity)
+   - 8.4 [Commit Hygiene](#84-commit-hygiene)
+   - 8.5 [Churn Analysis](#85-churn-analysis)
+9. [Shared Infrastructure](#9-shared-infrastructure)
+   - 9.1 [Bedrock Model Factory](#91-bedrock-model-factory)
+   - 9.2 [Cache Layer](#92-cache-layer)
+   - 9.3 [Chunker](#93-chunker)
+   - 9.4 [Linter Runner](#94-linter-runner)
+   - 9.5 [Doxygen Runner](#95-doxygen-runner)
+   - 9.6 [Web Scraper](#96-web-scraper)
+10. [Inter-Agent Data Flow](#10-inter-agent-data-flow)
+11. [End-to-End Sequence Diagram](#11-end-to-end-sequence-diagram)
+12. [Agent Output Schemas](#12-agent-output-schemas)
 
 ---
 
@@ -42,41 +64,52 @@ This document describes the internal architecture of each agent, the orchestrati
                         └────────────┬───────────────┬────────────┘
                                      │               │
                  ┌───────────────────▼───────────────▼──────────────────┐
-                 │          PHASE 1  —  Foundation  (Parallel)           │
+                 │     PHASE 0  —  Pre-flight (regex, no LLM)           │
+                 │     secret_scanner → redact / block / pass            │
+                 └───────────────────────────┬──────────────────────────┘
+                                             ▼
+                 ┌──────────────────────────────────────────────────────┐
+                 │          PHASE 1  —  Foundation  (15 agents, parallel)│
                  │                                                        │
-                 │  ┌──────────────┐  ┌──────────────┐                  │
-                 │  │ bug_analysis  │  │static_analysis│                  │
-                 │  └──────────────┘  └──────────────┘                  │
-                 │  ┌──────────────┐  ┌──────────────┐                  │
-                 │  │  code_flow   │  │  requirement  │                  │
-                 │  └──────────────┘  └──────────────┘                  │
-                 └───────────────┬────────────────────────────────────┘
-                   bug_results   │   static_results   code_flow_ctx
+                 │  bug_analysis  · static_analysis · code_flow           │
+                 │  requirement   · dependency_analysis                    │
+                 │  code_complexity · test_coverage · duplication_detection│
+                 │  performance_analysis · type_safety                     │
+                 │  architecture_mapper · license_compliance               │
+                 │  change_impact · doxygen · c_test_generator             │
+                 └───────────────┬────────────────────────────────────────┘
+                  bug  static  flow  complexity  duplication  results...
                                  ▼
                  ┌───────────────────────────────────────────────────┐
-                 │        PHASE 2  —  Context-Aware (Sequential)     │
+                 │      PHASE 2  —  Context-Aware (4 agents)         │
                  │                                                    │
-                 │  ┌───────────────────────┐  ┌──────────────────┐ │
-                 │  │  code_design           │  │  mermaid         │ │
-                 │  │  (receives P1 context) │  │  (reuses flow)   │ │
-                 │  └───────────────────────┘  └──────────────────┘ │
+                 │  code_design        ← bug + static                │
+                 │  mermaid            ← code_flow                   │
+                 │  refactoring_advisor← complexity + static + dup   │
+                 │  api_doc_generator  ← code_flow                   │
                  └───────────────────────────────────────────────────┘
-                   bug_results + static_results
                                  ▼
                  ┌───────────────────────────────────────────────────┐
-                 │        PHASE 3  —  Synthesis                      │
+                 │      PHASE 3  —  Synthesis (2 agents)             │
                  │                                                    │
-                 │  ┌─────────────────────────────────────────────┐  │
-                 │  │  comment_generator  (aggregates P1 findings) │  │
-                 │  └─────────────────────────────────────────────┘  │
+                 │  comment_generator  ← bug + static findings       │
+                 │  secret_scan        ← phase0 + static results     │
+                 └───────────────────────────────────────────────────┘
+                                 ▼
+                 ┌───────────────────────────────────────────────────┐
+                 │      PHASE 4  —  Threat Model                     │
+                 │                                                    │
+                 │  threat_model  ← bug + static + secret + dep      │
                  └───────────────────────────────────────────────────┘
 ```
 
-**Why three phases?**
+**Why four phases?**
 
-- Phase 1 agents are **independent** — they only need raw file content. Running them in parallel maximises throughput and minimises total latency.
-- Phase 2 agents are **context-enriched** — `code_design` produces higher-quality reviews when it knows which bugs and static issues already exist (it can frame them as design symptoms rather than isolated mistakes).
-- Phase 3 agent **synthesises** Phase 1 outputs — `comment_generator` produces better PR comments by combining both bug and static perspectives into a unified voice.
+- **Phase 0** is regex-based (no LLM cost) and gates subsequent analysis — secrets can be redacted from content before any LLM sees it.
+- **Phase 1** agents are **independent** — they only need raw file content. Running them in parallel maximises throughput and minimises total latency.
+- **Phase 2** agents are **context-enriched** — `code_design` produces higher-quality reviews when it knows which bugs and static issues already exist; `refactoring_advisor` builds on complexity and duplication findings to avoid repeating discoveries.
+- **Phase 3** agents **synthesise** earlier outputs — `comment_generator` combines bug and static perspectives into a unified PR voice; `secret_scan` validates Phase 0 regex findings with LLM intelligence.
+- **Phase 4** (`threat_model`) consumes the widest context — bugs, static issues, secrets, and dependencies — to produce comprehensive security assessments.
 
 ---
 
@@ -347,6 +380,156 @@ run_requirement(file_path, content, file_hash, language, custom_prompt, job_id, 
 
 ---
 
+### 4.5 Dependency Analysis
+
+**File:** `agents/dependency_analysis.py`
+**Cache key:** `dependency_analysis`
+
+Two-layer SCA approach:
+1. **Parser layer** — `tools/dependency_parser.py` extracts packages from 20+ dependency file types (requirements.txt, package.json, pom.xml, go.mod, Cargo.toml, etc.)
+2. **LLM analysis layer** — Bedrock evaluates risk, maps CVEs, and produces remediation guidance.
+
+**Output:** `{dependencies: [...], risk_summary, remediation_plan, markdown, summary}`
+
+---
+
+### 4.6 Code Complexity
+
+**File:** `agents/code_complexity.py`
+**Cache key:** `code_complexity`
+
+Analyses cyclomatic complexity, cognitive complexity, and maintainability index per function. Identifies the top 3-5 most complex functions as hotspots with concrete simplification suggestions.
+
+**Key sections in output:** Summary Metrics table, Per-Function Breakdown table, Complexity Hotspots with refactoring suggestions, Patterns of Concern, Recommendations.
+
+**Output:** `{markdown, summary}`
+
+---
+
+### 4.7 Test Coverage
+
+**File:** `agents/test_coverage.py`
+**Cache key:** `test_coverage`
+
+Analyses code structure to identify untested functions, missing test cases, and testability issues. Does NOT run tests — it performs static analysis of what SHOULD be tested.
+
+**Key sections:** Testability Assessment, Functions & Methods Inventory with test priority, Missing Test Cases (happy path, edge cases, error cases), Untestable Code, Suggested Test Skeleton in the detected language, Recommendations.
+
+**Output:** `{markdown, summary}`
+
+---
+
+### 4.8 Duplication Detection
+
+**File:** `agents/duplication_detection.py`
+**Cache key:** `duplication_detection`
+
+Finds exact duplicates, near-duplicates (structural clones), and repeated patterns. Distinguishes harmful duplication from acceptable repetition.
+
+**Key sections:** Duplication Summary with DRY Score, Exact Duplicates, Near-Duplicates with similarity percentage, Repeated Patterns, Refactoring Suggestions (Extract Function, Base Class, Template Method, Strategy Pattern), Recommendations ordered by lines saved.
+
+**Output:** `{markdown, summary}`
+
+---
+
+### 4.9 Performance Analysis
+
+**File:** `agents/performance_analysis.py`
+**Cache key:** `performance_analysis`
+
+Analyses algorithmic complexity, memory usage, I/O efficiency, and scalability.
+
+**Key sections:** Performance Summary table (algorithmic/memory/I/O/concurrency/caching ratings), Algorithmic Analysis (Big-O per function), Performance Issues (N+1, unbounded loops, resource leaks), Memory Analysis, Caching Opportunities, Scalability Assessment (10x, 100x, 1000x input growth), Recommendations by impact-to-effort ratio.
+
+**Output:** `{markdown, summary}`
+
+---
+
+### 4.10 Type Safety
+
+**File:** `agents/type_safety.py`
+**Cache key:** `type_safety`
+
+Type hint coverage audit. Language-aware: adapts to Python (PEP 484+), TypeScript strict mode, Java generics, etc.
+
+**Key sections:** Type Coverage Summary (grade A-D), Untyped Functions table with priority, Type Issues (missing returns, broad Any types, mutable defaults), Type Improvement Suggestions with full signatures, Advanced Type Patterns (TypeVar, Protocol, TypedDict, Literal, Overload), Recommendations.
+
+**Output:** `{markdown, summary}`
+
+---
+
+### 4.11 Architecture Mapper
+
+**File:** `agents/architecture_mapper.py`
+**Cache key:** `architecture_mapper`
+
+Maps module dependencies, coupling metrics, and architectural patterns.
+
+**Key sections:** Module Overview (responsibility, layer, patterns), Dependency Map (imports table with coupling assessment + exports), Dependency Analysis (afferent/efferent coupling, instability metric, abstractness), Layer Violations (circular deps, layer skipping, upward deps, God modules), Mermaid Component Diagram, Cohesion Assessment, Recommendations.
+
+**Output:** `{markdown, summary}`
+
+---
+
+### 4.12 License Compliance
+
+**File:** `agents/license_compliance.py`
+**Cache key:** `license_compliance`
+
+Detects license headers, SPDX identifiers, and dependency licenses. Checks compatibility.
+
+**Key sections:** License Detection (file-level + dependency-level), License Compatibility Matrix (copyleft propagation, distribution implications), Compliance Issues (GPL in proprietary, missing attribution, no-license packages), Attribution Requirements table, Policy Recommendations.
+
+**Output:** `{markdown, summary}`
+
+---
+
+### 4.13 Change Impact
+
+**File:** `agents/change_impact.py`
+**Cache key:** `change_impact`
+
+Estimates blast radius for code modifications.
+
+**Key sections:** Impact Overview (API surface, coupling points, blast radius rating, change confidence), Public API Surface table (stability, change risk), Dependency Chain Analysis (downstream/upstream), Change Scenarios (2-4 specific scenarios: adding parameter, changing return type, removing function), Side Effect Map, Safe Change Zones, Test Impact Assessment, Recommendations.
+
+**Output:** `{markdown, summary}`
+
+---
+
+### 4.14 Doxygen Docs
+
+**File:** `agents/doxygen_agent.py`
+**Cache key:** `doxygen`
+
+Two-step agent: LLM annotation + Doxygen CLI tool execution.
+
+1. **LLM step:** Bedrock adds `@brief`, `@param`, `@return`, `@file`, `@note`, `@warning` headers to every function, struct, class, enum, macro, and typedef in C/C++ code. Original code preserved byte-for-byte.
+2. **Tool step:** Saves annotated source to `Reports/{timestamp}/doxygen/sources/`. Generates a minimal `Doxyfile` via `tools/run_doxygen.py` and runs `doxygen` CLI to produce HTML docs at `Reports/{timestamp}/doxygen/html/`.
+
+Graceful degradation: if `doxygen` CLI is not installed, the annotated code is still returned.
+
+**Output:** `{markdown, summary, annotated_code, doxygen_output_path, doxygen_ran}`
+
+---
+
+### 4.15 C Test Generator
+
+**File:** `agents/c_test_generator.py`
+**Cache key:** `c_test_generator`
+
+Takes C source code and generates a complete Python `pytest` + `ctypes` test file.
+
+- Defines `argtypes`/`restype` for type-safe bindings per function
+- Generates one test class per public C function with: happy path, boundary values, negative input, zero input, large input, NULL pointer handling, error return codes
+- Includes build instruction comment (`gcc -shared -fPIC -o lib.so file.c`)
+- Includes a `__main__` block for direct execution
+- Saves test file to `Reports/{timestamp}/c_tests/test_{filename}.py`
+
+**Output:** `{markdown, summary, test_code, output_path}`
+
+---
+
 ## 5. Phase 2 Agents — Context-Aware
 
 ### 5.1 Code Design (3-Turn)
@@ -494,6 +677,44 @@ run_mermaid(file_path, content, file_hash, language, custom_prompt,
 
 ---
 
+### 5.3 Refactoring Advisor
+
+**File:** `agents/refactoring_advisor.py`
+**Cache key:** `refactoring_advisor`
+
+**Dependencies from Phase 1:**
+- `complexity_results` — from `code_complexity` (identifies hotspots to focus on)
+- `static_results` — from `static_analysis` (design smells already found)
+- `duplication_results` — from `duplication_detection` (DRY violations to address)
+
+Identifies code smells from Martin Fowler's catalogue and recommends specific refactoring patterns. Provides before/after code sketches for the top 5-8 most impactful smells.
+
+**Smells detected:** Long Method, God Class, Feature Envy, Data Clumps, Primitive Obsession, Switch/If Chains, Shotgun Surgery, Divergent Change, Dead Code, Deep Nesting, Magic Numbers, Long Parameter List, Speculative Generality, Message Chains, Inappropriate Intimacy.
+
+**Key sections:** Code Smell Inventory table, Detailed Refactoring Recommendations (with before/after code), Design Pattern Opportunities, Quick Wins, Refactoring Roadmap (prioritised by impact-to-effort).
+
+**Context usage:** Prior analysis results are appended to the prompt (truncated to 2000 chars each) with instructions to build on — not repeat — earlier findings.
+
+**Output:** `{markdown, summary}`
+
+---
+
+### 5.4 API Doc Generator
+
+**File:** `agents/api_doc_generator.py`
+**Cache key:** `api_doc_generator`
+
+**Dependencies from Phase 1:**
+- `flow_context` — from `code_flow` (execution order understanding)
+
+Generates comprehensive, polished API documentation suitable as official module docs.
+
+**Key sections:** Module Overview, Quick Start example, API Reference (Classes with constructors/attributes/methods, Functions with params/returns/raises/examples, Constants, Type Definitions), Error Handling, Usage Examples (3-5 complete examples), Notes & Caveats.
+
+**Output:** `{markdown, summary}`
+
+---
+
 ## 6. Phase 3 Agents — Synthesis
 
 ### 6.1 PR Comment Generator
@@ -547,64 +768,92 @@ run_comment_generator(file_path, content, file_hash, language, custom_prompt,
 
 ---
 
-## 7. Special Agent — Commit Analysis
+### 6.2 Secret Scan
 
-**File:** `agents/commit_analysis.py`  
-**Model role:** Engineering lead reviewing commit history for release readiness
+**File:** `agents/secret_scan.py`
+**Cache key:** `secret_scan`
 
-This agent operates on **git commit history** rather than file content. It is invoked from `3_Commits.py` directly, not through the standard orchestrator pipeline.
+**Dependencies:** Phase 0 pre-flight findings + `static_results`
 
-```
-run_commit_analysis(commits, repo_id, custom_prompt, job_id, conn)
-│
-  commits = [{sha, message, author}, ...]
-│
-├─ Batch commits (max 20 per Bedrock call):
-│    batches = [commits[0:20], commits[20:40], ...]
-│
-├─ For each batch:
-│    ├─ Build prompt:
-│    │    system: "Engineering lead reviewing commits for release readiness"
-│    │    user:   commit list as formatted text
-│    │            "Produce: Commit Quality, Changelog, Risk Assessment, Recommendations"
-│    ├─ Bedrock call
-│    └─ batch_result = markdown response
-│
-├─ If single batch: final_result = batch_result
-├─ If multiple batches:
-│    └─ Synthesis call:
-│         prompt: "Synthesize these batch analyses into one coherent report"
-│         input:  all batch_results concatenated
-│         output: unified markdown
-│
-├─ Extract risk_level:
-│    search markdown for "high risk" → "high"
-│    search markdown for "medium risk" → "medium"
-│    default → "low"
-│
-├─ Build result:
-│    {markdown: "...", summary: "N commits analysed",
-│     risk_level: "high|medium|low"}
-│
-└─ return result
-```
+Two-phase secret detection:
+1. **Phase 0 (Pre-flight):** Regex scanning via `tools/secret_scanner.py` — 12+ patterns for AWS keys, GitHub tokens, JWTs, connection strings, etc. Runs before any LLM sees the code.
+2. **Phase 3 (Deep):** LLM analysis for what regex misses — base64-encoded secrets, split secrets, hardcoded fallbacks, env var fallbacks with literal defaults, secrets in comments/docstrings.
 
-**Risk Level Extraction:**
+Validates Phase 0 findings to filter false positives.
 
-```python
-if "high risk" in markdown.lower():
-    risk_level = "high"
-elif "medium risk" in markdown.lower():
-    risk_level = "medium"
-else:
-    risk_level = "low"
-```
+**Output:** `{secrets: [...], phase0_validation, narrative, summary}`
 
 ---
 
-## 8. Shared Infrastructure
+## 7. Phase 4 — Threat Model
 
-### 8.1 Bedrock Model Factory
+**File:** `agents/threat_model.py`
+**Cache key:** `threat_model`
+
+**Dependencies:** bug + static + secret + dependency results from all prior phases.
+
+Two modes:
+- **Formal Mode:** STRIDE methodology with trust boundaries, attack surface mapping, and data flow Mermaid diagram. Returns `{trust_boundaries, attack_surface, stride_analysis, data_flow_mermaid}`.
+- **Attacker Mode:** Penetration tester narrative with realistic attack scenarios, prerequisites, proof-of-concept sketches, and mitigation. Returns `{executive_summary, attack_scenarios, priority_ranking}`.
+
+---
+
+## 8. Commit Analysis Agents (5 modes)
+
+These agents operate on **git commit history** rather than file content. They are invoked from `3_Commits.py` directly, not through the standard orchestrator pipeline. The Commits page provides a mode selector to choose between 5 analysis types.
+
+**Common pattern:** All commit agents use the same signature: `run_<name>(conn, job_id, repo_ref, commits, custom_prompt) → dict`. They batch commits, call Bedrock per batch, and synthesise across batches if needed.
+
+### 8.1 Commit Analysis
+
+**File:** `agents/commit_analysis.py`
+**Batch size:** 20
+
+Engineering lead reviewing commits for release readiness. Produces Commit Quality review, Changelog synthesis, Risk Assessment, and Recommendations. Extracts `risk_level` (high/medium/low) from markdown keywords.
+
+**Output:** `{markdown, summary, risk_level}`
+
+### 8.2 Release Notes
+
+**File:** `agents/release_notes.py`
+**Batch size:** 30
+
+Transforms commit messages into polished, user-facing release notes. Groups into: Highlights, New Features, Improvements, Bug Fixes, Breaking Changes, Other Changes.
+
+**Output:** `{markdown, summary}`
+
+### 8.3 Developer Activity
+
+**File:** `agents/developer_activity.py`
+**Batch size:** 30
+
+Contributor breakdown, activity timeline, collaboration patterns, bus-factor risks. **Graceful degradation:** inspects first commit for `date`/`files_changed` keys — if absent, prepends notes to the prompt skipping time-based or file-ownership analysis.
+
+**Output:** `{markdown, summary}`
+
+### 8.4 Commit Hygiene
+
+**File:** `agents/commit_hygiene.py`
+**Batch size:** 20
+
+Audits commits against Conventional Commits spec. Compliance scoring (grade A-D), message quality issues, squash candidates, large commits (if file data available).
+
+**Output:** `{markdown, summary}`
+
+### 8.5 Churn Analysis
+
+**File:** `agents/churn_analysis.py`
+**Batch size:** 30
+
+File hotspot detection: most frequently changed files, directory-level churn, co-change patterns, stability report. **Hard gate:** requires `files_changed` data (only from GitHub Clone source). Returns early with instructive message if data is absent.
+
+**Output:** `{markdown, summary}`
+
+---
+
+## 9. Shared Infrastructure
+
+### 9.1 Bedrock Model Factory
 
 **File:** `agents/_bedrock.py`
 
@@ -629,7 +878,7 @@ Each agent call creates a fresh `BedrockModel` instance. The Strands `Agent` cla
 
 ---
 
-### 8.2 Cache Layer
+### 9.2 Cache Layer
 
 **Files:** `tools/cache.py`, `db/queries/cache.py`
 
@@ -653,7 +902,7 @@ Cache misses trigger the full agent execution path. Cache hits skip all Bedrock 
 
 ---
 
-### 8.3 Chunker
+### 9.3 Chunker
 
 **File:** `tools/chunk_file.py`
 
@@ -701,7 +950,7 @@ Each chunk dict: `{content: str, start_line: int, end_line: int, token_count: in
 
 ---
 
-### 8.4 Linter Runner
+### 9.4 Linter Runner
 
 **File:** `tools/run_linter.py`
 
@@ -731,56 +980,108 @@ If the linter binary is not found: `skipped: True, reason: "flake8 not found"`.
 
 ---
 
-## 9. Inter-Agent Data Flow
+### 9.5 Doxygen Runner
+
+**File:** `tools/run_doxygen.py`
 
 ```
-                     file_hash, content, language
-                              │
-                    ┌─────────▼──────────┐
-                    │   PHASE 1 OUTPUT   │
-                    │                    │
-    bug_results ────┤  {bugs, narrative} ├──── static_results
-    (from bug_      │                    │     (from static_
-     analysis)      │  {linter_findings, │      analysis)
-                    │   semantic_findings}│
-                    │                    │
-    flow_ctx ───────┤  {markdown,        │
-    (from code_     │   entry_points,    │
-     flow)          │   steps}           │
-                    └─────────┬──────────┘
-                              │
-              ┌───────────────┼───────────────────────┐
-              │               │                       │
-     ┌────────▼────────┐      │              ┌────────▼────────┐
-     │  code_design    │      │              │    mermaid       │
-     │                 │      │              │                  │
-     │ receives:       │      │              │ receives:        │
-     │ - bug_results   │      │              │ - flow_ctx       │
-     │ - static_results│      │              │ - mermaid_type   │
-     │                 │      │              │                  │
-     │ T1: understand  │      │              │ → {diagram_type, │
-     │ T2: JSON        │      │              │    mermaid_src}  │
-     │ T3: 9-sec doc   │      │              └─────────────────┘
-     └────────┬────────┘      │
-              │               │
-              └───────────────▼───────────────────────┐
-                              │                       │
-                     ┌────────▼────────┐              │
-                     │ comment_gen     │              │
-                     │                │              │
-                     │ receives:       │              │
-                     │ - bug_results  │              │
-                     │ - static_      │              │
-                     │   results      │              │
-                     │                │              │
-                     │ → {comments,   │              │
-                     │    summary}    │              │
-                     └────────────────┘              │
+generate_doxyfile(source_dir, output_dir, project_name)
+│
+└─ Writes minimal Doxyfile to output_dir/Doxyfile
+   Configured for: C/C++/C# file patterns, EXTRACT_ALL=YES,
+   HTML output only, no LaTeX, QUIET mode
+
+run_doxygen_tool(source_dir, output_dir, project_name)
+│
+├─ Calls generate_doxyfile()
+├─ subprocess: ["doxygen", doxyfile_path]  (timeout: 120s)
+│
+├─ Success: {success: True, output_path: ".../html/index.html"}
+├─ doxygen not installed: {success: False, error: "doxygen is not installed..."}
+└─ Timeout: {success: False, error: "doxygen timed out after 120 seconds"}
 ```
 
 ---
 
-## 10. End-to-End Sequence Diagram
+### 9.6 Web Scraper
+
+**File:** `tools/web_scraper.py`
+
+Standalone tool for extracting clean text content from any URL. Usable as CLI script or importable module.
+
+```
+scrape_url(url, timeout=30)
+│
+├─ httpx.Client(follow_redirects=True)
+├─ GET url with User-Agent header
+│
+├─ Strip <script>, <style>, <noscript>, <svg>, <head> tags
+├─ Convert <br>, </p>, </div>, </h1-6>, </li> to newlines
+├─ Remove remaining HTML tags
+├─ Decode HTML entities (named + numeric + hex)
+├─ Collapse whitespace
+│
+├─ Success: {url, status: 200, title, text, length, error: ""}
+├─ HTTP error: {url, status: 4xx/5xx, error: "HTTP 404: Not Found"}
+└─ Connection error: {url, status: 0, error: "..."}
+```
+
+**CLI usage:**
+```bash
+python tools/web_scraper.py https://example.com
+python tools/web_scraper.py https://example.com -o output.txt
+```
+
+---
+
+## 10. Inter-Agent Data Flow
+
+```
+Phase 0: secret_scanner (regex) → redact/block/pass
+                              │
+                     file_hash, content, language
+                              │
+         ┌────────────────────▼────────────────────────────┐
+         │              PHASE 1 OUTPUT (15 agents)          │
+         │                                                   │
+         │  bug_results ─── static_results ─── flow_ctx     │
+         │  requirement ─── dependency_analysis              │
+         │  complexity ──── duplication ──── performance     │
+         │  type_safety ─── architecture ─── license        │
+         │  change_impact ── doxygen ── c_test_generator     │
+         └────────────────────┬────────────────────────────┘
+                              │
+     ┌────────┬───────────────┼───────────────┬────────────┐
+     │        │               │               │            │
+     ▼        ▼               ▼               ▼            ▼
+  code_design  mermaid   refactoring     api_doc_gen
+  (bug+static) (flow)   (complexity+    (flow)
+   3-turn               static+dup)
+                              │
+                              ▼
+              ┌───────────────┼──────────────────┐
+              │               │                  │
+              ▼               ▼                  ▼
+        comment_gen      secret_scan         threat_model
+        (bug+static)     (phase0+static)     (bug+static+
+                                              secret+dep)
+```
+
+**Dependency summary table:**
+
+| Agent | Phase | Receives From |
+|---|---|---|
+| code_design | 2 | bug_results, static_results |
+| mermaid | 2 | flow_context (code_flow) |
+| refactoring_advisor | 2 | complexity_results, static_results, duplication_results |
+| api_doc_generator | 2 | flow_context (code_flow) |
+| comment_generator | 3 | bug_results, static_results |
+| secret_scan | 3 | phase0_findings, static_results |
+| threat_model | 4 | bug_results, static_results, secret_results, dependency_results |
+
+---
+
+## 11. End-to-End Sequence Diagram
 
 ```
 User         Streamlit UI        Orchestrator     Phase 1 Agents    Bedrock     DuckDB
@@ -828,7 +1129,7 @@ User         Streamlit UI        Orchestrator     Phase 1 Agents    Bedrock     
 
 ---
 
-## 11. Agent Output Schemas
+## 12. Agent Output Schemas
 
 ### Bug Analysis
 
@@ -952,6 +1253,42 @@ User         Streamlit UI        Orchestrator     Phase 1 Agents    Bedrock     
 }
 ```
 
+### New Code Analysis Agents (all share markdown pattern)
+
+The following agents all return the same base schema:
+
+```json
+{
+  "markdown": "string — full markdown report",
+  "summary": "string — one-line description"
+}
+```
+
+Applies to: `code_complexity`, `test_coverage`, `duplication_detection`, `performance_analysis`, `type_safety`, `architecture_mapper`, `license_compliance`, `change_impact`, `refactoring_advisor`, `api_doc_generator`
+
+### Doxygen Docs
+
+```json
+{
+  "markdown": "string — annotated code display + paths",
+  "summary": "string — e.g. 'Added Doxygen headers to file.c. HTML docs generated.'",
+  "annotated_code": "string — full C/C++ source with Doxygen comment headers",
+  "doxygen_output_path": "string — path to generated html/index.html",
+  "doxygen_ran": true
+}
+```
+
+### C Test Generator
+
+```json
+{
+  "markdown": "string — test code display + paths",
+  "summary": "string — e.g. 'Generated 12 pytest+ctypes tests for math_utils.c'",
+  "test_code": "string — full Python pytest file content",
+  "output_path": "string — path to saved test file in Reports/"
+}
+```
+
 ### Commit Analysis
 
 ```json
@@ -961,6 +1298,19 @@ User         Streamlit UI        Orchestrator     Phase 1 Agents    Bedrock     
   "risk_level": "high | medium | low"
 }
 ```
+
+### Commit Agents (shared pattern)
+
+The following commit agents all return the same schema:
+
+```json
+{
+  "markdown": "string — full markdown report",
+  "summary": "string — one-line description"
+}
+```
+
+Applies to: `release_notes`, `developer_activity`, `commit_hygiene`, `churn_analysis`
 
 ---
 

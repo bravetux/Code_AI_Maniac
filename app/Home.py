@@ -23,12 +23,12 @@ st.markdown(
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap');
 
-/* ── Dark theme overrides ───────────────────────────────────────────────── */
+/* ── Light theme overrides ─────────────────────────────────────────────── */
 section[data-testid="stMain"] {
-    background: #06060c !important;
+    background: #ffffff !important;
 }
 header[data-testid="stHeader"] {
-    background: transparent !important;
+    background: #ffffff !important;
 }
 
 /* ── Hero text ──────────────────────────────────────────────────────────── */
@@ -39,11 +39,11 @@ header[data-testid="stHeader"] {
     font-weight: 500;
     letter-spacing: .12em;
     text-transform: uppercase;
-    color: #00c8ff;
-    border: 1px solid rgba(0,200,255,.25);
+    color: #0077b6;
+    border: 1px solid rgba(0,119,182,.3);
     border-radius: 100px;
     padding: .35em 1.2em;
-    background: rgba(0,200,255,.06);
+    background: rgba(0,119,182,.06);
 }
 .hero-title {
     font-family: 'JetBrains Mono', monospace;
@@ -51,15 +51,15 @@ header[data-testid="stHeader"] {
     font-weight: 800;
     line-height: 1.1;
     letter-spacing: -.03em;
-    color: #e8e8f0;
+    color: #1a1a2e;
     margin: .8rem 0 .6rem;
 }
-.hero-title .acc { color: #00c8ff; }
+.hero-title .acc { color: #0077b6; }
 .hero-sub {
     font-family: 'DM Sans', sans-serif;
     font-size: 1.1rem;
     line-height: 1.65;
-    color: #b0b0c8;
+    color: #555570;
     max-width: 620px;
 }
 
@@ -69,23 +69,23 @@ div.cta-wrap [data-testid="stBaseButton-primary"] {
     font-weight: 700 !important;
     font-size: .95rem !important;
     letter-spacing: .05em !important;
-    background: linear-gradient(135deg, #00c8ff, #0090cc) !important;
-    color: #000 !important;
+    background: linear-gradient(135deg, #0077b6, #005a8c) !important;
+    color: #fff !important;
     border: none !important;
     border-radius: 8px !important;
     padding: .85rem 2.6rem !important;
-    box-shadow: 0 0 24px rgba(0,200,255,.12), 0 4px 16px rgba(0,0,0,.35) !important;
+    box-shadow: 0 2px 12px rgba(0,119,182,.18), 0 4px 16px rgba(0,0,0,.06) !important;
     transition: all .25s ease !important;
 }
 div.cta-wrap [data-testid="stBaseButton-primary"]:hover {
     transform: translateY(-2px) !important;
-    box-shadow: 0 0 36px rgba(0,200,255,.22), 0 8px 24px rgba(0,0,0,.45) !important;
+    box-shadow: 0 4px 20px rgba(0,119,182,.28), 0 8px 24px rgba(0,0,0,.1) !important;
 }
 
 /* ── Pipeline row ───────────────────────────────────────────────────────── */
 .pipe-box {
-    background: #0d0d16;
-    border: 1px solid #2a2a40;
+    background: #f7f8fb;
+    border: 1px solid #e2e4ec;
     border-radius: 10px;
     padding: 1.2rem .8rem;
     text-align: center;
@@ -101,13 +101,13 @@ div.cta-wrap [data-testid="stBaseButton-primary"]:hover {
     font-family: 'DM Sans', sans-serif;
     font-size: 16px;
     font-weight: 500;
-    color: #c8c8d8;
+    color: #3a3a50;
     margin-top: .3rem;
 }
 .pipe-count {
     font-family: 'JetBrains Mono', monospace;
     font-size: 14px;
-    color: #8888a0;
+    color: #7a7a90;
     margin-top: .2rem;
 }
 
@@ -118,30 +118,31 @@ div.cta-wrap [data-testid="stBaseButton-primary"]:hover {
     font-weight: 600;
     letter-spacing: .15em;
     text-transform: uppercase;
-    color: #9090aa;
+    color: #7a7a90;
     text-align: center;
 }
 .sec-title {
     font-family: 'JetBrains Mono', monospace;
     font-size: 1.5rem;
     font-weight: 700;
-    color: #e8e8f0;
+    color: #1a1a2e;
     text-align: center;
     letter-spacing: -.02em;
 }
 
 /* ── Feature cards ──────────────────────────────────────────────────────── */
 div[data-testid="stVerticalBlock"] .feature-card {
-    background: #0d0d16;
-    border: 1px solid #1a1a2e;
+    background: #f7f8fb;
+    border: 1px solid #e2e4ec;
     border-radius: 10px;
     padding: 1.5rem;
     height: 100%;
-    transition: background .2s ease, border-color .2s ease;
+    transition: background .2s ease, border-color .2s ease, box-shadow .2s ease;
 }
 .feature-card:hover {
-    background: #13131f;
-    border-color: #252540;
+    background: #eef0f6;
+    border-color: #d0d2de;
+    box-shadow: 0 2px 12px rgba(0,0,0,.04);
 }
 .fc-phase {
     font-family: 'JetBrains Mono', monospace;
@@ -167,54 +168,50 @@ div[data-testid="stVerticalBlock"] .feature-card {
     font-family: 'JetBrains Mono', monospace;
     font-size: 1rem;
     font-weight: 700;
-    color: #e8e8f0;
+    color: #1a1a2e;
     margin-bottom: .35rem;
 }
 .fc-desc {
     font-family: 'DM Sans', sans-serif;
     font-size: .85rem;
-    color: #b0b0c8;
+    color: #555570;
     line-height: 1.55;
     margin-bottom: .8rem;
 }
 .fc-list {
-    list-style: none;
     padding: 0;
     margin: 0;
 }
-.fc-list li {
+.fc-list-item {
     font-family: 'DM Sans', sans-serif;
     font-size: .78rem;
-    color: #9898b0;
-    line-height: 1.6;
-    padding-left: .9rem;
-    position: relative;
+    color: #6a6a80;
+    line-height: 1.7;
 }
-.fc-list li::before {
-    content: '\203a';
-    position: absolute;
-    left: 0;
+.fc-bullet {
     font-weight: 700;
+    color: #9a9ab0;
+    margin-right: .3rem;
 }
 
 /* ── Stats metric overrides ─────────────────────────────────────────────── */
 div[data-testid="stMetric"] {
-    background: #0d0d16;
-    border: 1px solid #1a1a2e;
+    background: #f7f8fb;
+    border: 1px solid #e2e4ec;
     border-radius: 10px;
     padding: 1rem;
     text-align: center;
 }
 div[data-testid="stMetric"] label {
     font-family: 'DM Sans', sans-serif !important;
-    color: #9090aa !important;
+    color: #7a7a90 !important;
     font-size: .75rem !important;
     letter-spacing: .08em !important;
     text-transform: uppercase !important;
 }
 div[data-testid="stMetric"] [data-testid="stMetricValue"] {
     font-family: 'JetBrains Mono', monospace !important;
-    color: #e8e8f0 !important;
+    color: #1a1a2e !important;
     font-size: 1.8rem !important;
     font-weight: 700 !important;
 }
@@ -223,14 +220,33 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
 .bottom-tag {
     font-family: 'DM Sans', sans-serif;
     font-size: .9rem;
-    color: #9898b0;
+    color: #6a6a80;
     text-align: center;
     margin-bottom: 1rem;
 }
 
+/* ── Feature group expanders ────────────────────────────────────────────── */
+div[data-testid="stExpander"] {
+    border: 1px solid #e2e4ec !important;
+    border-radius: 10px !important;
+    margin-bottom: .8rem !important;
+    background: #ffffff !important;
+}
+div[data-testid="stExpander"] summary {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: .9rem !important;
+    font-weight: 600 !important;
+    color: #1a1a2e !important;
+    padding: .8rem 1rem !important;
+    cursor: pointer !important;
+}
+div[data-testid="stExpander"] summary:hover {
+    background: #f7f8fb !important;
+}
+
 /* ── Divider subtle ─────────────────────────────────────────────────────── */
 hr {
-    border-color: #1a1a2e !important;
+    border-color: #e2e4ec !important;
 }
 </style>
 """,
@@ -245,7 +261,7 @@ hr {
 st.markdown("")  # spacer
 
 st.markdown(
-    '<div class="hero-badge">AG-UC-1128 &middot; Multi-Agent Platform</div>',
+    '<div class="hero-badge">Multi-Agent Code Analysis Platform</div>',
     unsafe_allow_html=True,
 )
 st.markdown(
@@ -254,9 +270,9 @@ st.markdown(
 )
 st.markdown(
     '<div class="hero-sub">'
-    "13 specialized AI agents dissect your code across bugs, design, "
-    "flow, security, dependencies, threat modelling, and more &mdash; "
-    "then synthesize everything into polished, professional reports."
+    "25 specialized AI agents dissect your code across quality, complexity, "
+    "performance, security, architecture, testing, documentation, and more &mdash; "
+    "plus 5 commit analysis modes for release notes, hygiene audits, and churn detection."
     "</div>",
     unsafe_allow_html=True,
 )
@@ -280,13 +296,13 @@ st.divider()
 st.markdown("")
 
 _pipe_data = [
-    ("Phase 0", "Security Gate", "Pre-flight scan", "#ff6080"),
-    ("Phase 1", "Foundation", "5 agents", "#00c8ff"),
-    ("Phase 2", "Context-Aware", "2 agents", "#ffb020"),
-    ("Phase 3", "Synthesis", "2 agents", "#22d68a"),
-    ("Phase 4", "Threat Model", "1 agent", "#ff4060"),
-    ("Phase 5", "Reporting", "2 agents", "#a37eff"),
-    ("Standalone", "Commits", "1 agent", "#c080ff"),
+    ("Phase 0", "Security Gate", "Pre-flight scan", "#d63060"),
+    ("Phase 1", "Foundation", "13 agents", "#0077b6"),
+    ("Phase 2", "Context-Aware", "4 agents", "#d48a00"),
+    ("Phase 3", "Synthesis", "2 agents", "#1a9960"),
+    ("Phase 4", "Threat Model", "1 agent", "#c82050"),
+    ("Phase 5", "Reporting", "2 agents", "#7c5cc4"),
+    ("Standalone", "Commits", "5 modes", "#9060d0"),
 ]
 
 pipe_cols = st.columns(len(_pipe_data))
@@ -321,7 +337,7 @@ if jobs:
     c1.metric("Analyses Run", total)
     c2.metric("Completed", completed)
     c3.metric("Languages", languages)
-    c4.metric("AI Agents", 13)
+    c4.metric("AI Agents", 25)
 
     st.markdown("")
 
@@ -334,201 +350,270 @@ st.divider()
 st.markdown("")
 st.markdown('<div class="sec-over">Capabilities</div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="sec-title">13 Agents. One Pipeline.</div>',
+    '<div class="sec-title">25 Agents. 7 Categories. One Pipeline.</div>',
     unsafe_allow_html=True,
 )
 st.markdown("")
 
-_FEATURES = [
+_FEATURE_GROUPS = [
     {
-        "icon": "\U0001f41b",
-        "name": "Bug Analysis",
-        "phase": "Phase 1 \u2014 Foundation",
-        "color": "#00c8ff",
-        "desc": "Detects bugs across severity levels with precise line attribution.",
-        "points": [
-            "Critical / Major / Minor severity",
-            "Root cause and runtime impact",
-            "Side-by-side Original vs Fixed code",
-            "Narrative assessment before issues",
+        "group": "Code Quality & Metrics",
+        "group_color": "#0077b6",
+        "features": [
+            {
+                "icon": "\U0001f41b", "name": "Bug Analysis",
+                "desc": "Detects bugs across severity levels with precise line attribution.",
+                "points": ["Critical / Major / Minor severity", "Root cause and runtime impact",
+                           "Side-by-side Original vs Fixed code", "Narrative assessment"],
+            },
+            {
+                "icon": "\U0001f50d", "name": "Static Analysis",
+                "desc": "Combines flake8/ESLint linting with AI semantic checks.",
+                "points": ["Flake8/ESLint findings with rule codes", "Design smells and anti-patterns",
+                           "Security and performance issues", "Feeds downstream agents"],
+            },
+            {
+                "icon": "\U0001f4ca", "name": "Code Complexity",
+                "desc": "Cyclomatic and cognitive complexity metrics per function.",
+                "points": ["Maintainability index scoring", "Per-function breakdown table",
+                           "Hotspot identification (top 3-5)", "Simplification suggestions"],
+            },
+            {
+                "icon": "\U0001f503", "name": "Duplication Detection",
+                "desc": "Finds code clones and DRY violations with extraction suggestions.",
+                "points": ["Exact and near-duplicate blocks", "Similarity percentage scoring",
+                           "Extract Function / Base Class suggestions", "Before/after refactored code"],
+            },
+            {
+                "icon": "\U0001f3af", "name": "Type Safety",
+                "desc": "Audits type hint coverage and flags type-related issues.",
+                "points": ["Typed vs untyped function inventory", "Coverage grade A through D",
+                           "Advanced typing suggestions", "Language-aware (Python, TS, Java)"],
+            },
         ],
     },
     {
-        "icon": "\U0001f50d",
-        "name": "Static Analysis",
-        "phase": "Phase 1 \u2014 Foundation",
-        "color": "#00c8ff",
-        "desc": "Combines flake8 linting with AI semantic checks.",
-        "points": [
-            "Flake8 findings with rule codes",
-            "Dead code and anti-pattern detection",
-            "Narrative quality assessment",
-            "Feeds downstream agents",
+        "group": "Code Understanding",
+        "group_color": "#d48a00",
+        "features": [
+            {
+                "icon": "\U0001f30a", "name": "Code Flow",
+                "desc": "Maps execution paths from entry points to outputs.",
+                "points": ["Entry-point identification", "Step-by-step execution walkthrough",
+                           "Structured Markdown output", "Provides context to downstream agents"],
+            },
+            {
+                "icon": "\U0001f4cb", "name": "Requirements",
+                "desc": "Reverse-engineers structured requirements from code.",
+                "points": ["Unique IDs: REQ-001, REQ-002 ...", "Maps to source lines",
+                           "Functional and non-functional", "Ideal for legacy code"],
+            },
+            {
+                "icon": "\U0001f3d7\ufe0f", "name": "Code Design",
+                "desc": "3-turn architecture review with bug and static context.",
+                "points": ["Purpose, patterns, responsibilities", "Design issues: High / Medium / Low",
+                           "9-section design document", "Public API and dependency mapping"],
+            },
+            {
+                "icon": "\U0001f5fa\ufe0f", "name": "Architecture Mapper",
+                "desc": "Maps module dependencies, coupling, and layer violations.",
+                "points": ["Import/export dependency map", "Coupling and instability metrics",
+                           "Circular dependency detection", "Mermaid component diagram"],
+            },
+            {
+                "icon": "\U0001f4d0", "name": "Mermaid Diagram",
+                "desc": "Generates live-rendered architecture diagrams.",
+                "points": ["Flowchart, Sequence, Class diagrams", "Uses code-flow for accuracy",
+                           "Valid Mermaid syntax output", "Inline Mermaid.js rendering"],
+            },
+            {
+                "icon": "\U0001f4c2", "name": "Doxygen Docs",
+                "desc": "Adds Doxygen headers to C/C++ code and generates HTML docs.",
+                "points": ["@brief, @param, @return tags", "Annotated source saved to Reports",
+                           "Runs doxygen CLI for HTML output", "Supports C, C++, and C#"],
+            },
         ],
     },
     {
-        "icon": "\U0001f30a",
-        "name": "Code Flow",
-        "phase": "Phase 1 \u2014 Foundation",
-        "color": "#00c8ff",
-        "desc": "Maps execution paths from entry points to outputs.",
-        "points": [
-            "Entry-point identification",
-            "Step-by-step execution walkthrough",
-            "Structured Markdown output",
-            "Provides context to Mermaid agent",
+        "group": "Performance & Optimization",
+        "group_color": "#1a9960",
+        "features": [
+            {
+                "icon": "\u26a1", "name": "Performance Analysis",
+                "desc": "Algorithmic complexity, memory, and scalability assessment.",
+                "points": ["Big-O time and space per function", "N+1 query and resource leak detection",
+                           "Caching opportunity identification", "Scalability at 10x / 100x / 1000x"],
+            },
+            {
+                "icon": "\U0001f527", "name": "Refactoring Advisor",
+                "desc": "Identifies code smells and recommends refactoring patterns.",
+                "points": ["Fowler-catalogue refactorings", "Before/after code sketches",
+                           "15+ smell types detected", "Prioritized by impact-to-effort"],
+            },
         ],
     },
     {
-        "icon": "\U0001f4cb",
-        "name": "Requirements",
-        "phase": "Phase 1 \u2014 Foundation",
-        "color": "#00c8ff",
-        "desc": "Reverse-engineers structured requirements from code.",
-        "points": [
-            "Unique IDs: REQ-001, REQ-002 ...",
-            "Maps to components and source lines",
-            "Formatted Markdown requirements doc",
-            "Ideal for legacy / undocumented code",
+        "group": "Testing & Maintenance",
+        "group_color": "#7c5cc4",
+        "features": [
+            {
+                "icon": "\U0001f9ea", "name": "Test Coverage",
+                "desc": "Identifies untested functions and suggests test cases.",
+                "points": ["Function inventory with test priority", "Happy path, edge, and error cases",
+                           "Test skeleton code generation", "Testability assessment"],
+            },
+            {
+                "icon": "\U0001f40d", "name": "C Test Generator",
+                "desc": "Generates Python pytest + ctypes tests for C code.",
+                "points": ["Type-safe ctypes bindings", "Happy path and edge cases",
+                           "NULL pointer and overflow tests", "Saved to Reports/ folder"],
+            },
+            {
+                "icon": "\U0001f4a5", "name": "Change Impact",
+                "desc": "Estimates blast radius for code modifications.",
+                "points": ["Public API surface mapping", "Downstream dependency analysis",
+                           "2-4 specific change scenarios", "Safe change zones identified"],
+            },
         ],
     },
     {
-        "icon": "\U0001f3d7\ufe0f",
-        "name": "Code Design",
-        "phase": "Phase 2 \u2014 Context-Aware",
-        "color": "#ffb020",
-        "desc": "Architecture review with full bug and static context.",
-        "points": [
-            "Purpose, patterns, responsibilities",
-            "Design issues: High / Medium / Low",
-            "Improvement roadmap",
-            "Public API docs and dependencies",
+        "group": "Security & Compliance",
+        "group_color": "#d63060",
+        "features": [
+            {
+                "icon": "\U0001f510", "name": "Secret Scan",
+                "desc": "Two-layer secret detection: regex pre-flight + AI deep scan.",
+                "points": ["Phase 0 regex before LLM calls", "Block / Redact / Warn modes",
+                           "Finds encoded and split secrets", "Validates pre-flight findings"],
+            },
+            {
+                "icon": "\U0001f4e6", "name": "Dependency Analysis",
+                "desc": "Multi-ecosystem SCA with CVE lookup.",
+                "points": ["Python, JS, Java, C#, Go, Rust, C/C++", "20+ dependency file formats",
+                           "CVE vulnerability mapping", "Prioritized remediation plan"],
+            },
+            {
+                "icon": "\U0001f6e1\ufe0f", "name": "Threat Model",
+                "desc": "STRIDE formal analysis or attacker-narrative reports.",
+                "points": ["Trust boundaries and attack surface", "STRIDE-per-element threat table",
+                           "Attacker narrative with PoC code", "Consumes all prior phase results"],
+            },
+            {
+                "icon": "\U0001f4dc", "name": "License Compliance",
+                "desc": "Detects licenses and checks compatibility.",
+                "points": ["License headers and SPDX identifiers", "Copyleft obligation detection",
+                           "Compatibility matrix analysis", "Attribution requirements list"],
+            },
         ],
     },
     {
-        "icon": "\U0001f4d0",
-        "name": "Mermaid Diagram",
-        "phase": "Phase 2 \u2014 Context-Aware",
-        "color": "#ffb020",
-        "desc": "Generates live-rendered architecture diagrams.",
-        "points": [
-            "Flowchart, Sequence, Class diagrams",
-            "Uses code-flow for accuracy",
-            "Source alongside rendered diagram",
-            "Inline Mermaid.js v10 rendering",
+        "group": "Documentation & Review",
+        "group_color": "#d48a00",
+        "features": [
+            {
+                "icon": "\U0001f4d6", "name": "API Doc Generator",
+                "desc": "Generates comprehensive API documentation from code.",
+                "points": ["Module overview and quick start", "Class/function reference with types",
+                           "3-5 usage examples", "Error handling and caveats"],
+            },
+            {
+                "icon": "\U0001f4ac", "name": "PR Comments",
+                "desc": "Generates human-quality GitHub PR review comments.",
+                "points": ["Inline comments with file and line", "Engineering insight, not just findings",
+                           "Must-fix vs nice-to-have summary", "Constructive, collegial tone"],
+            },
+            {
+                "icon": "\U0001f4c4", "name": "Per-File Report",
+                "desc": "Assembles all results per file into one document.",
+                "points": ["All features in one Markdown report", "Logical section ordering",
+                           "No extra LLM calls \u2014 instant", "Optional HTML with pro styling"],
+            },
+            {
+                "icon": "\U0001f4da", "name": "Consolidated Report",
+                "desc": "Synthesizes everything into a cohesive narrative.",
+                "points": ["Executive summary and architecture", "Three modes: template, hybrid, llm",
+                           "Cross-cutting concerns and patterns", "Self-contained HTML output"],
+            },
         ],
     },
     {
-        "icon": "\U0001f510",
-        "name": "Secret Scan",
-        "phase": "Phase 0 + 3 \u2014 Security",
-        "color": "#ff6080",
-        "desc": "Two-layer secret detection: regex pre-flight gate + AI deep scan.",
-        "points": [
-            "Phase 0: regex scan before Bedrock",
-            "Block / Redact / Warn modes",
-            "AI finds encoded & split secrets",
-            "Validates pre-flight findings",
+        "group": "Commit Analysis (5 Modes)",
+        "group_color": "#9060d0",
+        "features": [
+            {
+                "icon": "\U0001f4dc", "name": "Commit Analysis",
+                "desc": "Assesses commit history for risk and release readiness.",
+                "points": ["Risk: High / Medium / Low", "Auto-generated changelog",
+                           "Per-commit quality rating", "Clone, GitHub API, or Gitea"],
+            },
+            {
+                "icon": "\U0001f4dd", "name": "Release Notes",
+                "desc": "Generates polished user-facing release notes from commits.",
+                "points": ["Highlights and executive summary", "Features, fixes, improvements",
+                           "Breaking changes flagged", "Groups related commits together"],
+            },
+            {
+                "icon": "\U0001f465", "name": "Developer Activity",
+                "desc": "Contributor stats, activity patterns, and bus-factor risks.",
+                "points": ["Per-author commit breakdown", "Activity timeline and frequency",
+                           "Collaboration and ownership patterns", "Graceful degradation for API sources"],
+            },
+            {
+                "icon": "\u2705", "name": "Commit Hygiene",
+                "desc": "Audits commits against Conventional Commits spec.",
+                "points": ["Compliance grade A through D", "Convention violation details",
+                           "Squash candidates identified", "Message quality scoring"],
+            },
+            {
+                "icon": "\U0001f525", "name": "Churn Analysis",
+                "desc": "File hotspot detection from change frequency.",
+                "points": ["Top 15-20 most changed files", "Directory-level churn aggregation",
+                           "Co-change coupling patterns", "Clone source required for file data"],
+            },
         ],
     },
     {
-        "icon": "\U0001f4e6",
-        "name": "Dependency Analysis",
-        "phase": "Phase 1 \u2014 Foundation",
-        "color": "#00c8ff",
-        "desc": "Multi-ecosystem SCA with 5 pluggable CVE backends.",
-        "points": [
-            "Python, JS, Java, C#, Go, Rust, C/C++",
-            "OSV, NVD, GitHub Advisory, LLM, Hybrid",
-            "Auto-discovers dependency files",
-            "Prioritized remediation plan",
-        ],
-    },
-    {
-        "icon": "\U0001f6e1\ufe0f",
-        "name": "Threat Model",
-        "phase": "Phase 4 \u2014 Threat Model",
-        "color": "#ff4060",
-        "desc": "STRIDE formal analysis or attacker-narrative reports.",
-        "points": [
-            "Trust boundaries & attack surface",
-            "STRIDE-per-element threat table",
-            "Attacker narrative with PoC code",
-            "Original vs Fixed code comparison",
-        ],
-    },
-    {
-        "icon": "\U0001f4ac",
-        "name": "PR Comments",
-        "phase": "Phase 3 \u2014 Synthesis",
-        "color": "#22d68a",
-        "desc": "Generates human-quality GitHub PR reviews.",
-        "points": [
-            "Inline comments with file and line",
-            "Engineering insight, not just findings",
-            "Top-level summary of must-fixes",
-            "Constructive, collegial tone",
-        ],
-    },
-    {
-        "icon": "\U0001f4dc",
-        "name": "Commit Analysis",
-        "phase": "Standalone",
-        "color": "#c080ff",
-        "desc": "Assesses commit history for risk and quality.",
-        "points": [
-            "Risk: High / Medium / Low",
-            "Auto-generated changelog",
-            "Per-commit quality rating",
-            "Clone, GitHub API, or Gitea",
-        ],
-    },
-    {
-        "icon": "\U0001f4c4",
-        "name": "Per-File Report",
-        "phase": "Phase 5 \u2014 Reporting",
-        "color": "#a37eff",
-        "desc": "Assembles all results per file into one document.",
-        "points": [
-            "All features in one Markdown report",
-            "Logical section ordering",
-            "No extra LLM calls \u2014 instant",
-            "Optional HTML with pro styling",
-        ],
-    },
-    {
-        "icon": "\U0001f4da",
-        "name": "Consolidated Report",
-        "phase": "Phase 5 \u2014 Reporting",
-        "color": "#a37eff",
-        "desc": "Synthesizes everything into a cohesive narrative.",
-        "points": [
-            "Executive summary & architecture",
-            "Three modes: template, hybrid, llm",
-            "Cross-cutting concerns & patterns",
-            "Self-contained HTML output",
+        "group": "Platform Tools",
+        "group_color": "#4a90c4",
+        "features": [
+            {
+                "icon": "\U0001f310", "name": "Web Scraper",
+                "desc": "Extract clean text from any URL for analysis.",
+                "points": ["Strips scripts, styles, and nav elements", "Decodes HTML entities",
+                           "CLI and importable Python module", "Feeds content into any agent"],
+            },
         ],
     },
 ]
 
-# Render in rows of 2
-for i in range(0, len(_FEATURES), 2):
-    row = st.columns(2)
-    for col, feat in zip(row, _FEATURES[i : i + 2]):
-        with col:
-            li_html = "".join(f"<li>{p}</li>" for p in feat["points"])
-            st.markdown(
-                f'<div class="feature-card">'
-                f'<div class="fc-phase" style="color:{feat["color"]};">'
-                f'<span class="fc-phase-dot" style="background:{feat["color"]};"></span>'
-                f'{feat["phase"]}</div>'
-                f'<span class="fc-icon">{feat["icon"]}</span>'
-                f'<div class="fc-name">{feat["name"]}</div>'
-                f'<div class="fc-desc">{feat["desc"]}</div>'
-                f'<ul class="fc-list">{li_html}</ul>'
-                f"</div>",
-                unsafe_allow_html=True,
-            )
+
+def _render_feature_card(feat: dict, color: str) -> None:
+    items_html = "".join(
+        f'<div class="fc-list-item"><span class="fc-bullet">&#8250;</span>{p}</div>'
+        for p in feat["points"]
+    )
+    st.markdown(
+        f'<div class="feature-card">'
+        f'<span class="fc-icon">{feat["icon"]}</span>'
+        f'<div class="fc-name">{feat["name"]}</div>'
+        f'<div class="fc-desc">{feat["desc"]}</div>'
+        f'<div class="fc-list">{items_html}</div>'
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+
+for idx, group in enumerate(_FEATURE_GROUPS):
+    color = group["group_color"]
+    group_label = f"{group['group']}  ({len(group['features'])} agents)"
+    with st.expander(group_label, expanded=(idx == 0)):
+        features = group["features"]
+        # Render in rows of 3
+        for i in range(0, len(features), 3):
+            row = st.columns(3)
+            for col, feat in zip(row, features[i : i + 3]):
+                with col:
+                    _render_feature_card(feat, color)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

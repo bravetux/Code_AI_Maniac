@@ -9,6 +9,12 @@ SECURITY_FEATURES: dict[str, str] = {
     "threat_model":         "Threat Model",
 }
 
+SECURITY_HELP: dict[str, str] = {
+    "secret_scan":         "Phase 0 regex pre-flight + Phase 3 LLM deep scan for hardcoded secrets, API keys, tokens, and credentials.",
+    "dependency_analysis": "Software Composition Analysis: parses 20+ dependency file types, CVE lookup, risk assessment, and remediation plan.",
+    "threat_model":        "STRIDE formal analysis or attacker-narrative penetration test using findings from all prior analysis phases.",
+}
+
 THREAT_MODEL_MODES = ["Formal (STRIDE)", "Attacker Narrative"]
 _MODE_MAP = {"Formal (STRIDE)": "formal", "Attacker Narrative": "attacker"}
 
@@ -30,7 +36,8 @@ def render_security_selector() -> dict:
     threat_model_mode = "formal"
     with st.expander("Security Testing", expanded=True):
         for key, label in active_security.items():
-            if st.checkbox(label, key=f"security_{key}"):
+            if st.checkbox(label, key=f"security_{key}",
+                           help=SECURITY_HELP.get(key)):
                 selected.append(key)
 
         if "threat_model" in selected:

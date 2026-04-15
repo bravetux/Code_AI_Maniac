@@ -11,7 +11,23 @@ FEATURE_LABELS = {
     "requirement":       "Requirements",
     "static_analysis":   "Static Analysis",
     "comment_generator": "PR Comments",
-    "commit_analysis":   "Commit Analysis",
+    "commit_analysis":     "Commit Analysis",
+    "code_complexity":     "Code Complexity",
+    "test_coverage":       "Test Coverage",
+    "duplication_detection": "Duplication Detection",
+    "performance_analysis":  "Performance Analysis",
+    "type_safety":         "Type Safety",
+    "architecture_mapper": "Architecture Mapper",
+    "license_compliance":  "License Compliance",
+    "change_impact":       "Change Impact",
+    "refactoring_advisor": "Refactoring Advisor",
+    "api_doc_generator":   "API Doc Generator",
+    "doxygen":             "Doxygen Docs",
+    "c_test_generator":    "C Test Generator",
+    "release_notes":       "Release Notes",
+    "developer_activity":  "Developer Activity",
+    "commit_hygiene":      "Commit Hygiene",
+    "churn_analysis":      "Churn Analysis",
     "secret_scan":         "Secret Scan",
     "dependency_analysis": "Dependency Analysis",
     "threat_model":        "Threat Model",
@@ -31,7 +47,23 @@ _FEATURE_SUFFIX = {
     "requirement":       "_requirement.md",
     "static_analysis":   "_static_analysis.md",
     "comment_generator": "_pr_comments.md",
-    "commit_analysis":   "_commit_analysis.md",
+    "commit_analysis":      "_commit_analysis.md",
+    "code_complexity":      "_code_complexity.md",
+    "test_coverage":        "_test_coverage.md",
+    "duplication_detection": "_duplication_detection.md",
+    "performance_analysis": "_performance_analysis.md",
+    "type_safety":          "_type_safety.md",
+    "architecture_mapper":  "_architecture_mapper.md",
+    "license_compliance":   "_license_compliance.md",
+    "change_impact":        "_change_impact.md",
+    "refactoring_advisor":  "_refactoring_advisor.md",
+    "api_doc_generator":    "_api_doc_generator.md",
+    "doxygen":              "_doxygen.md",
+    "c_test_generator":     "_c_test_generator.md",
+    "release_notes":        "_release_notes.md",
+    "developer_activity":   "_developer_activity.md",
+    "commit_hygiene":       "_commit_hygiene.md",
+    "churn_analysis":       "_churn_analysis.md",
     "secret_scan":          "_secret_scan.md",
     "dependency_analysis":  "_dependency_analysis.md",
     "threat_model":         "_threat_model.md",
@@ -122,6 +154,13 @@ def _render_single(feature: str, result: dict) -> None:
         _render_comments(result)
     elif feature == "commit_analysis":
         _render_commits(result)
+    elif feature in ("code_complexity", "test_coverage", "duplication_detection",
+                     "performance_analysis", "type_safety", "architecture_mapper",
+                     "license_compliance", "change_impact", "refactoring_advisor",
+                     "api_doc_generator", "doxygen", "c_test_generator",
+                     "release_notes",
+                     "developer_activity", "commit_hygiene", "churn_analysis"):
+        _render_markdown_agent(result)
     else:
         st.json(result)
 
@@ -476,6 +515,16 @@ def _render_commits(result: dict) -> None:
                         st.markdown(f"**Reason:** {reason}")
 
 
+def _render_markdown_agent(result: dict) -> None:
+    """Generic renderer for agents that return markdown as their primary output."""
+    if result.get("markdown"):
+        st.markdown(result["markdown"])
+    else:
+        summary = result.get("summary", "")
+        if summary:
+            st.info(summary)
+
+
 # ── Bulk save to Reports/ folder ─────────────────────────────────────────────
 
 def _source_basename(source_ref: str) -> str:
@@ -624,6 +673,12 @@ def _to_markdown(feature: str, result: dict) -> str:
         for k in ("added", "changed", "removed"):
             for item in cl.get(k, []):
                 lines.append(f"- [{k}] {item}")
+    elif feature in ("release_notes", "developer_activity", "commit_hygiene", "churn_analysis",
+                     "code_complexity", "test_coverage", "duplication_detection",
+                     "performance_analysis", "type_safety", "architecture_mapper",
+                     "license_compliance", "change_impact", "refactoring_advisor",
+                     "api_doc_generator", "doxygen", "c_test_generator"):
+        lines.append(result.get("markdown") or result.get("summary") or json.dumps(result, indent=2))
     else:
         lines.append(f"```json\n{json.dumps(result, indent=2)}\n```")
 

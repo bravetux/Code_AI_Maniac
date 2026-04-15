@@ -13,6 +13,18 @@ from agents.static_analysis import run_static_analysis
 from agents.comment_generator import run_comment_generation
 from agents.commit_analysis import run_commit_analysis
 from agents.dependency_analysis import run_dependency_analysis
+from agents.code_complexity import run_code_complexity
+from agents.test_coverage import run_test_coverage
+from agents.duplication_detection import run_duplication_detection
+from agents.performance_analysis import run_performance_analysis
+from agents.type_safety import run_type_safety
+from agents.architecture_mapper import run_architecture_mapper
+from agents.license_compliance import run_license_compliance
+from agents.change_impact import run_change_impact
+from agents.refactoring_advisor import run_refactoring_advisor
+from agents.api_doc_generator import run_api_doc_generator
+from agents.doxygen_agent import run_doxygen
+from agents.c_test_generator import run_c_test_generator
 from agents.secret_scan import run_secret_scan
 from agents.threat_model import run_threat_model
 from agents.report_per_file import generate_per_file_report
@@ -136,18 +148,32 @@ def _run_features_for_file(conn, job_id, file_info, features, language,
     feat_set = set(features)
 
     # ── Phase 1: foundation agents (no dependencies) ──────────────────────────
-    phase1 = [f for f in ("bug_analysis", "static_analysis", "code_flow", "requirement", "dependency_analysis")
+    phase1 = [f for f in ("bug_analysis", "static_analysis", "code_flow", "requirement",
+                          "dependency_analysis", "code_complexity", "test_coverage",
+                          "duplication_detection", "performance_analysis", "type_safety",
+                          "architecture_mapper", "license_compliance", "change_impact",
+                          "doxygen", "c_test_generator")
               if f in feat_set]
 
     if phase1:
         _emit(conn, job_id, "phase", message="Phase 1 — Foundation")
 
     standalone = {
-        "bug_analysis":        run_bug_analysis,
-        "static_analysis":     run_static_analysis,
-        "code_flow":           run_code_flow,
-        "requirement":         run_requirement_analysis,
-        "dependency_analysis": run_dependency_analysis,
+        "bug_analysis":          run_bug_analysis,
+        "static_analysis":       run_static_analysis,
+        "code_flow":             run_code_flow,
+        "requirement":           run_requirement_analysis,
+        "dependency_analysis":   run_dependency_analysis,
+        "code_complexity":       run_code_complexity,
+        "test_coverage":         run_test_coverage,
+        "duplication_detection": run_duplication_detection,
+        "performance_analysis":  run_performance_analysis,
+        "type_safety":           run_type_safety,
+        "architecture_mapper":   run_architecture_mapper,
+        "license_compliance":    run_license_compliance,
+        "change_impact":         run_change_impact,
+        "doxygen":               run_doxygen,
+        "c_test_generator":      run_c_test_generator,
     }
 
     for feat in phase1:
@@ -155,7 +181,8 @@ def _run_features_for_file(conn, job_id, file_info, features, language,
                                         file_path, common, template_category)
 
     # ── Phase 2: context-aware agents ─────────────────────────────────────────
-    phase2 = [f for f in ("code_design", "mermaid") if f in feat_set]
+    phase2 = [f for f in ("code_design", "mermaid", "refactoring_advisor", "api_doc_generator")
+              if f in feat_set]
     if phase2:
         _emit(conn, job_id, "phase", message="Phase 2 — Context-Aware")
 
@@ -171,6 +198,23 @@ def _run_features_for_file(conn, job_id, file_info, features, language,
     if "mermaid" in feat_set:
         file_results["mermaid"] = _run_agent(
             conn, job_id, "mermaid", run_mermaid, file_path,
+            {**common, "flow_context": file_results.get("code_flow")},
+            template_category,
+        )
+
+    if "refactoring_advisor" in feat_set:
+        file_results["refactoring_advisor"] = _run_agent(
+            conn, job_id, "refactoring_advisor", run_refactoring_advisor, file_path,
+            {**common,
+             "complexity_results":  file_results.get("code_complexity"),
+             "static_results":      file_results.get("static_analysis"),
+             "duplication_results": file_results.get("duplication_detection")},
+            template_category,
+        )
+
+    if "api_doc_generator" in feat_set:
+        file_results["api_doc_generator"] = _run_agent(
+            conn, job_id, "api_doc_generator", run_api_doc_generator, file_path,
             {**common, "flow_context": file_results.get("code_flow")},
             template_category,
         )

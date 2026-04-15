@@ -1,6 +1,6 @@
 # AI Code Maniac — Detailed Design Document
 
-**Project:** AG-UC-1128  
+**Project:** AI Code Maniac  
 **Version:** 1.2  
 **Date:** 2026-04-04  
 **Author:** Engineering Team
@@ -35,7 +35,7 @@
 
 ## 1. Executive Summary
 
-AI Code Maniac is a self-hosted, multi-agent code analysis platform. It accepts source code from GitHub, Gitea, or local files, runs up to eight specialized AI agents in a coordinated three-phase pipeline, and presents the results in a tabbed Streamlit UI with download options.
+AI Code Maniac is a self-hosted, multi-agent code analysis platform. It accepts source code from GitHub, Gitea, or local files, runs up to **27 specialized AI agents** in a coordinated **4-phase pipeline**, and presents the results in a tabbed Streamlit UI with download options. A dedicated Commits page provides 5 analysis modes for git history.
 
 **Core design goals:**
 
@@ -117,26 +117,53 @@ AI Code Maniac is a self-hosted, multi-agent code analysis platform. It accepts 
 └──────────────────────────────────────────────────┘
 ```
 
-### 3.2 Three-Phase Pipeline
+### 3.2 Four-Phase Pipeline
 
-The orchestrator executes agents in three ordered phases based on data dependencies:
+The orchestrator executes agents in four ordered phases based on data dependencies, plus a pre-flight Phase 0:
 
 ```
-Phase 1 — Foundation (fully parallel, no dependencies)
+Phase 0 — Pre-flight (regex-based, before LLM calls)
+  └── secret_scanner             ← redact/block secrets before analysis
+
+Phase 1 — Foundation (15 agents, fully parallel, no dependencies)
   ├── bug_analysis
   ├── static_analysis
   ├── code_flow
-  └── requirement
+  ├── requirement
+  ├── dependency_analysis
+  ├── code_complexity
+  ├── test_coverage
+  ├── duplication_detection
+  ├── performance_analysis
+  ├── type_safety
+  ├── architecture_mapper
+  ├── license_compliance
+  ├── change_impact
+  ├── doxygen                  ← adds Doxygen headers to C/C++ code + runs doxygen CLI
+  └── c_test_generator         ← generates Python pytest + ctypes tests for C code
 
-Phase 2 — Context-Aware (runs after Phase 1 completes)
-  ├── code_design        ← receives bug_results + static_results from Phase 1
-  └── mermaid            ← reuses code_flow context from Phase 1
+Phase 2 — Context-Aware (4 agents, run after Phase 1 completes)
+  ├── code_design              ← receives bug_results + static_results
+  ├── mermaid                  ← reuses code_flow context
+  ├── refactoring_advisor      ← receives complexity + static + duplication results
+  └── api_doc_generator        ← reuses code_flow context
 
 Phase 3 — Synthesis (runs after Phase 2 completes)
-  └── comment_generator  ← aggregates bug + static findings from Phase 1
+  ├── comment_generator        ← aggregates bug + static findings
+  └── secret_scan              ← phase0 findings + static results
+
+Phase 4 — Threat Model (runs after Phase 3 completes)
+  └── threat_model             ← bug + static + secret + dependency results
+
+Commit Agents (separate pipeline, not file-based)
+  ├── commit_analysis          ← commit history review + risk assessment
+  ├── release_notes            ← user-facing release notes from commits
+  ├── developer_activity       ← contributor stats + activity patterns
+  ├── commit_hygiene           ← Conventional Commits compliance audit
+  └── churn_analysis           ← file hotspot detection (clone only)
 ```
 
-**Rationale:** Running Phase 1 agents in parallel maximises throughput. Feeding their output to later agents eliminates redundant Bedrock calls and produces higher-quality results (e.g., code_design can frame bugs as design symptoms).
+**Rationale:** Running Phase 1 agents in parallel maximises throughput. Feeding their output to later agents eliminates redundant Bedrock calls and produces higher-quality results (e.g., code_design can frame bugs as design symptoms, refactoring_advisor builds on complexity and duplication findings).
 
 ### 3.3 Background Execution Model
 
@@ -237,7 +264,7 @@ def run_analysis(job_id: str) -> None
 
 1. `update_job_status(job_id, "running")`
 2. `_fetch_files(job)` — resolves `source_ref` to a list of `{file_path, content, file_hash, language}` dicts.
-3. For each file (up to `MAX_FILES`): run the three-phase pipeline.
+3. For each file (up to `MAX_FILES`): run the four-phase pipeline.
 4. Merge per-file results; wrap multi-file outputs under `_multi_file` flag.
 5. `save_job_results(job_id, results)`
 6. `update_job_status(job_id, "completed")`
@@ -284,7 +311,7 @@ def resolve_prompt(custom_prompt: str | None, base_prompt: str) -> str:
     return custom_prompt                            # overwrite mode
 ```
 
-#### Agent Details
+#### Agent Details — Code Quality & Metrics
 
 **Bug Analysis (`bug_analysis.py`)**
 
@@ -319,6 +346,27 @@ Two-layer approach:
 2. **LLM semantic layer** — sends linter output + full code to Bedrock; identifies design smells, security anti-patterns, performance issues, maintainability issues, error-handling gaps.
 
 Returns: `{linter_findings, semantic_findings, narrative, linter_skipped, summary}`
+
+**Code Complexity (`code_complexity.py`)**
+
+- Computes cyclomatic complexity, cognitive complexity, maintainability index per function.
+- Identifies hotspots (top 3-5 most complex functions) with simplification suggestions.
+- Returns: `{markdown, summary}`
+
+**Duplication Detection (`duplication_detection.py`)**
+
+- Finds exact duplicates, near-duplicates (structural clones), and repeated patterns.
+- Suggests concrete extractions (Extract Function, Base Class, Template Method).
+- Returns: `{markdown, summary}`
+
+**Type Safety (`type_safety.py`)**
+
+- Type hint coverage audit: counts typed vs untyped functions.
+- Flags missing annotations, overly broad types, and suggests advanced typing patterns.
+- Language-aware (Python PEP 484+, TypeScript strict mode, etc.).
+- Returns: `{markdown, summary}`
+
+#### Agent Details — Code Understanding
 
 **Code Flow (`code_flow.py`)**
 
@@ -357,6 +405,13 @@ Fallback handling: if Turn 2 JSON parse fails → store raw response; if Turn 3 
 8. Improvement Roadmap
 9. Dependencies
 
+**Architecture Mapper (`architecture_mapper.py`)**
+
+- Maps module dependencies, imports, exports, and coupling metrics.
+- Detects layer violations, circular dependencies, and God modules.
+- Generates a Mermaid component diagram.
+- Returns: `{markdown, summary}`
+
 **Mermaid (`mermaid.py`)**
 
 - If `code_flow` result is available, passes it as context (avoids a separate Bedrock call for code understanding).
@@ -364,11 +419,98 @@ Fallback handling: if Turn 2 JSON parse fails → store raw response; if Turn 3 
 - Diagram types: `flowchart`, `sequence`, `class`.
 - Returns: `{diagram_type, mermaid_source, description}`
 
+#### Agent Details — Performance & Optimization
+
+**Performance Analysis (`performance_analysis.py`)**
+
+- Big-O time and space complexity per function.
+- Identifies N+1 queries, unbounded allocations, caching opportunities, scalability concerns.
+- Returns: `{markdown, summary}`
+
+**Refactoring Advisor (`refactoring_advisor.py`)**
+
+- Receives Phase 1 context: `complexity_results`, `static_results`, `duplication_results`.
+- Identifies code smells (God Class, Feature Envy, Long Method, etc.).
+- Recommends Fowler-catalogue refactorings with before/after code sketches.
+- Returns: `{markdown, summary}`
+
+#### Agent Details — Testing & Maintenance
+
+**Test Coverage (`test_coverage.py`)**
+
+- Analyses code structure to identify untested functions and missing test cases.
+- Produces function inventory with test priority ratings and test skeleton code.
+- Returns: `{markdown, summary}`
+
+**Change Impact (`change_impact.py`)**
+
+- Estimates blast radius for modifications to this module.
+- Maps public API surface, downstream dependents, and side effects.
+- Generates specific change scenarios with migration guidance.
+- Returns: `{markdown, summary}`
+
+**C Test Generator (`c_test_generator.py`)**
+
+- Takes C source code and generates a Python pytest file using `ctypes` bindings.
+- Defines `argtypes`/`restype` for type-safe function calls.
+- Generates test classes per function: happy path, boundary values, NULL pointers, error handling.
+- Saves generated test file to `Reports/{timestamp}/c_tests/test_{filename}.py`.
+- Returns: `{markdown, summary, test_code, output_path}`
+
+#### Agent Details — Code Understanding (continued)
+
+**Doxygen Docs (`doxygen_agent.py`)**
+
+- Two-step agent: LLM annotation + Doxygen CLI tool execution.
+- LLM adds `@brief`, `@param`, `@return`, `@file` headers to all C/C++ functions, structs, classes, enums.
+- Saves annotated source to `Reports/{timestamp}/doxygen/sources/`.
+- Runs `doxygen` CLI via `tools/run_doxygen.py` to generate HTML docs.
+- Graceful if doxygen not installed — annotated code still returned.
+- Returns: `{markdown, summary, annotated_code, doxygen_output_path, doxygen_ran}`
+
+#### Agent Details — Security & Compliance
+
+**Secret Scan (`secret_scan.py`)**
+
+- Two-phase: Phase 0 regex pre-flight (12+ patterns) + Phase 3 LLM deep scan.
+- Validates Phase 0 findings to filter false positives.
+- Returns: `{secrets: [...], phase0_validation, narrative, summary}`
+
+**Dependency Analysis (`dependency_analysis.py`)**
+
+- Two-layer SCA: parses 20+ dependency file types, then runs CVE lookup + LLM risk assessment.
+- Returns: `{dependencies: [...], risk_summary, remediation_plan, markdown, summary}`
+
+**Threat Model (`threat_model.py`)**
+
+- Two modes: Formal (STRIDE with trust boundaries, attack surface, data flow Mermaid) or Attacker Narrative (penetration tester perspective with POC).
+- Receives all prior phase results (bug, static, secret, dependency).
+- Returns: `{trust_boundaries, attack_surface, stride_analysis, ...}` (formal) or `{attack_scenarios, priority_ranking, ...}` (attacker)
+
+**License Compliance (`license_compliance.py`)**
+
+- Detects license headers, SPDX identifiers, and dependency licenses.
+- Checks compatibility matrix and copyleft obligations.
+- Flags missing attributions and incompatible license combinations.
+- Returns: `{markdown, summary}`
+
+#### Agent Details — Documentation & Review
+
+**API Doc Generator (`api_doc_generator.py`)**
+
+- Receives Phase 1 context: `flow_context` from code_flow.
+- Generates full API documentation: module overview, class/function reference, usage examples.
+- Returns: `{markdown, summary}`
+
 **PR Comment Generator (`comment_generator.py`)**
 
 - Receives merged `bug_findings + static_findings` from Phase 1.
 - Calls Bedrock once with a constructive senior-engineer system prompt.
 - Returns: `{comments: [{file, line, severity, body}], summary}`
+
+#### Agent Details — Commit Analysis (5 modes)
+
+These agents operate on git commit history, not file content. Invoked from `3_Commits.py` directly.
 
 **Commit Analysis (`commit_analysis.py`)**
 
@@ -376,6 +518,31 @@ Fallback handling: if Turn 2 JSON parse fails → store raw response; if Turn 3 
 - If >20 commits: synthesizes batch results into a final report.
 - Extracts `risk_level` by scanning markdown for "high risk" / "medium risk" / "low risk" keywords.
 - Returns: `{markdown, summary, risk_level}`
+
+**Release Notes (`release_notes.py`)**
+
+- Transforms commit messages into polished user-facing release notes.
+- Groups into: Highlights, New Features, Improvements, Bug Fixes, Breaking Changes, Other Changes.
+- Batches at 30 commits; synthesizes across batches.
+- Returns: `{markdown, summary}`
+
+**Developer Activity (`developer_activity.py`)**
+
+- Contributor breakdown, activity timeline, collaboration patterns, bus-factor risks.
+- Graceful degradation: skips time/file analysis when date/files_changed fields are absent (API sources).
+- Returns: `{markdown, summary}`
+
+**Commit Hygiene (`commit_hygiene.py`)**
+
+- Audits against Conventional Commits spec (feat:, fix:, chore:, etc.).
+- Compliance scoring (grade A-D), message quality issues, squash candidates.
+- Returns: `{markdown, summary}`
+
+**Churn Analysis (`churn_analysis.py`)**
+
+- File hotspot detection: most frequently changed files, directory-level churn, co-change patterns.
+- Hard gate: requires `files_changed` data (clone source only).
+- Returns: `{markdown, summary}`
 
 ---
 
@@ -425,6 +592,31 @@ def run_linter(file_path: str, language: str) -> dict
 - JavaScript/TypeScript → ESLint subprocess with `--format json`.
 - Returns: `{findings: [{line, col, code, message, tool}], skipped, reason}`.
 - If linter is not installed or language is unsupported: `skipped=True`.
+
+#### `run_doxygen.py`
+
+```python
+def generate_doxyfile(source_dir: str, output_dir: str, project_name: str) -> str
+def run_doxygen_tool(source_dir: str, output_dir: str, project_name: str) -> dict
+```
+
+- Generates a minimal `Doxyfile` config programmatically (no user-provided config needed).
+- Runs `doxygen Doxyfile` subprocess with 120s timeout.
+- Returns: `{success, output_path, error}`.
+- Graceful if `doxygen` not installed: `success=False`, descriptive error.
+
+#### `web_scraper.py`
+
+```python
+def scrape_url(url: str, timeout: int = 30) -> dict
+```
+
+- Fetches a URL via httpx with redirect following.
+- Strips `<script>`, `<style>`, `<noscript>`, `<svg>` tags.
+- Converts block HTML elements to newlines for readability.
+- Decodes HTML entities (named, numeric, hex).
+- Returns: `{url, status, title, text, length, error}`.
+- CLI: `python tools/web_scraper.py <url> [-o output.txt]`
 
 #### `language_detect.py`
 
@@ -564,7 +756,11 @@ SHA256( file_hash + ":" + feature + ":" + language + ":" + (custom_prompt or "")
 6.  Orchestrator: _fetch_files(job) → file list
 7.  Orchestrator: detect_language per file (if not overridden)
 
-8.  Phase 1 — run in parallel (ThreadPoolExecutor or asyncio):
+7b. Phase 0 — Pre-flight secret scan (regex, no LLM):
+    a. secret_scanner.scan_secrets() per file
+    b. Action: redact secrets in content / block job / pass through
+
+8.  Phase 1 — run in parallel (13 foundation agents):
     a. run_bug_analysis(file, ...)
        - check_cache → miss
        - chunk_by_lines(content, max_tokens=3000)
@@ -574,19 +770,39 @@ SHA256( file_hash + ":" + feature + ":" + language + ":" + (custom_prompt or "")
     b. run_static_analysis — linter subprocess + Bedrock semantic
     c. run_code_flow — chunk + Bedrock + synthesis if multi-chunk
     d. run_requirement — chunk + Bedrock + synthesis
+    e. run_dependency_analysis — parse + CVE lookup + LLM risk
+    f. run_code_complexity — complexity metrics per function
+    g. run_test_coverage — test gap analysis + test skeletons
+    h. run_duplication_detection — clone detection + DRY audit
+    i. run_performance_analysis — Big-O + memory + scalability
+    j. run_type_safety — type hint coverage + type issues
+    k. run_architecture_mapper — dependency map + coupling metrics
+    l. run_license_compliance — license detection + compatibility
+    m. run_change_impact — blast radius + API surface analysis
+    n. run_doxygen — add Doxygen headers + run doxygen CLI
+    o. run_c_test_generator — generate Python pytest + ctypes tests
 
-9.  Phase 2:
+9.  Phase 2 — context-aware (4 agents):
     a. run_code_design(bug_results, static_results)
        - Turn 1: summarize chunks
        - Turn 2: inject Phase 1 context → JSON analysis
        - Turn 3: JSON → 9-section markdown
     b. run_mermaid(code_flow_context)
        - Single Bedrock call with diagram_type parameter
+    c. run_refactoring_advisor(complexity, static, duplication results)
+       - Code smells + Fowler refactoring catalogue
+    d. run_api_doc_generator(code_flow_context)
+       - Full API documentation generation
 
-10. Phase 3:
+10. Phase 3 — synthesis:
     a. run_comment_generator(bug_findings + static_findings)
-       - Single Bedrock call
-       - Returns PR-style comments
+       - Single Bedrock call → PR-style comments
+    b. run_secret_scan(phase0_findings + static_results)
+       - LLM deep scan for what regex missed
+
+11. Phase 4 — threat model:
+    a. run_threat_model(bug, static, secret, dependency results)
+       - STRIDE formal or attacker narrative mode
 
 11. Orchestrator: save_job_results(job_id, merged_results)
 12. Orchestrator: update_job_status(job_id, "completed")
@@ -664,7 +880,7 @@ Local multi-file refs are split on `::` by the orchestrator. Folder scan (via `s
 
 ### Per-File Processing
 
-Each file in the list is processed through the full three-phase pipeline independently. Results are stored per file path.
+Each file in the list is processed through the full four-phase pipeline independently. Results are stored per file path.
 
 ### Result Merging
 
@@ -790,15 +1006,22 @@ No user input is ever interpolated directly into SQL strings.
 
 ### Bedrock Call Budget
 
-Per single-file analysis (8 agents, no cache):
+Per single-file analysis (all agents selected, no cache):
 
 | Phase | Calls |
 |---|---|
-| Phase 1 (4 agents) | 4 × N_chunks each |
+| Phase 0 — secret pre-flight | 0 (regex, no LLM) |
+| Phase 1 (15 agents) | 15 × N_chunks each |
 | Phase 2 — code_design | 3 (Turn 1, Turn 2, Turn 3) |
 | Phase 2 — mermaid | 1 |
+| Phase 2 — refactoring_advisor | 1 |
+| Phase 2 — api_doc_generator | 1 |
 | Phase 3 — comment_generator | 1 |
-| Total (small file) | ~9 – 12 calls |
+| Phase 3 — secret_scan | 1 |
+| Phase 4 — threat_model | 1 |
+| Total (small file, all 22 file agents) | ~24 – 32 calls |
+
+In practice, users select a subset of agents. Original 8-agent profile: ~9-12 calls.
 
 ### Token Budget per Agent
 
