@@ -1,3 +1,23 @@
+@REM AI Code Maniac - Multi-Agent Code Analysis Platform
+@REM Copyright (C) 2026 B.Vignesh Kumar (Bravetux) <ic19939@gmail.com>
+@REM
+@REM This program is free software: you can redistribute it and/or modify
+@REM it under the terms of the GNU General Public License as published by
+@REM the Free Software Foundation, either version 3 of the License, or
+@REM (at your option) any later version.
+@REM
+@REM This program is distributed in the hope that it will be useful,
+@REM but WITHOUT ANY WARRANTY; without even the implied warranty of
+@REM MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+@REM GNU General Public License for more details.
+@REM
+@REM You should have received a copy of the GNU General Public License
+@REM along with this program. If not, see <https://www.gnu.org/licenses/>.
+@REM
+@REM Author: B.Vignesh Kumar aka Bravetux
+@REM Email:  ic19939@gmail.com
+@REM Developed: 12th April 2026
+
 @echo off
 setlocal EnableDelayedExpansion
 
@@ -105,11 +125,36 @@ if not exist ".env" (
 :: ── 7. Create data directory if missing ─────────────────────────
 if not exist "data" mkdir data
 
-:: ── 7b. Kill stale Python/Streamlit processes holding the DB ─────
+:: ── 7b. Free port 8501 and kill stale Streamlit processes ────────
+echo [INFO] Checking for processes on port 8501...
+set PORT_FREE=1
+for /f "tokens=5" %%P in ('netstat -ano ^| findstr "LISTENING" ^| findstr ":8501 "') do (
+    if not "%%P"=="0" (
+        echo   [KILL] Port 8501 held by PID %%P — terminating.
+        taskkill /PID %%P /F >nul 2>&1
+        set PORT_FREE=0
+    )
+)
+if !PORT_FREE! == 0 (
+    :: Wait briefly for the port to release
+    timeout /t 2 /nobreak >nul
+    :: Verify port is now free
+    netstat -ano | findstr "LISTENING" | findstr ":8501 " >nul 2>&1
+    if not errorlevel 1 (
+        echo [WARN] Port 8501 still occupied — retrying with force...
+        for /f "tokens=5" %%P in ('netstat -ano ^| findstr "LISTENING" ^| findstr ":8501 "') do (
+            taskkill /PID %%P /F >nul 2>&1
+        )
+        timeout /t 2 /nobreak >nul
+    )
+)
+echo [OK] Port 8501 is free.
+
+:: ── 7c. Clear stale database locks ─────────────────────────────────
 echo [INFO] Checking for stale processes holding the database...
 set DB_FILE=%~dp0data\arena.db
 
-:: First try: kill Python processes whose command line contains "streamlit"
+:: Kill any remaining Streamlit python processes (belt-and-suspenders)
 for /f "tokens=2" %%P in ('wmic process where "name='python.exe'" get processid^,commandline /value 2^>nul ^| findstr /i "streamlit" ^| findstr /r "ProcessId=[0-9]"') do (
     echo   [KILL] Streamlit process PID %%P — terminating.
     taskkill /PID %%P /F >nul 2>&1
@@ -132,13 +177,28 @@ echo [OK] Database lock clear.
 set PYTHONPATH=%~dp0
 
 :: ── 9. Launch the app ───────────────────────────────────────────
+:: To expose on the network (LAN access), uncomment the next line
+:: and comment out the localhost-only line below it:
+::   set NETWORK_MODE=1
+set NETWORK_MODE=0
+
 echo.
 echo ============================================================
 echo  Starting AI Code Maniac...
-echo  Open http://localhost:8501 in your browser
+if !NETWORK_MODE! == 1 (
+    echo  Local:   http://localhost:8501
+    echo  Network: http://0.0.0.0:8501
+) else (
+    echo  Open http://localhost:8501 in your browser
+)
 echo  Press Ctrl+C to stop
 echo ============================================================
 echo.
-streamlit run app/Home.py
+
+if !NETWORK_MODE! == 1 (
+    streamlit run app/Home.py --server.address 0.0.0.0
+) else (
+    streamlit run app/Home.py --server.address localhost
+)
 
 endlocal

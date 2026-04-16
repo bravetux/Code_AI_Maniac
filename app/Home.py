@@ -1,3 +1,23 @@
+# AI Code Maniac - Multi-Agent Code Analysis Platform
+# Copyright (C) 2026 B.Vignesh Kumar (Bravetux) <ic19939@gmail.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# Author: B.Vignesh Kumar aka Bravetux
+# Email:  ic19939@gmail.com
+# Developed: 12th April 2026
+
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -283,7 +303,7 @@ st.markdown("")  # spacer
 with st.container():
     st.markdown('<div class="cta-wrap">', unsafe_allow_html=True)
     if st.button("\u2002Start Analysis  \u2192", type="primary"):
-        st.switch_page("pages/1_Analysis.py")
+        st.switch_page("pages/1_Code_Analysis.py")
     st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -606,7 +626,7 @@ def _render_feature_card(feat: dict, color: str) -> None:
 for idx, group in enumerate(_FEATURE_GROUPS):
     color = group["group_color"]
     group_label = f"{group['group']}  ({len(group['features'])} agents)"
-    with st.expander(group_label, expanded=(idx == 0)):
+    with st.expander(group_label, expanded=True):
         features = group["features"]
         # Render in rows of 3
         for i in range(0, len(features), 3):
@@ -641,7 +661,7 @@ with st.container():
             width="stretch",
             key="bottom_cta",
         ):
-            st.switch_page("pages/1_Analysis.py")
+            st.switch_page("pages/1_Code_Analysis.py")
         st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown("")
