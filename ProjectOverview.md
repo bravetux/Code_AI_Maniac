@@ -1,15 +1,11 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Project Overview
+# Project Overview
 
 **AI Code Maniac** — a multi-agent code analysis platform with a Streamlit frontend and AWS Strands + Bedrock backend.
 
 Key capabilities:
 - Accept code from GitHub/Gitea repositories or local files
 - Support specifying line ranges within a file or entire files (up to 50 files)
-- Use Amazon Bedrock (Claude 3.5 Sonnet) via Strands Agents as the LLM backend
+- Use Amazon Bedrock via Strands Agents as the LLM backend
 - 27 specialized agents across code analysis, commit analysis, and security
   - **Code Analysis (Phase 1):** Bug Analysis, Static Analysis, Code Flow, Requirements, Dependency Analysis, Code Complexity, Test Coverage, Duplication Detection, Performance Analysis, Type Safety, Architecture Mapper, License Compliance, Change Impact, Doxygen Docs, C Test Generator
   - **Code Analysis (Phase 2):** Code Design, Mermaid Diagrams, Refactoring Advisor, API Doc Generator, PR Comments
@@ -80,7 +76,7 @@ OrchestratorAgent (agents/orchestrator.py)
        ↕
   DuckDB (data/arena.db)
        ↕
-  Amazon Bedrock (Claude via Strands)
+  Amazon Bedrock (via Strands Agents)
 ```
 
 ## Running Gitea (Self-Hosted Git)
@@ -105,7 +101,7 @@ cp .env.example .env
 
 Required for AWS Bedrock:
 - `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
-- `BEDROCK_MODEL_ID` (default: `anthropic.claude-3-5-sonnet-20241022-v2:0`)
+- `BEDROCK_MODEL_ID` (default: `anthropic.claude-3-5-sonnet-20241022-v2:0` or any supported model)
 
 Optional:
 - `GITHUB_TOKEN` — for GitHub file fetching
