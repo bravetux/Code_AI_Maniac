@@ -423,6 +423,10 @@ def run_analysis(conn: duckdb.DuckDBPyConnection, job_id: str) -> dict:
     if not job:
         raise ValueError(f"Job {job_id} not found")
 
+    # Share one timestamp across all agents in this job so F5/F6/F10 land in
+    # the same Reports/<ts>/ folder and F10's auto-scan picks up F5+F6 artefacts.
+    os.environ["WAVE6A_REPORT_TS"] = datetime.now().strftime("%Y%m%d_%H%M%S")
+
     update_job_status(conn, job_id, "running")
 
     enabled  = get_settings().enabled_agent_set
@@ -495,7 +499,7 @@ def run_analysis(conn: duckdb.DuckDBPyConnection, job_id: str) -> dict:
             _per_file_data = per_file
 
         try:
-            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            ts = os.environ.get("WAVE6A_REPORT_TS") or datetime.now().strftime("%Y%m%d_%H%M%S")
             reports_dir = os.path.join("Reports", ts)
             saved = _generate_reports(
                 conn, job_id, _per_file_data, features,

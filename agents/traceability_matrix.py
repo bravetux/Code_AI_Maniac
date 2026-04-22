@@ -49,6 +49,13 @@ from tools.spec_fetcher import fetch_spec, SpecFetchError
 from tools.test_scanner import scan_tests
 from db.queries.history import add_history
 
+
+def _report_ts() -> str:
+    """Return the current job's report timestamp, honouring the WAVE6A_REPORT_TS
+    env var that the orchestrator sets at the start of each run so all agents
+    in a multi-agent job write to the same Reports/<ts>/ folder."""
+    return os.environ.get("WAVE6A_REPORT_TS") or datetime.now().strftime("%Y%m%d_%H%M%S")
+
 _CACHE_KEY = "traceability_matrix"
 
 _STOP_WORDS = {
@@ -481,7 +488,7 @@ def run_traceability_matrix(conn: duckdb.DuckDBPyConnection, job_id: str,
             else:
                 coverage = cov
 
-    ts_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    ts_str = _report_ts()
     out_dir = os.path.join("Reports", ts_str, "traceability")
     artifacts = _write_artifacts(out_dir, acs, mapping, orphans, coverage)
 

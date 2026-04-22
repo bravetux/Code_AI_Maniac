@@ -51,6 +51,13 @@ _SIBLING_NAMES = ("openapi.yaml", "openapi.yml", "openapi.json",
 _YAML_SNIFF = re.compile(r"^\s*(openapi|swagger)\s*:", re.IGNORECASE | re.MULTILINE)
 
 
+def _report_ts() -> str:
+    """Return the current job's report timestamp, honouring the WAVE6A_REPORT_TS
+    env var that the orchestrator sets at the start of each run so all agents
+    in a multi-agent job write to the same Reports/<ts>/ folder."""
+    return os.environ.get("WAVE6A_REPORT_TS") or datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
 @dataclass
 class _SpecResolution:
     spec: dict
@@ -194,7 +201,7 @@ def run_api_test_generator(conn: duckdb.DuckDBPyConnection, job_id: str,
     title = (res.spec.get("info") or {}).get("title") or "API"
     version = str((res.spec.get("info") or {}).get("version") or "0.1.0")
 
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    ts = _report_ts()
     out_dir = os.path.join("Reports", ts, "api_tests")
     os.makedirs(out_dir, exist_ok=True)
 

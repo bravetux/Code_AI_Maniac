@@ -258,6 +258,10 @@ After running scripts\seed_wave6a_preset.py:
   -> All three agents fire in the same Reports\<ts>\ folder. F10
      automatically picks up F5's Postman collection and F6's plan.
 
+     Mechanism: the orchestrator sets WAVE6A_REPORT_TS at the start of
+     each job and all three agents honour that timestamp instead of
+     generating their own.
+
 RE-SEEDING
   The script is idempotent -- re-running it prints "already exists" and
   makes no changes.

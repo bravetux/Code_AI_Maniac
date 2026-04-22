@@ -49,6 +49,14 @@ _METADATA_PATHS = {"/health", "/healthz", "/metrics", "/livez", "/readyz",
 _YAML_SNIFF = re.compile(r"^\s*(openapi|swagger)\s*:", re.IGNORECASE | re.MULTILINE)
 
 
+def _report_ts() -> str:
+    """Return the current job's report timestamp, honouring the WAVE6A_REPORT_TS
+    env var that the orchestrator sets at the start of each run so all agents
+    in a multi-agent job write to the same Reports/<ts>/ folder."""
+    return os.environ.get("WAVE6A_REPORT_TS") or datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
+
 def _detect_mode(file_path: str, content: str, custom_prompt: str | None) -> str:
     """Return 'spec' or 'requirements'."""
     if custom_prompt:
@@ -236,7 +244,7 @@ def run_perf_test_generator(conn: duckdb.DuckDBPyConnection, job_id: str,
             "output_path": None,
         }
 
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    ts = _report_ts()
     out_dir = os.path.join("Reports", ts, "perf_tests")
     os.makedirs(out_dir, exist_ok=True)
     suffix = "Simulation.scala" if framework == "gatling" else "plan.jmx"
