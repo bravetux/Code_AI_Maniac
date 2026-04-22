@@ -324,10 +324,21 @@ def render_feature_selector(conn) -> dict:
                               system_prompt=custom_prompt, extra_instructions=extra)
             st.success(f"Preset '{preset_name}' saved.")
 
-    # Merge F10 prefix block into custom_prompt if present
+    # Merge F10 prefix block into custom_prompt if present.
+    # Wrap with _APPEND_PREFIX so sibling agents keep their base system
+    # prompt intact (the orchestrator fans out one custom_prompt across
+    # every selected feature; without the marker, resolve_prompt
+    # interprets the F10 block as a full overwrite).
     f10_block = st.session_state.get("f10_prefix_block", "")
     if f10_block:
-        custom_prompt = f"{f10_block}\n\n{custom_prompt}" if custom_prompt else f10_block
+        from agents._bedrock import _APPEND_PREFIX
+        if custom_prompt.startswith(_APPEND_PREFIX):
+            body = custom_prompt[len(_APPEND_PREFIX):]
+            custom_prompt = f"{_APPEND_PREFIX}{f10_block}\n\n{body}"
+        elif custom_prompt:
+            custom_prompt = f"{_APPEND_PREFIX}{f10_block}\n\n{custom_prompt}"
+        else:
+            custom_prompt = f"{_APPEND_PREFIX}{f10_block}"
 
     return {
         "features": selected,
