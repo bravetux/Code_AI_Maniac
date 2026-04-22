@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>effort</title>
+<style>
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    max-width: 920px; margin: 2rem auto; padding: 0 1.5rem;
+    line-height: 1.6; color: #24292e; background: #fff;
+}
+h1, h2, h3, h4, h5, h6 {
+    margin-top: 1.5em; margin-bottom: 0.5em;
+    border-bottom: 1px solid #eaecef; padding-bottom: 0.3em;
+}
+h1 { font-size: 2em; } h2 { font-size: 1.5em; } h3 { font-size: 1.25em; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #dfe2e5; padding: 6px 13px; text-align: left; }
+th { background: #f6f8fa; font-weight: 600; }
+tr:nth-child(even) { background: #f6f8fa; }
+pre { background: #f6f8fa; border-radius: 6px; padding: 16px; overflow-x: auto; }
+code { font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace; font-size: 85%; }
+pre code { font-size: 100%; }
+blockquote { border-left: 4px solid #dfe2e5; padding: 0 1em; color: #6a737d; margin: 1em 0; }
+a { color: #0366d6; text-decoration: none; } a:hover { text-decoration: underline; }
+hr { border: 0; border-top: 1px solid #eaecef; margin: 1.5em 0; }
+ul, ol { padding-left: 2em; } li { margin: 0.25em 0; }
+strong { font-weight: 600; } em { font-style: italic; }
+p { margin: 0.5em 0; }
+</style>
+</head>
+<body>
+<h1>AI Code Maniac — Effort Estimation</h1>
+<h2>Project Stats Summary</h2>
+<table>
+<tr><th>Metric</th><th>Value</th></tr>
+<tr><td>Total Python files</td><td>83</td></tr>
+<tr><td>Total lines of Python code</td><td>~13,659</td></tr>
+<tr><td>Total test files</td><td>24</td></tr>
+<tr><td>Total documentation lines</td><td>~9,314</td></tr>
+<tr><td>Total commits</td><td>61</td></tr>
+<tr><td>Git insertions</td><td>21,313</td></tr>
+<tr><td>Config/infra files</td><td>7+</td></tr>
+</table>
+<hr>
+<h2>Assumptions</h2>
+<ul>
+<li><strong>Developer profile:</strong> Intermediate Python programmer</li>
+<li><strong>Daily schedule:</strong> 4 hrs learning + 4 hrs implementation = 8 hrs/day max</li>
+<li><strong>Work week:</strong> 5 days</li>
+</ul>
+<hr>
+<h2>Breakdown by Work Area</h2>
+<table>
+<tr><th>#</th><th>Work Area</th><th>Learning Topics</th><th>Learning (hrs)</th><th>Implementation (hrs)</th><th>Total (hrs)</th></tr>
+<tr><td><strong>1</strong></td><td><strong>Project Setup &amp; Environment</strong></td><td>Python venv, <code>.env</code>, pip, project structure</td><td>2</td><td>3</td><td><strong>5</strong></td></tr>
+<tr><td><strong>2</strong></td><td><strong>Streamlit Frontend — Core</strong></td><td>Streamlit framework, session state, multi-page apps</td><td>8</td><td>12</td><td><strong>20</strong></td></tr>
+<tr><td></td><td><em>Home.py (217 lines)</em></td><td>Dashboard layout, navigation</td><td>—</td><td>3</td><td>—</td></tr>
+<tr><td></td><td><em>Analysis page (197 lines)</em></td><td>Forms, source selection, job triggers</td><td>—</td><td>3</td><td>—</td></tr>
+<tr><td></td><td><em>History page (376 lines)</em></td><td>Search, filtering, data display</td><td>—</td><td>4</td><td>—</td></tr>
+<tr><td></td><td><em>Commits page (171 lines)</em></td><td>Git integration UI</td><td>—</td><td>2</td><td>—</td></tr>
+<tr><td><strong>3</strong></td><td><strong>Streamlit Components</strong></td><td>Component patterns, Mermaid rendering, reusable widgets</td><td>4</td><td>10</td><td><strong>14</strong></td></tr>
+<tr><td></td><td><em>result_tabs.py (604 lines)</em></td><td>Tabs, expanders, complex layouts</td><td>—</td><td>5</td><td>—</td></tr>
+<tr><td></td><td><em>source_selector.py (324 lines)</em></td><td>Dynamic forms, file pickers</td><td>—</td><td>3</td><td>—</td></tr>
+<tr><td></td><td><em>feature<em>selector.py, sidebar</em>profile, mermaid_renderer</em></td><td>State management</td><td>—</td><td>2</td><td>—</td></tr>
+<tr><td><strong>4</strong></td><td><strong>AWS Bedrock + Strands Agents</strong></td><td>AWS SDK (boto3), Bedrock API, Strands Agents framework, IAM</td><td>12</td><td>8</td><td><strong>20</strong></td></tr>
+<tr><td></td><td><em>_bedrock.py (101 lines)</em></td><td>Model invocation, credentials</td><td>—</td><td>3</td><td>—</td></tr>
+<tr><td></td><td><em>Agent tool registration &amp; prompt patterns</em></td><td>Strands tool decorator, system prompts</td><td>—</td><td>5</td><td>—</td></tr>
+<tr><td><strong>5</strong></td><td><strong>Agent: Orchestrator</strong></td><td>Concurrent execution, 3-phase pipeline, ThreadPoolExecutor</td><td>8</td><td>12</td><td><strong>20</strong></td></tr>
+<tr><td></td><td><em>orchestrator.py (365 lines)</em></td><td>Parallel agent dispatch, result aggregation, error handling</td><td>—</td><td>12</td><td>—</td></tr>
+<tr><td><strong>6</strong></td><td><strong>Phase 1 Agents (4 agents)</strong></td><td>Prompt engineering, structured output, domain knowledge</td><td>8</td><td>12</td><td><strong>20</strong></td></tr>
+<tr><td></td><td><em>bug_analysis.py (132 lines)</em></td><td>Severity classification, root cause analysis</td><td>—</td><td>4</td><td>—</td></tr>
+<tr><td></td><td><em>static_analysis.py (91 lines)</em></td><td>Linter integration + LLM semantic layer</td><td>—</td><td>3</td><td>—</td></tr>
+<tr><td></td><td><em>code_flow.py (70 lines)</em></td><td>Execution flow documentation</td><td>—</td><td>2</td><td>—</td></tr>
+<tr><td></td><td><em>requirement.py (77 lines)</em></td><td>Reverse-engineering requirements</td><td>—</td><td>3</td><td>—</td></tr>
+<tr><td><strong>7</strong></td><td><strong>Phase 2 &amp; 3 Agents (4 agents)</strong></td><td>Multi-turn prompting, context chaining, Mermaid syntax</td><td>8</td><td>10</td><td><strong>18</strong></td></tr>
+<tr><td></td><td><em>code_design.py (192 lines)</em></td><td>3-turn design review conversation</td><td>—</td><td>4</td><td>—</td></tr>
+<tr><td></td><td><em>mermaid.py (62 lines)</em></td><td>Diagram generation, Mermaid syntax</td><td>—</td><td>2</td><td>—</td></tr>
+<tr><td></td><td><em>comment_generator.py (85 lines)</em></td><td>PR comment format, synthesis</td><td>—</td><td>2</td><td>—</td></tr>
+<tr><td></td><td><em>commit_analysis.py (85 lines)</em></td><td>Git history analysis</td><td>—</td><td>2</td><td>—</td></tr>
+<tr><td><strong>8</strong></td><td><strong>Tools Layer</strong></td><td>GitHub API (PyGithub), Gitea API (httpx), file I/O, subprocess</td><td>8</td><td>12</td><td><strong>20</strong></td></tr>
+<tr><td></td><td><em>fetch_github.py (71 lines)</em></td><td>GitHub REST API, token auth</td><td>—</td><td>2</td><td>—</td></tr>
+<tr><td></td><td><em>fetch_gitea.py (80 lines)</em></td><td>Gitea API integration</td><td>—</td><td>2</td><td>—</td></tr>
+<tr><td></td><td><em>clone_repo.py (148 lines)</em></td><td>Git clone, URL parsing, shallow clones</td><td>—</td><td>3</td><td>—</td></tr>
+<tr><td></td><td><em>fetch_local.py (80 lines)</em></td><td>File system, line range extraction</td><td>—</td><td>1</td><td>—</td></tr>
+<tr><td></td><td><em>run_linter.py (69 lines)</em></td><td>Subprocess, flake8/pylint/semgrep</td><td>—</td><td>2</td><td>—</td></tr>
+<tr><td></td><td><em>cache.py, chunk<em>file.py, language</em>detect.py</em></td><td>Caching strategy, chunking</td><td>—</td><td>2</td><td>—</td></tr>
+<tr><td><strong>9</strong></td><td><strong>DuckDB Database Layer</strong></td><td>DuckDB, schema design, SQL queries</td><td>6</td><td>8</td><td><strong>14</strong></td></tr>
+<tr><td></td><td><em>Schema (12 files, 476 lines)</em></td><td>Table design: jobs, cache, chunks, history, presets</td><td>—</td><td>4</td><td>—</td></tr>
+<tr><td></td><td><em>CRUD queries (9 modules)</em></td><td>Parameterized queries, migrations</td><td>—</td><td>4</td><td>—</td></tr>
+<tr><td><strong>10</strong></td><td><strong>Config &amp; Prompt Templates</strong></td><td>Prompt engineering, template design, Pydantic settings</td><td>8</td><td>16</td><td><strong>24</strong></td></tr>
+<tr><td></td><td><em>config/ (6,445 lines across 8 files)</em></td><td>156 templates across 13 categories</td><td>—</td><td>12</td><td>—</td></tr>
+<tr><td></td><td><em>Pydantic settings, language mapping</em></td><td>Validation, type safety</td><td>—</td><td>4</td><td>—</td></tr>
+<tr><td><strong>11</strong></td><td><strong>Report Generation</strong></td><td>Markdown generation, HTML conversion, Pygments</td><td>4</td><td>8</td><td><strong>12</strong></td></tr>
+<tr><td></td><td><em>report<em>per</em>file.py (191 lines)</em></td><td>Per-file markdown reports</td><td>—</td><td>3</td><td>—</td></tr>
+<tr><td></td><td><em>report_consolidated.py (359 lines)</em></td><td>Mother document, 3 synthesis modes</td><td>—</td><td>3</td><td>—</td></tr>
+<tr><td></td><td><em>python<em>html</em>converter.py (489 lines)</em></td><td>Syntax highlighting, HTML styling</td><td>—</td><td>2</td><td>—</td></tr>
+<tr><td><strong>12</strong></td><td><strong>Comparison Agent</strong></td><td>Diff analysis, side-by-side comparison</td><td>2</td><td>4</td><td><strong>6</strong></td></tr>
+<tr><td></td><td><em>comparison.py (119 lines)</em></td><td></td><td>—</td><td>4</td><td>—</td></tr>
+<tr><td><strong>13</strong></td><td><strong>Testing</strong></td><td>pytest, mocking, fixtures, test design</td><td>6</td><td>14</td><td><strong>20</strong></td></tr>
+<tr><td></td><td><em>24 test files (~2,400 lines)</em></td><td>Unit tests, integration tests, conftest setup</td><td>—</td><td>14</td><td>—</td></tr>
+<tr><td><strong>14</strong></td><td><strong>Docker / Gitea Setup</strong></td><td>Docker Compose, Gitea administration</td><td>4</td><td>3</td><td><strong>7</strong></td></tr>
+<tr><td></td><td><em>docker-compose.yml, app.ini</em></td><td>Container config, health checks</td><td>—</td><td>2</td><td>—</td></tr>
+<tr><td></td><td><em>Gitea API token setup</em></td><td>Integration testing</td><td>—</td><td>1</td><td>—</td></tr>
+<tr><td><strong>15</strong></td><td><strong>Documentation</strong></td><td>Technical writing, Mermaid diagrams, architecture docs</td><td>4</td><td>16</td><td><strong>20</strong></td></tr>
+<tr><td></td><td><em>README.md (~15KB)</em></td><td>Full project docs with diagrams</td><td>—</td><td>6</td><td>—</td></tr>
+<tr><td></td><td><em>Architecture/design docs (9,314 lines)</em></td><td>Design specs, plans, templates guide</td><td>—</td><td>8</td><td>—</td></tr>
+<tr><td></td><td><em>CLAUDE.md, use case, presentation.html</em></td><td>Context docs, slides</td><td>—</td><td>2</td><td>—</td></tr>
+<tr><td><strong>16</strong></td><td><strong>Scripts &amp; Polish</strong></td><td>Batch scripting, Streamlit deployment, edge cases</td><td>2</td><td>4</td><td><strong>6</strong></td></tr>
+<tr><td></td><td><em>startup.bat, .env.example, pytest.ini</em></td><td>Startup automation, config templates</td><td>—</td><td>4</td><td>—</td></tr>
+</table>
+<hr>
+<h2>Grand Total</h2>
+<table>
+<tr><th>Category</th><th>Hours</th></tr>
+<tr><td><strong>Learning</strong></td><td><strong>94</strong></td></tr>
+<tr><td><strong>Implementation</strong></td><td><strong>152</strong></td></tr>
+<tr><td><strong>Total effort</strong></td><td><strong>246 hrs</strong></td></tr>
+</table>
+<hr>
+<h2>Calendar Days Calculation</h2>
+<table>
+<tr><th>Constraint</th><th>Value</th></tr>
+<tr><td>Hours per day</td><td>8 (4 learning + 4 implementation)</td></tr>
+<tr><td>Total hours</td><td>246</td></tr>
+<tr><td><strong>Working days required</strong></td><td><strong>~31 days</strong></td></tr>
+<tr><td>Working weeks (5-day)</td><td><strong>~6.2 weeks</strong></td></tr>
+<tr><td>Calendar weeks (with weekends)</td><td><strong>~7.5 weeks</strong></td></tr>
+</table>
+<hr>
+<h2>Phased Timeline (Recommended Order)</h2>
+<table>
+<tr><th>Phase</th><th>Days</th><th>What&#x27;s Built</th></tr>
+<tr><td><strong>Phase 1: Foundation</strong> (Days 1-5)</td><td>5</td><td>Setup, DuckDB schema, config/settings, <code>.env</code></td></tr>
+<tr><td><strong>Phase 2: Tools Layer</strong> (Days 6-9)</td><td>4</td><td>GitHub/Gitea/local fetch, clone, linter, cache, chunking</td></tr>
+<tr><td><strong>Phase 3: Bedrock + Base Agents</strong> (Days 10-15)</td><td>6</td><td>AWS Bedrock integration, 4 Phase-1 agents</td></tr>
+<tr><td><strong>Phase 4: Advanced Agents</strong> (Days 16-19)</td><td>4</td><td>Phase-2/3 agents (design, mermaid, PR comments, commits)</td></tr>
+<tr><td><strong>Phase 5: Orchestrator</strong> (Days 20-22)</td><td>3</td><td>3-phase pipeline, parallel execution, result aggregation</td></tr>
+<tr><td><strong>Phase 6: Streamlit UI</strong> (Days 23-27)</td><td>5</td><td>All pages, components, state management</td></tr>
+<tr><td><strong>Phase 7: Reports + Templates</strong> (Days 28-30)</td><td>3</td><td>Report agents, HTML converter, 156 prompt templates</td></tr>
+<tr><td><strong>Phase 8: Testing + Docs + Polish</strong> (Days 31-31)</td><td>1</td><td>Test suite, README, startup scripts</td></tr>
+</table>
+<blockquote><p><strong>Note:</strong> Phase 8 is compressed — realistically testing &amp; docs would bleed into 2-3 extra days of buffer, making a practical estimate of ~33-35 working days.</p></blockquote>
+<hr>
+<h2>Risk Factors That Could Extend This</h2>
+<table>
+<tr><th>Risk</th><th>Impact</th></tr>
+<tr><td>AWS IAM/Bedrock permission issues</td><td>+1-2 days debugging</td></tr>
+<tr><td>Strands Agents framework unfamiliarity (sparse docs)</td><td>+2-3 days</td></tr>
+<tr><td>Prompt engineering iteration (getting quality LLM outputs)</td><td>+3-5 days</td></tr>
+<tr><td>Streamlit quirks (session state, reruns, async)</td><td>+1-2 days</td></tr>
+<tr><td>Gitea/Docker networking issues</td><td>+1 day</td></tr>
+</table>
+<p>With risks factored in: <strong>35-42 working days</strong> is a realistic range.</p>
+<hr>
+<h2>Final Summary</h2>
+<table>
+<tr><th>Scenario</th><th>Working Days</th><th>Calendar Weeks</th></tr>
+<tr><td><strong>Optimistic</strong> (no blockers)</td><td><strong>31 days</strong></td><td>~6 weeks</td></tr>
+<tr><td><strong>Realistic</strong> (some learning friction)</td><td><strong>35 days</strong></td><td>~7 weeks</td></tr>
+<tr><td><strong>Pessimistic</strong> (AWS + Strands issues)</td><td><strong>42 days</strong></td><td>~8.5 weeks</td></tr>
+</table>
+<p>For an intermediate Python programmer at <strong>8 hrs/day (4 learning + 4 coding)</strong>, this project would take approximately <strong>7 weeks</strong> to build from scratch, including all documentation and scripts.</p>
+</body>
+</html>
