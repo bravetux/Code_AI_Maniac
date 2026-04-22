@@ -1,0 +1,661 @@
+================================================================================
+AI Code Maniac — Phase 5 Feature Test Guide
+================================================================================
+Project : 1128
+Phase   : 5 — Quick-win feature pack
+Scope   : F1, F2, F3, F8, F17, F20, F21, F24, F37
+Updated : 22nd April 2026
+Author  : B.Vignesh Kumar (Bravetux) <ic19939@gmail.com>
+================================================================================
+
+
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+ 0.  Prerequisites & environment
+ 1.  F1  — Multi-language Unit Test Generator
+ 2.  F2  — Test Case Generator from User Stories
+ 3.  F3  — BDD / Gherkin Feature File Generator
+ 4.  F8  — Test Data Generator
+ 5.  F17 — Dead-Code / Unused-Symbol Detector
+ 6.  F20 — CI/CD-Triggered Review Webhook
+ 7.  F21 — Pre-Commit / Staged-Change Reviewer
+ 8.  F24 — API-Contract Conformance Checker
+ 9.  F37 — Swagger / OpenAPI Generator (bidirectional)
+10.  Troubleshooting
+
+
+================================================================================
+ 0.  PREREQUISITES & ENVIRONMENT
+================================================================================
+
+Shared requirements for every Phase 5 feature:
+
+  a. Activate the project virtualenv:
+        D:\Downloads\Projects\ai_arena\1128\venv\Scripts\activate.bat
+
+  b. Install baseline deps (already present in requirements.txt):
+        pip install -r requirements.txt
+
+  c. Extra deps introduced by Phase 5:
+        pip install fastapi uvicorn          # F20 only
+        pip install pyyaml                   # F24 / F37 (YAML specs)
+        pip install requests                 # F2 / F3 (Jira / ADO / Qase)
+
+  d. AWS Bedrock credentials — set in `.env` or environment (needed by all
+     LLM-backed agents: F1, F2, F3, F8, F17, F24, F37):
+        AWS_ACCESS_KEY_ID=...
+        AWS_SECRET_ACCESS_KEY=...
+        AWS_REGION=us-east-1
+        BEDROCK_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
+
+  e. Outputs — every agent writes artefacts under:
+        Reports\<YYYYMMDD_HHMMSS>\<feature_folder>\...
+
+  f. Start the Streamlit UI for interactive tests:
+        startup.bat
+     Then browse to http://localhost:8501 → "Code Analysis" page. The new
+     features appear in the sidebar under the groups:
+        • Testing & Maintenance
+        • Documentation & Review
+
+  g. Programmatic invocation (for scripted smoke tests) — create a job and
+     run the orchestrator directly:
+
+        from db.connection import get_connection
+        from db.queries.jobs import create_job
+        from agents.orchestrator import run_analysis
+
+        conn = get_connection()
+        job_id = create_job(
+            conn,
+            source_type="local",
+            source_ref=r"D:\path\to\sample.py",
+            language="python",
+            features=["unit_test_generator"],   # or any Phase 5 key
+        )
+        run_analysis(conn, job_id)
+
+
+================================================================================
+ 1.  F1 — MULTI-LANGUAGE UNIT TEST GENERATOR
+================================================================================
+
+WHAT IT DOES
+  Generates a complete, runnable unit-test file for source written in Python,
+  JavaScript, TypeScript, Java, Kotlin, C#/.NET, Swift, ABAP, Go, Ruby, or PHP.
+  Picks an idiomatic framework per language (pytest, Jest, JUnit 5 + Mockito,
+  MockK, xUnit + Moq, XCTest, ABAP Unit, testify, RSpec, PHPUnit).
+
+AGENT KEY
+  unit_test_generator
+
+CODE UNDER TEST — paths
+  agents/unit_test_generator.py
+  Reports/<ts>/unit_tests/
+
+UI TEST STEPS
+  1. Open Streamlit → Code Analysis.
+  2. Source type = Local. Select any source file.
+  3. In the sidebar → Features → Testing & Maintenance, tick
+     "Unit Test Generator (multi-lang)".
+  4. (Optional) Under Language, type the language explicitly. Otherwise it
+     auto-detects from the extension.
+  5. Click "Run".
+
+EXPECTED
+  • A new test file is written to Reports/<ts>/unit_tests/. Examples:
+       test_sample.py        (Python → pytest)
+       sample.test.ts        (TypeScript → Jest)
+       SampleTest.java       (Java → JUnit 5)
+       SampleTests.cs        (C# → xUnit)
+  • UI result tab shows a fenced code block of the generated tests,
+    framework label, mocking library, and a test-case count.
+  • The file contains AAA-style tests with happy / boundary / negative /
+    error-path cases; parameterised tests where the framework supports them.
+
+CLI SMOKE
+  python -c "from db.connection import get_connection; \
+             from db.queries.jobs import create_job; \
+             from agents.orchestrator import run_analysis; \
+             conn=get_connection(); \
+             jid=create_job(conn,'local',r'app/Home.py','python', \
+                            ['unit_test_generator']); \
+             run_analysis(conn,jid); print(jid)"
+
+MANUAL VERIFICATION
+  • Open the generated file and run the test (in a scratch repo):
+       pytest Reports\<ts>\unit_tests\test_sample.py -v
+  • For non-Python targets, run the native runner (jest / mvn test / dotnet
+    test / swift test) against the emitted file.
+
+PASS CRITERIA
+  [ ] File is created at the advertised path.
+  [ ] File parses / compiles in its host language.
+  [ ] At least happy-path + one boundary + one negative test are present.
+  [ ] Markdown preview in UI renders the complete test.
+
+FAIL SIGNS
+  - Empty test file → raise `bedrock_model_id` / credentials issue.
+  - Wrong framework chosen → pass `language=` explicitly in the sidebar.
+
+
+================================================================================
+ 2.  F2 — TEST CASE GENERATOR FROM USER STORIES
+================================================================================
+
+WHAT IT DOES
+  Turns a user story / acceptance criteria / Jira issue / Azure DevOps work
+  item / Qase case into a structured JSON + Markdown test-case matrix
+  covering positive, negative, functional edge, and NFR dimensions.
+
+AGENT KEY
+  story_test_generator
+
+INTAKE CHANNELS
+  a. Paste the full story text into the file content area.
+  b. Paste just a URL — supported formats:
+        https://<host>/browse/PROJ-123              (Jira)
+        https://dev.azure.com/<org>/<proj>/_workitems/edit/456
+        https://app.qase.io/case/PROJ-7
+
+OPTIONAL CREDENTIALS
+  JIRA_EMAIL=..., JIRA_TOKEN=...
+  ADO_PAT=...
+  QASE_TOKEN=...
+
+UI TEST STEPS — inline text
+  1. Code Analysis → Source type = Local → upload a `.txt` file containing:
+
+        As a registered user, I want to reset my password so that I can
+        recover access.
+
+        Acceptance Criteria:
+         - A "Forgot password" link is visible on the login page.
+         - Submitting a known email sends a reset mail within 30 s.
+         - The reset link expires 24 h after issue.
+         - Submitting an unknown email returns a generic 200 OK message
+           (no user enumeration).
+
+  2. Tick "Story → Test Cases" in the sidebar.
+  3. Run.
+
+UI TEST STEPS — Jira URL
+  1. Put a single line with the Jira URL in a `.txt` file, upload it, tick
+     the agent, run.
+
+EXPECTED
+  • Reports/<ts>/story_tests/<label>.json  (structured cases)
+  • A Markdown table listing every case with ID, category, priority,
+    expected outcome.
+  • 8 – 20 cases for a normal story.
+  • Categories present: positive, negative, functional, nfr_performance,
+    nfr_security, nfr_usability, nfr_reliability.
+
+PASS CRITERIA
+  [ ] JSON validates against the schema (`test_cases[]`).
+  [ ] Each acceptance criterion is traced to at least one case
+      (`traces_to` field).
+  [ ] At least one negative and one NFR case exist.
+
+FAIL SIGNS
+  - "Spec fetch failed" → check Jira/ADO creds or switch to inline text.
+
+
+================================================================================
+ 3.  F3 — BDD / GHERKIN FEATURE FILE GENERATOR
+================================================================================
+
+WHAT IT DOES
+  Same intake as F2 (story text or URL) → two artefacts:
+     • a Cucumber `.feature` file (Given/When/Then, Scenario Outlines with
+       Examples, tags)
+     • a Robot Framework `.robot` suite mirroring the same scenarios.
+
+AGENT KEY
+  gherkin_generator
+
+UI TEST STEPS
+  Identical to F2 but tick "BDD / Gherkin Generator" instead.
+
+EXPECTED OUTPUTS
+  Reports/<ts>/bdd/<label>.feature
+  Reports/<ts>/bdd/<label>.robot
+
+PASS CRITERIA
+  [ ] `.feature` file parses with Cucumber / behave:
+         behave Reports\<ts>\bdd\<label>.feature
+      (install behave if you want a full parse)
+  [ ] `.robot` runs through Robot dry-run:
+         robot --dryrun Reports\<ts>\bdd\<label>.robot
+  [ ] At least one Scenario Outline with an Examples table if story is
+      data-driven; at least one `@negative` tag.
+
+
+================================================================================
+ 4.  F8 — TEST DATA GENERATOR
+================================================================================
+
+WHAT IT DOES
+  Reads a schema definition (Pydantic / dataclass / TS interface / JPA entity
+  / SQL DDL / protobuf / plain JSON schema) and produces 20 – 40 synthetic
+  rows distributed across typical / boundary / invalid / unicode buckets.
+  PII-sensitive fields always get obvious fakes ("jane.doe+1@example.test",
+  "+1-555-0199", "TEST-SSN-###").
+
+AGENT KEY
+  test_data_generator
+
+TEST FIXTURE
+  Create `tests/fixtures/user_model.py`:
+
+      from pydantic import BaseModel, EmailStr
+      from datetime import date
+      class User(BaseModel):
+          id: int
+          email: EmailStr
+          first_name: str
+          last_name: str
+          dob: date
+          vip: bool = False
+
+UI TEST STEPS
+  1. Source type = Local → pick `user_model.py`.
+  2. Tick "Test Data Generator".
+  3. Run.
+
+EXPECTED OUTPUTS
+  Reports/<ts>/test_data/<entity>.csv
+  Reports/<ts>/test_data/<entity>.json
+  Reports/<ts>/test_data/<entity>.sql
+
+PASS CRITERIA
+  [ ] CSV has the right columns and opens in Excel / LibreOffice.
+  [ ] JSON validates as `{"entity":..., "fields":[], "rows":[]}`.
+  [ ] SQL file contains one `INSERT INTO user (...) VALUES (...);` per row.
+  [ ] At least one invalid row AND at least one unicode row present.
+  [ ] Any `email`, `first_name`, `last_name`, `dob`, or similar PII fields
+      are marked `"pii": true` and use example.test / fake domains.
+
+FAIL SIGNS
+  - `_raw` key in JSON → LLM returned non-JSON; lower temperature or
+    re-run.
+
+
+================================================================================
+ 5.  F17 — DEAD-CODE / UNUSED-SYMBOL DETECTOR
+================================================================================
+
+WHAT IT DOES
+  Two-stage pass:
+     1. Regex heuristic extracts symbols that are defined but not referenced
+        anywhere else in the same file.
+     2. LLM classifies each candidate into:
+           dead | likely_dead | public_api | framework_hook | false_positive
+        and attaches a confidence in [0, 1] and a `safe_to_remove` flag.
+
+AGENT KEY
+  dead_code_detector
+
+SUPPORTED LANGUAGES
+  python, javascript, typescript, java, csharp, go, c, cpp (others fall
+  back to heuristics off).
+
+TEST FIXTURE — `tests/fixtures/dead_sample.py`:
+
+      def used():
+          return 42
+
+      def never_called():          # should be flagged 'dead'
+          return "bye"
+
+      def _register_route():       # flask-style — should be framework_hook
+          pass
+
+      __all__ = ["used"]           # public_api anchor
+
+      print(used())
+
+UI TEST STEPS
+  1. Local source = `dead_sample.py`.
+  2. Tick "Dead Code Detector".
+  3. Run.
+
+EXPECTED
+  • Markdown table with a column for verdict, confidence, safe_to_remove.
+  • `never_called` should be verdict=`dead` or `likely_dead`.
+  • `_register_route` should NOT be flagged dead (hook or false_positive).
+  • `used` is not in the candidate list at all (the heuristic already sees
+    its reference on the `print(used())` line).
+
+PASS CRITERIA
+  [ ] Exactly the unused symbols show up as candidates.
+  [ ] LLM verdicts are one of the five enum values.
+  [ ] The report is saved to Reports/<ts>/dead_code/<stem>.md.
+
+FAIL SIGNS
+  - Empty findings → language not recognised; pass `language=python`
+    explicitly, or extend `_DEF_PATTERNS` in the agent.
+
+
+================================================================================
+ 6.  F20 — CI/CD-TRIGGERED REVIEW WEBHOOK
+================================================================================
+
+WHAT IT DOES
+  A FastAPI application that accepts push / pull-request / merge-request
+  events from five providers and schedules a job through the existing
+  orchestrator. The agents themselves are unchanged.
+
+SERVER SCRIPT
+  tools/webhook_server.py        (app = FastAPI())
+  docker/webhook_start.bat       (Windows startup)
+
+ENVIRONMENT FLAGS (all optional)
+  GITHUB_WEBHOOK_SECRET    — HMAC-SHA256 via X-Hub-Signature-256
+  GITLAB_WEBHOOK_SECRET    — shared token in X-Gitlab-Token
+  BITBUCKET_WEBHOOK_SECRET — HMAC-SHA256 via X-Hub-Signature
+  JENKINS_WEBHOOK_SECRET   — shared token in X-Jenkins-Token
+  ADO_WEBHOOK_SECRET       — matches the Basic-auth password the hook sends
+  WEBHOOK_FEATURES         — comma-separated override, e.g.
+                              "bug_analysis,static_analysis,secret_scan"
+
+HOW TO RUN
+  Option A (Windows):
+        docker\webhook_start.bat
+  Option B (explicit):
+        set WEBHOOK_PORT=8765
+        set GITHUB_WEBHOOK_SECRET=test-secret
+        set WEBHOOK_FEATURES=bug_analysis,static_analysis
+        uvicorn tools.webhook_server:app --host 0.0.0.0 --port %WEBHOOK_PORT%
+
+HEALTH CHECK
+  curl http://localhost:8765/health
+  → {"status":"ok","features":["bug_analysis","static_analysis",...]}
+
+SMOKE TEST — unsigned GitHub push (secret unset)
+  1. Unset GITHUB_WEBHOOK_SECRET (skips verification in dev mode).
+  2. POST a minimal payload:
+
+        curl -X POST http://localhost:8765/webhook/github ^
+          -H "X-GitHub-Event: push" ^
+          -H "Content-Type: application/json" ^
+          -d "{\"repository\":{\"full_name\":\"you/repo\"}, \
+                \"ref\":\"refs/heads/main\", \
+                \"commits\":[{\"modified\":[\"README.md\"]}]}"
+
+  Expected 200:
+        {"accepted":true,"jobs":["<uuid>"],"event":"push","repo":"you/repo"}
+
+SMOKE TEST — signed GitHub push
+  1. Set GITHUB_WEBHOOK_SECRET=test-secret and restart the server.
+  2. Compute signature in Python:
+        import hmac, hashlib
+        body = b'{"repository":{"full_name":"you/repo"},"ref":"refs/heads/main","commits":[{"modified":["README.md"]}]}'
+        sig = "sha256=" + hmac.new(b"test-secret", body, hashlib.sha256).hexdigest()
+        print(sig)
+  3. Send with that header:
+        curl -X POST http://localhost:8765/webhook/github ^
+          -H "X-GitHub-Event: push" ^
+          -H "X-Hub-Signature-256: <sig>" ^
+          -H "Content-Type: application/json" ^
+          --data-binary "@payload.json"
+
+JOB STATUS POLL
+  curl http://localhost:8765/jobs/<uuid>
+  → returns `{id, status, source_type, source_ref, features, results}`.
+
+OTHER PROVIDERS — endpoint summary
+  POST /webhook/gitlab        header: X-Gitlab-Token, X-Gitlab-Event
+  POST /webhook/bitbucket     header: X-Hub-Signature, X-Event-Key
+  POST /webhook/jenkins       header: X-Jenkins-Token
+                              body:   {"repo":"...","branch":"...","files":[...]}
+  POST /webhook/azure-devops  header: Authorization (Basic or shared token)
+
+PASS CRITERIA
+  [ ] /health returns 200 with the configured features list.
+  [ ] Invalid signature returns 401.
+  [ ] Valid push creates a job row; /jobs/<id> reports status progression
+      pending → running → completed / failed.
+  [ ] Changed files from the payload are scheduled one-per-path.
+
+
+================================================================================
+ 7.  F21 — PRE-COMMIT / STAGED-CHANGE REVIEWER
+================================================================================
+
+WHAT IT DOES
+  A standalone CLI that reads `git diff --cached`, pulls the staged blob for
+  every added / modified file, and runs:
+     • local secret_scanner
+     • bug_analysis agent
+     • static_analysis agent
+  Exits 1 when critical findings surface; exits 0 otherwise. Can self-install
+  as a `.git/hooks/pre-commit` hook.
+
+SCRIPT
+  tools/precommit_reviewer.py
+
+INSTALL AS A GIT HOOK
+  python tools\precommit_reviewer.py --install-hook
+  → writes .git/hooks/pre-commit
+
+ONE-OFF RUN (no hook)
+  1. Edit a file and `git add` it:
+        echo password = "hunter2" >> scratch.py
+        git add scratch.py
+  2. Run:
+        python tools\precommit_reviewer.py
+
+EXPECTED OUTPUT
+  ========================================================================
+  1128 Pre-Commit Review (F21)
+  ========================================================================
+
+  --- scratch.py (python) ---
+    ! secrets: 1 finding(s)
+      · HARD_CODED_PASSWORD line 1
+    · bug_analysis: ...
+
+  Blocking commit — 1 critical finding(s).
+  Re-run with --warn-only to override locally.
+
+  (exit code 1)
+
+MODE SWITCHES
+  --warn-only    Always exit 0 even on critical findings.
+  --max-files N  Cap the number of staged files analysed (default 20).
+
+HOOK VERIFICATION
+  After --install-hook:
+     git commit -m "smoke test"
+     → runs the reviewer; commit is blocked when critical findings exist.
+     → bypass a single commit with: git commit --no-verify
+
+PASS CRITERIA
+  [ ] `--install-hook` writes a functional .git/hooks/pre-commit.
+  [ ] Clean staged diff → exit 0 and no output past the banner.
+  [ ] Staged file containing a plaintext secret → exit 1.
+  [ ] Binary-looking files are skipped silently.
+
+FAIL SIGNS
+  - "Nothing staged" every run → `git diff --cached --name-only` is empty.
+  - Hook never fires → on Windows confirm .git/hooks/pre-commit has no
+    trailing extension; Git uses the bare filename.
+
+
+================================================================================
+ 8.  F24 — API-CONTRACT CONFORMANCE CHECKER
+================================================================================
+
+WHAT IT DOES
+  Diffs a declared OpenAPI / Swagger spec against the routes implemented in
+  a source file (any framework: Flask, FastAPI, Express, Spring, ASP.NET,
+  Gin, Rails, Koa). Reports:
+     • `missing`     — declared but not implemented
+     • `extra`       — implemented but not declared
+     • `mismatches`  — parameter / status / method differences
+     • `score`       — float in [0, 1]
+
+AGENT KEY
+  api_contract_checker
+
+HOW THE SPEC IS FOUND
+  The agent looks for an OpenAPI document in this order:
+     1. `custom_prompt` with the literal prefix:
+              __openapi_spec__\n<YAML or JSON body>
+     2. A sibling file next to the source:
+              openapi.yaml / openapi.yml / openapi.json
+              swagger.yaml / swagger.yml / swagger.json
+
+TEST FIXTURE
+  tests/fixtures/api_app.py:
+
+      from fastapi import FastAPI
+      app = FastAPI()
+
+      @app.get("/health")
+      def health(): return {"ok": True}
+
+      @app.get("/users/{uid}")
+      def get_user(uid: int): ...
+
+      @app.post("/users")
+      def create_user(name: str, email: str): ...
+
+  tests/fixtures/openapi.yaml:
+
+      openapi: 3.1.0
+      info: {title: sample, version: "0.1.0"}
+      paths:
+        /users/{uid}:
+          get:
+            parameters:
+              - {name: uid, in: path, required: true, schema: {type: integer}}
+            responses: {"200": {description: ok}, "404": {description: no}}
+        /users:
+          post:
+            responses: {"201": {description: created}}
+        /orders:                          # declared but NOT implemented
+          get:
+            responses: {"200": {description: ok}}
+
+UI TEST STEPS
+  1. Local source = `api_app.py` (keep `openapi.yaml` in the same folder).
+  2. Tick "API Contract Checker".
+  3. Run.
+
+EXPECTED
+  • "missing": [{method: GET, path: /orders, reason: ...}]
+  • "extra":   possibly /health if not in spec (or filtered — the prompt
+               ignores /health by convention)
+  • score < 1.0
+
+PASS CRITERIA
+  [ ] Missing /orders appears in the missing[] list.
+  [ ] Report saved to Reports/<ts>/api_contract/<stem>.md.
+  [ ] Score reflects gaps (lower when more gaps).
+
+SPEC-OVER-PROMPT TEST (scripted)
+  Pass the YAML body directly via custom_prompt:
+
+      from agents.api_contract_checker import run_api_contract_checker
+      from db.connection import get_connection
+      conn = get_connection()
+      spec_yaml = open("tests/fixtures/openapi.yaml").read()
+      code = open("tests/fixtures/api_app.py").read()
+      r = run_api_contract_checker(
+          conn=conn, job_id="manual-1",
+          file_path="api_app.py",
+          content=code, file_hash="deadbeef",
+          language="python",
+          custom_prompt="__openapi_spec__\n" + spec_yaml,
+      )
+      print(r["summary"])
+
+
+================================================================================
+ 9.  F37 — SWAGGER / OPENAPI GENERATOR (BIDIRECTIONAL)
+================================================================================
+
+WHAT IT DOES
+  Generates an OpenAPI 3.1 YAML spec from EITHER:
+     • CODE MODE — implementation source (routes extracted from decorators
+                   / routers / attribute routing), OR
+     • REQUIREMENTS MODE — a user story / narrative / Jira / ADO / Qase URL
+                   (via tools.spec_fetcher).
+
+AGENT KEY
+  openapi_generator
+
+MODE DETECTION
+  Auto-detected from the first 4 KB of the content (scans for typical route
+  decorators). Override via `custom_prompt` prefix:
+     __mode__code\n...           force code mode
+     __mode__requirements\n...   force requirements mode
+
+UI TEST STEPS — code mode
+  1. Source = `api_app.py` (same fixture as F24).
+  2. Tick "OpenAPI Generator".
+  3. Run.
+
+UI TEST STEPS — requirements mode
+  1. Upload a `.txt` with a story like:
+        "Build an order-management API supporting create, list, get-by-id,
+         cancel. Orders have: id, customer_email, total, status (one of
+         pending, paid, cancelled)."
+  2. Tick "OpenAPI Generator". Run.
+
+EXPECTED OUTPUTS
+  Reports/<ts>/openapi/<label>.yaml
+  Reports/<ts>/openapi/<label>.json    (only if PyYAML installed)
+
+VALIDATION
+  Swagger-CLI validator:
+        npx @apidevtools/swagger-cli validate Reports\<ts>\openapi\api_app.yaml
+
+  Or Python:
+        from tools.openapi_parser import parse, summarise
+        doc = parse(open("Reports/<ts>/openapi/api_app.yaml").read())
+        print(summarise(doc))
+
+PASS CRITERIA — code mode
+  [ ] Every @app.<verb>(...) route in the source appears under paths:.
+  [ ] Path parameters appear with type coercions (e.g., integer for `uid`).
+  [ ] A `200` and one error response are present per endpoint.
+  [ ] Reusable schemas exist under components.schemas for request/response
+      bodies.
+
+PASS CRITERIA — requirements mode
+  [ ] Entities named in the story become components.schemas.
+  [ ] Resource-oriented paths (/orders, /orders/{id}) are generated.
+  [ ] securitySchemes section appears when the story implies auth.
+
+
+================================================================================
+10.  TROUBLESHOOTING
+================================================================================
+
+SYMPTOM                              LIKELY CAUSE / FIX
+----------------------------------   -------------------------------------------
+"No module named strands"            pip install -r requirements.txt
+"Cannot open database 'arena.db'"    Another Streamlit instance is running.
+                                     Close it or delete data/arena.db lock.
+Empty LLM output                     Check AWS creds + bedrock_model_id + region.
+"Spec fetch failed" (F2/F3/F37)      Provider creds missing or URL malformed.
+                                     Use inline text to isolate.
+"OpenAPI parse failed"               Install pyyaml: pip install pyyaml
+Webhook returns 401                  Signature mismatch — either unset the
+                                     *_WEBHOOK_SECRET env var or resend with
+                                     the correct HMAC.
+Pre-commit hook never runs           On Windows, ensure the file is named
+                                     exactly `.git/hooks/pre-commit` with no
+                                     extension and contains a shebang.
+Generated tests don't compile        Re-run with sidebar Language set
+                                     explicitly so the framework map picks
+                                     correctly.
+Feature not visible in sidebar       ENABLED_AGENTS in .env is restricted.
+                                     Set ENABLED_AGENTS=all or include the
+                                     specific keys.
+
+END OF FILE
+================================================================================

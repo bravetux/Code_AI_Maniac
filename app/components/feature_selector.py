@@ -45,6 +45,14 @@ ALL_FEATURES: dict[str, str] = {
     "doxygen":              "Doxygen Docs",
     "comment_generator":    "PR Comment Generator",
     "commit_analysis":      "Commit Analysis",
+    # ── Phase 5 ─────────────────────────────────────────────────────────
+    "unit_test_generator":  "Unit Test Generator (multi-lang)",
+    "story_test_generator": "Story → Test Cases",
+    "gherkin_generator":    "BDD / Gherkin Generator",
+    "test_data_generator":  "Test Data Generator",
+    "dead_code_detector":   "Dead Code Detector",
+    "api_contract_checker": "API Contract Checker",
+    "openapi_generator":    "OpenAPI Generator",
 }
 
 # Grouped categories for sidebar display
@@ -71,6 +79,11 @@ FEATURE_GROUPS: list[tuple[str, list[tuple[str, str]]]] = [
     ("Testing & Maintenance", [
         ("test_coverage",        "Test Coverage"),
         ("c_test_generator",     "C Test Generator"),
+        ("unit_test_generator",  "Unit Test Generator (multi-lang)"),
+        ("story_test_generator", "Story → Test Cases"),
+        ("gherkin_generator",    "BDD / Gherkin Generator"),
+        ("test_data_generator",  "Test Data Generator"),
+        ("dead_code_detector",   "Dead Code Detector"),
         ("change_impact",        "Change Impact"),
     ]),
     ("Security & Compliance", [
@@ -78,6 +91,8 @@ FEATURE_GROUPS: list[tuple[str, list[tuple[str, str]]]] = [
     ]),
     ("Documentation & Review", [
         ("api_doc_generator",    "API Doc Generator"),
+        ("openapi_generator",    "OpenAPI Generator"),
+        ("api_contract_checker", "API Contract Checker"),
         ("comment_generator",    "PR Comment Generator"),
     ]),
 ]
@@ -104,6 +119,13 @@ FEATURE_HELP: dict[str, str] = {
     "doxygen":              "Adds Doxygen comment headers to C/C++ functions and generates HTML documentation via the Doxygen tool.",
     "comment_generator":    "Produces GitHub-style PR review comments by combining bug and static analysis findings into actionable feedback.",
     "commit_analysis":      "Reviews commit history for release readiness: commit quality, synthesized changelog, risk assessment, and recommendations.",
+    "unit_test_generator":  "F1 — Generates unit tests for Python, JS, TS, Java, .NET, Kotlin, Swift, ABAP, Go, Ruby, PHP with idiomatic frameworks (pytest, Jest, JUnit, xUnit, XCTest, ABAP Unit).",
+    "story_test_generator": "F2 — Turns pasted user stories or Jira/ADO/Qase URLs into structured positive / negative / functional / NFR test cases.",
+    "gherkin_generator":    "F3 — Produces Cucumber `.feature` files and matching Robot Framework suites from a story or requirement.",
+    "test_data_generator":  "F8 — Synthesises test data rows (typical, boundary, invalid, unicode) from code or schema. CSV + JSON + SQL outputs, PII-safe.",
+    "dead_code_detector":   "F17 — Heuristic + LLM dead-symbol detection with false-positive filtering for framework hooks and public APIs.",
+    "api_contract_checker": "F24 — Compares an OpenAPI/Swagger spec against implemented routes; flags missing/extra endpoints and parameter mismatches.",
+    "openapi_generator":    "F37 — Generates an OpenAPI 3.1 spec either FROM implementation code OR FROM a requirements narrative.",
 }
 
 MERMAID_TYPES = ["flowchart", "sequence", "class"]

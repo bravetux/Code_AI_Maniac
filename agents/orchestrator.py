@@ -45,6 +45,13 @@ from agents.refactoring_advisor import run_refactoring_advisor
 from agents.api_doc_generator import run_api_doc_generator
 from agents.doxygen_agent import run_doxygen
 from agents.c_test_generator import run_c_test_generator
+from agents.unit_test_generator import run_unit_test_generator
+from agents.story_test_generator import run_story_test_generator
+from agents.gherkin_generator import run_gherkin_generator
+from agents.test_data_generator import run_test_data_generator
+from agents.dead_code_detector import run_dead_code_detector
+from agents.api_contract_checker import run_api_contract_checker
+from agents.openapi_generator import run_openapi_generator
 from agents.secret_scan import run_secret_scan
 from agents.threat_model import run_threat_model
 from agents.report_per_file import generate_per_file_report
@@ -172,7 +179,12 @@ def _run_features_for_file(conn, job_id, file_info, features, language,
                           "dependency_analysis", "code_complexity", "test_coverage",
                           "duplication_detection", "performance_analysis", "type_safety",
                           "architecture_mapper", "license_compliance", "change_impact",
-                          "doxygen", "c_test_generator")
+                          "doxygen", "c_test_generator",
+                          # Phase 5 — Quick wins (no cross-agent dependencies)
+                          "unit_test_generator", "story_test_generator",
+                          "gherkin_generator", "test_data_generator",
+                          "dead_code_detector", "api_contract_checker",
+                          "openapi_generator")
               if f in feat_set]
 
     if phase1:
@@ -194,6 +206,14 @@ def _run_features_for_file(conn, job_id, file_info, features, language,
         "change_impact":         run_change_impact,
         "doxygen":               run_doxygen,
         "c_test_generator":      run_c_test_generator,
+        # Phase 5 — Quick wins
+        "unit_test_generator":   run_unit_test_generator,
+        "story_test_generator":  run_story_test_generator,
+        "gherkin_generator":     run_gherkin_generator,
+        "test_data_generator":   run_test_data_generator,
+        "dead_code_detector":    run_dead_code_detector,
+        "api_contract_checker":  run_api_contract_checker,
+        "openapi_generator":     run_openapi_generator,
     }
 
     for feat in phase1:
