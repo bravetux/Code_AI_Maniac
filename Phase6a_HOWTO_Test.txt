@@ -1,0 +1,296 @@
+================================================================================
+AI Code Maniac -- Phase 6 Wave 6A Feature Test Guide
+================================================================================
+Project : 1128
+Phase   : 6 -- Wave 6A
+Scope   : F5, F6, F10
+Updated : 22nd April 2026
+Author  : B.Vignesh Kumar (Bravetux) <ic19939@gmail.com>
+================================================================================
+
+
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+ 0.  Prerequisites & environment
+ 1.  F5  -- API Test Generator (OpenAPI/Swagger)
+ 2.  F6  -- Performance / Load Test Generator
+ 3.  F10 -- Traceability Matrix + Coverage Gap Finder
+ 4.  Wave 6A preset -- one-click run
+ 5.  Troubleshooting
+
+
+================================================================================
+ 0.  PREREQUISITES & ENVIRONMENT
+================================================================================
+
+Shared requirements for every Wave 6A feature:
+
+  a. Activate the project virtualenv:
+        D:\Downloads\Projects\ai_arena\1128\venv\Scripts\activate.bat
+
+  b. Install baseline deps (already present in requirements.txt):
+        pip install -r requirements.txt
+
+  c. ENABLED_AGENTS -- if .env restricts agents, either set:
+        ENABLED_AGENTS=all
+     or include the three new keys explicitly:
+        ENABLED_AGENTS=...,api_test_generator,perf_test_generator,traceability_matrix
+
+  d. Optional -- seed the one-click preset (idempotent):
+        python scripts\seed_wave6a_preset.py
+
+  e. AWS Bedrock credentials -- same as Phase 5 (LLM backend):
+        AWS_ACCESS_KEY_ID=...
+        AWS_SECRET_ACCESS_KEY=...
+        AWS_REGION=us-east-1
+        BEDROCK_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
+
+  f. Outputs -- each agent writes artefacts under:
+        Reports\<YYYYMMDD_HHMMSS>\<feature_folder>\...
+
+  g. Start the Streamlit UI for interactive tests:
+        startup.bat
+     Then browse to http://localhost:8501 -> "Code Analysis" page.
+
+
+================================================================================
+ 1.  F5 -- API TEST GENERATOR (OpenAPI/Swagger)
+================================================================================
+
+WHAT IT DOES
+  Generates runnable API tests from an OpenAPI 3.x / Swagger 2.x spec.
+  Primary framework picked by sidebar language:
+
+      python              -> pytest + requests   (test_api.py)
+      java / kotlin       -> REST Assured        (ApiTests.java)
+      csharp / .net / c#  -> xUnit + HttpClient  (ApiTests.cs)
+      typescript / js     -> supertest + Jest    (api.test.ts)
+      (blank/other)       -> Postman only (no code file)
+
+  ALWAYS emits a Postman 2.1 collection (api_collection.json) deterministically
+  via tools/postman_emitter.py -- no LLM tokens spent on the collection.
+
+AGENT KEY
+  api_test_generator
+
+INTAKE CONVENTIONS
+  1. Inline prefix in the Fine-tune system prompt:
+        __openapi_spec__
+        <YAML or JSON body>
+  2. The source file IS the spec (when extension is .yaml/.yml/.json).
+  3. Sibling file named openapi.{yaml,yml,json} or swagger.{yaml,yml,json}
+     next to the source code file.
+
+UI TEST STEPS
+  1. Streamlit -> Code Analysis. Source type = Local.
+  2. Upload tests\fixtures\wave6a\petstore_openapi.yaml as the source.
+  3. Sidebar -> Language -> type "python".
+  4. Features -> Testing & Maintenance -> tick "API Test Generator (OpenAPI)".
+  5. Run.
+
+EXPECTED OUTPUTS
+  Reports\<ts>\api_tests\test_api.py           (language-native test file)
+  Reports\<ts>\api_tests\api_collection.json   (Postman v2.1)
+
+CLI SMOKE
+  python -c "from db.connection import get_connection; \
+             from db.queries.jobs import create_job; \
+             from agents.orchestrator import run_analysis; \
+             conn=get_connection(); \
+             jid=create_job(conn,'local', \
+                 r'tests\fixtures\wave6a\petstore_openapi.yaml','python', \
+                 ['api_test_generator']); \
+             run_analysis(conn,jid); print(jid)"
+
+MANUAL VERIFICATION
+  pytest Reports\<ts>\api_tests\test_api.py -v
+  newman run Reports\<ts>\api_tests\api_collection.json
+
+PASS CRITERIA
+  [ ] Both artefacts exist.
+  [ ] All 3 petstore endpoints appear in both.
+  [ ] Code file has at least one 4xx negative per endpoint.
+  [ ] api_collection.json has the Postman v2.1 schema URL.
+
+FAIL SIGNS
+  - Only Postman emitted when language set -> check language spelling.
+  - Error "No OpenAPI spec resolvable" -> upload a .yaml/.yml/.json file,
+    or place openapi.yaml next to the source, or use the __openapi_spec__
+    prefix in the Fine-tune panel.
+
+
+================================================================================
+ 2.  F6 -- PERFORMANCE / LOAD TEST GENERATOR
+================================================================================
+
+WHAT IT DOES
+  Generates a JMeter .jmx plan or a Gatling Simulation.scala from an OpenAPI
+  spec OR a user story. Auto-picks by sidebar language:
+
+      java / scala / gatling  -> Gatling (Simulation.scala)
+      (anything else/blank)   -> JMeter (plan.jmx)
+
+  Deterministic tools/load_profile_builder.py supplies the virtual-user count,
+  ramp-up, steady-state, think-time, and target rps so the LLM composes
+  syntax around fixed numbers rather than guessing load parameters.
+
+AGENT KEY
+  perf_test_generator
+
+MODE SELECTION
+  - Spec mode: source is OpenAPI YAML/JSON, or custom_prompt has
+    __openapi_spec__\n<body>.
+  - Requirements mode: .txt / .md source, OR custom_prompt has
+    __mode__requirements\n<story>.
+
+UI TEST STEPS -- spec mode
+  1. Source: tests\fixtures\wave6a\petstore_openapi.yaml
+  2. Language: blank (-> JMeter) or "scala" (-> Gatling).
+  3. Tick "Perf/Load Test Generator". Run.
+
+UI TEST STEPS -- requirements mode
+  1. Source: tests\fixtures\wave6a\order_story.txt
+  2. Advanced / Fine-tune -> System Prompt (Overwrite):
+        __mode__requirements
+        <paste the same story text>
+  3. Tick "Perf/Load Test Generator". Run.
+
+EXPECTED
+  Reports\<ts>\perf_tests\plan.jmx         (JMeter mode) -- OR --
+  Reports\<ts>\perf_tests\Simulation.scala (Gatling mode)
+
+MANUAL VERIFICATION
+  JMeter:
+    xmllint --noout Reports\<ts>\perf_tests\plan.jmx
+    jmeter -n -t Reports\<ts>\perf_tests\plan.jmx -l results.jtl
+  Gatling:
+    (requires a Gatling archetype project -- smoke-compile only)
+    scalac Reports\<ts>\perf_tests\Simulation.scala
+
+PASS CRITERIA
+  [ ] Exactly one artefact (JMeter OR Gatling, never both).
+  [ ] JMeter: one ThreadGroup, >= 3 HTTPSamplerProxy for petstore.
+  [ ] Gatling: "class LoadTest extends Simulation", one exec() per endpoint.
+  [ ] /health, /metrics, /livez, /readyz are NOT in the steady-state load.
+
+FAIL SIGNS
+  - Wrong framework emitted -> sidebar Language mismatches expectation.
+  - "LLM returned empty or invalid content" -> Bedrock returned no fenced
+    block; re-run or lower temperature.
+
+
+================================================================================
+ 3.  F10 -- TRACEABILITY MATRIX + COVERAGE GAP FINDER
+================================================================================
+
+WHAT IT DOES
+  Cross-references acceptance criteria (stories) <-> tests (any framework)
+  <-> optional code coverage. Emits:
+
+      Reports\<ts>\traceability\matrix.csv
+      Reports\<ts>\traceability\matrix.md
+      Reports\<ts>\traceability\gaps.md
+
+  Auto-includes F5/F6 outputs from the same Reports\<ts>\ folder when F5/F6
+  and F10 are ticked in the same run.
+
+AGENT KEY
+  traceability_matrix
+
+INTAKE CONVENTIONS (any combination)
+  - __stories__\n<text>  OR Jira/ADO/Qase URL OR pasted story text
+  - __tests_dir__=<path>  pointing to a folder of tests
+  - __src_dir__=<path>    optional -- enables run_test_coverage subagent
+
+  The F10 "Traceability Matrix -- inputs" expander in the sidebar writes
+  these prefixes into the Fine-tune custom_prompt for you.
+
+UI TEST STEPS
+  1. Features -> Documentation & Review -> tick "Traceability Matrix + Gaps".
+  2. The "Traceability Matrix -- inputs" expander appears below the Features
+     expander. Fill in:
+        Stories:   paste the content of
+                   tests\fixtures\wave6a\reset_password_story.txt
+        Tests dir: tests\fixtures\wave6a\reset_password_tests
+        Code dir:  tests\fixtures\wave6a\reset_password_src  (optional)
+  3. Source type = Local. Upload any .txt placeholder (even 1-line).
+  4. Run.
+
+EXPECTED
+  Reports\<ts>\traceability\matrix.csv  (4 AC rows)
+  Reports\<ts>\traceability\matrix.md   (Markdown grid)
+  Reports\<ts>\traceability\gaps.md     (red ACs + orphans)
+
+STATUS VALUES
+  green   -- AC has >= 1 test AND (no src_dir OR coverage >= 70%)
+  amber   -- AC has >= 1 test AND coverage < 70%
+  red     -- AC has 0 tests
+  orphan  -- test exists but maps to no AC  (listed separately in gaps.md)
+
+PASS CRITERIA
+  [ ] matrix.csv has 4 AC rows (one per acceptance criterion).
+  [ ] Status column is one of green/amber/red per row.
+  [ ] test_admin_audit_log_flush appears in gaps.md as an orphan.
+  [ ] When F5/F6 run in the same session, their outputs appear in the
+      matrix automatically (no __tests_dir__ needed).
+
+FAIL SIGNS
+  - "No stories resolvable" -> stories input was blank.
+  - "Could not extract any acceptance criteria" -> story lacks a numbered
+    block or bullet list; rephrase with AC-1:, AC-2:, ... prefixes.
+  - Matrix all-red when tests are present -> __tests_dir__ path is wrong
+    or empty; check the F10 helper expander.
+  - Coverage column "n/a" -> __src_dir__ unset OR run_test_coverage
+    subagent failed (agent degrades gracefully; matrix still emits).
+
+
+================================================================================
+ 4.  WAVE 6A PRESET -- ONE-CLICK RUN
+================================================================================
+
+After running scripts\seed_wave6a_preset.py:
+
+  1. Tick F5, F6, and F10 in the sidebar.
+  2. Advanced / Fine-tune -> Load preset -> pick
+     "Wave 6A: API + Perf + Traceability".
+  3. Run.
+
+  -> All three agents fire in the same Reports\<ts>\ folder. F10
+     automatically picks up F5's Postman collection and F6's plan.
+
+RE-SEEDING
+  The script is idempotent -- re-running it prints "already exists" and
+  makes no changes.
+
+
+================================================================================
+ 5.  TROUBLESHOOTING
+================================================================================
+
+SYMPTOM                               LIKELY CAUSE / FIX
+-----------------------------------   -------------------------------------------
+Feature not visible in sidebar        ENABLED_AGENTS in .env restricts agents.
+                                      Set to 'all' or include the three keys.
+
+F5 emits Postman only                 Sidebar Language blank/unmapped. Set
+                                      "python", "java", "csharp", or "typescript".
+
+F6 artefact has wrong framework       Sidebar Language mismatches. java/scala/
+                                      gatling -> Gatling, else JMeter.
+
+F10 matrix is all-red with 0 tests    __tests_dir__ path wrong or folder empty.
+                                      Check the F10 helper expander.
+
+OpenAPI parse error                   pip install pyyaml.
+
+"Spec fetch failed" (Jira/ADO/Qase)   Provider creds missing. Use inline text.
+
+"No OpenAPI spec resolvable"          Pass a YAML/JSON source, use the
+                                      __openapi_spec__ prefix, or place an
+                                      openapi.yaml sibling next to the source.
+
+LLM returned empty/invalid content    Bedrock credentials or region mis-set;
+                                      re-run; check BEDROCK_MODEL_ID.
+
+END OF FILE
+================================================================================
