@@ -52,6 +52,10 @@ from agents.test_data_generator import run_test_data_generator
 from agents.dead_code_detector import run_dead_code_detector
 from agents.api_contract_checker import run_api_contract_checker
 from agents.openapi_generator import run_openapi_generator
+# Phase 6 — Wave 6A
+from agents.api_test_generator import run_api_test_generator
+from agents.perf_test_generator import run_perf_test_generator
+from agents.traceability_matrix import run_traceability_matrix
 from agents.secret_scan import run_secret_scan
 from agents.threat_model import run_threat_model
 from agents.report_per_file import generate_per_file_report
@@ -184,7 +188,10 @@ def _run_features_for_file(conn, job_id, file_info, features, language,
                           "unit_test_generator", "story_test_generator",
                           "gherkin_generator", "test_data_generator",
                           "dead_code_detector", "api_contract_checker",
-                          "openapi_generator")
+                          "openapi_generator",
+                          # Phase 6 — Wave 6A
+                          "api_test_generator", "perf_test_generator",
+                          "traceability_matrix")
               if f in feat_set]
 
     if phase1:
@@ -214,6 +221,10 @@ def _run_features_for_file(conn, job_id, file_info, features, language,
         "dead_code_detector":    run_dead_code_detector,
         "api_contract_checker":  run_api_contract_checker,
         "openapi_generator":     run_openapi_generator,
+        # Phase 6 — Wave 6A
+        "api_test_generator":    run_api_test_generator,
+        "perf_test_generator":   run_perf_test_generator,
+        "traceability_matrix":   run_traceability_matrix,
     }
 
     for feat in phase1:

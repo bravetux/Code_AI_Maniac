@@ -53,6 +53,10 @@ ALL_FEATURES: dict[str, str] = {
     "dead_code_detector":   "Dead Code Detector",
     "api_contract_checker": "API Contract Checker",
     "openapi_generator":    "OpenAPI Generator",
+    # ── Phase 6 — Wave 6A ──────────────────────────────────────────────
+    "api_test_generator":    "API Test Generator (OpenAPI)",
+    "perf_test_generator":   "Perf/Load Test Generator",
+    "traceability_matrix":   "Traceability Matrix + Gaps",
 }
 
 # Grouped categories for sidebar display
@@ -84,6 +88,8 @@ FEATURE_GROUPS: list[tuple[str, list[tuple[str, str]]]] = [
         ("gherkin_generator",    "BDD / Gherkin Generator"),
         ("test_data_generator",  "Test Data Generator"),
         ("dead_code_detector",   "Dead Code Detector"),
+        ("api_test_generator",   "API Test Generator (OpenAPI)"),
+        ("perf_test_generator",  "Perf/Load Test Generator"),
         ("change_impact",        "Change Impact"),
     ]),
     ("Security & Compliance", [
@@ -93,6 +99,7 @@ FEATURE_GROUPS: list[tuple[str, list[tuple[str, str]]]] = [
         ("api_doc_generator",    "API Doc Generator"),
         ("openapi_generator",    "OpenAPI Generator"),
         ("api_contract_checker", "API Contract Checker"),
+        ("traceability_matrix",  "Traceability Matrix + Gaps"),
         ("comment_generator",    "PR Comment Generator"),
     ]),
 ]
@@ -126,6 +133,9 @@ FEATURE_HELP: dict[str, str] = {
     "dead_code_detector":   "F17 — Heuristic + LLM dead-symbol detection with false-positive filtering for framework hooks and public APIs.",
     "api_contract_checker": "F24 — Compares an OpenAPI/Swagger spec against implemented routes; flags missing/extra endpoints and parameter mismatches.",
     "openapi_generator":    "F37 — Generates an OpenAPI 3.1 spec either FROM implementation code OR FROM a requirements narrative.",
+    "api_test_generator":    "F5 — Generates API tests from an OpenAPI/Swagger spec. Framework picked by sidebar language (pytest+requests / REST Assured / xUnit / supertest). Always emits a Postman collection as a second artifact.",
+    "perf_test_generator":   "F6 — Generates a JMeter .jmx or Gatling Simulation.scala from an OpenAPI spec or user story. Framework picked by sidebar language (java/scala → Gatling, else JMeter).",
+    "traceability_matrix":   "F10 — Cross-references acceptance criteria ↔ tests ↔ code coverage. Emits CSV matrix + gap report. Auto-includes F5/F6 outputs from the same run.",
 }
 
 MERMAID_TYPES = ["flowchart", "sequence", "class"]
@@ -196,6 +206,31 @@ def render_feature_selector(conn) -> dict:
                 if st.checkbox(label, key=f"feature_{key}",
                                help=FEATURE_HELP.get(key)):
                     selected.append(key)
+
+    # F10 — prefix-convention intake helper (only when Traceability Matrix is selected)
+    if "traceability_matrix" in selected:
+        with st.expander("Traceability Matrix — inputs", expanded=True):
+            f10_stories = st.text_area(
+                "Stories file path OR pasted text OR Jira/ADO/Qase URL",
+                key="f10_stories", height=80,
+                help="Leave blank to fall back to the source file.",
+            )
+            f10_tests_dir = st.text_input(
+                "Tests folder path", key="f10_tests_dir",
+                placeholder="e.g. tests/",
+            )
+            f10_src_dir = st.text_input(
+                "Code folder path (optional — enables coverage)",
+                key="f10_src_dir", placeholder="e.g. src/",
+            )
+            f10_prefixes = []
+            if f10_stories:   f10_prefixes.append(f"__stories__\n{f10_stories}")
+            if f10_tests_dir: f10_prefixes.append(f"__tests_dir__={f10_tests_dir}")
+            if f10_src_dir:   f10_prefixes.append(f"__src_dir__={f10_src_dir}")
+            if f10_prefixes:
+                st.session_state["f10_prefix_block"] = "\n".join(f10_prefixes)
+            else:
+                st.session_state.pop("f10_prefix_block", None)
 
     mermaid_type = "flowchart"
     if "mermaid" in selected:
@@ -288,6 +323,11 @@ def render_feature_selector(conn) -> dict:
                 create_preset(conn, name=preset_name, feature=feature,
                               system_prompt=custom_prompt, extra_instructions=extra)
             st.success(f"Preset '{preset_name}' saved.")
+
+    # Merge F10 prefix block into custom_prompt if present
+    f10_block = st.session_state.get("f10_prefix_block", "")
+    if f10_block:
+        custom_prompt = f"{f10_block}\n\n{custom_prompt}" if custom_prompt else f10_block
 
     return {
         "features": selected,
