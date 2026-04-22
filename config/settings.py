@@ -63,6 +63,10 @@ ALL_AGENTS: frozenset[str] = frozenset({
     "openapi_generator",        # F37
     # F20 (CI/CD webhook) and F21 (pre-commit reviewer) are CLI/server tools
     # — they do not run as per-file agents in the orchestrator.
+    # Phase 6 — Wave 6A
+    "api_test_generator",       # F5
+    "perf_test_generator",      # F6
+    "traceability_matrix",      # F10
 })
 
 
