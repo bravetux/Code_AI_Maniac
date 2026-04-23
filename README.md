@@ -2,7 +2,7 @@
 
 **Using: AWS Bedrock (Claude) · Strands Agents · Streamlit · DuckDB**
 
-AI Code Maniac orchestrates **27 specialized AI agents** across a coordinated **6-phase pipeline** plus a standalone **5-mode commit analyser** to perform deep code analysis. Submit code from GitHub, Gitea, or local files and receive concurrent results across bug detection, complexity metrics, performance analysis, design review, refactoring advice, API documentation, security scanning, report generation, and more.
+AI Code Maniac orchestrates **41 specialized AI agents** across a coordinated **execution pipeline** (Phases 0–5 plus Phase 6 Waves 6A and 6B — spec-driven test generation, self-healing, SonarQube fixes, NL→SQL, and auto-fix patches) plus a standalone **5-mode commit analyser** to perform deep code analysis. Submit code from GitHub, Gitea, or local files and receive concurrent results across bug detection, complexity metrics, performance analysis, design review, refactoring advice, API documentation, security scanning, test generation, traceability, report generation, and more.
 
 **Licensed under the GNU General Public License v3 (GPLv3).** See [LICENSE](LICENSE) for details.
 
@@ -31,7 +31,7 @@ AI Code Maniac orchestrates **27 specialized AI agents** across a coordinated **
 
 ## Features
 
-**27 specialized AI agents** organized into 7 functional categories, with a **2-agent reporting system** and **100+ prompt templates**:
+**41 specialized AI agents** organized into functional categories (including a **Phase 5 quick-wins pack**, a **Phase 6 Wave 6A spec-driven test generation pack**, and a **Phase 6 Wave 6B code-generation & fixes pack**), with a **2-agent reporting system** and **100+ prompt templates**:
 
 ### Code Quality & Metrics
 
@@ -85,6 +85,48 @@ AI Code Maniac orchestrates **27 specialized AI agents** across a coordinated **
 | `api_doc_generator` | API Doc Generator | Full API documentation: classes, functions, usage examples, error handling |
 | `comment_generator` | PR Comments | GitHub-style review comments generated from bug + static findings |
 
+### Phase 5 — Quick Wins (Test Gen, Spec & Hygiene)
+
+| Agent Key | Feature | Agent | What It Produces |
+|---|---|---|---|
+| `unit_test_generator` | F1 | Multi-language Unit Test Generator | Framework-appropriate unit tests (pytest, JUnit, xUnit, Jest, …) with mocks, parameterized and edge cases |
+| `story_test_generator` | F2 | Story-to-Test-Case Generator | Positive / negative / functional / NFR test cases from user stories |
+| `gherkin_generator` | F3 | BDD / Gherkin Feature File Generator | Given-When-Then `.feature` files for Cucumber / Robot Framework |
+| `test_data_generator` | F8 | Test Data Generator | Synthetic, rule-based, boundary, negative, PII-safe datasets |
+| `dead_code_detector` | F17 | Dead-Code / Unused-Symbol Detector | Unreachable functions, unused imports, dead branches across multi-language repos |
+| `api_contract_checker` | F24 | API-Contract Conformance Checker | Diff between declared OpenAPI/Swagger spec and actual code surface |
+| `openapi_generator` | F37 | OpenAPI / Swagger Generator | Bidirectional OpenAPI 3.x spec from code **or** from requirements text |
+
+**Phase 5 CLI / Server Tools (not agents):**
+
+| Feature | Tool | Purpose |
+|---|---|---|
+| F20 | `tools/webhook_server.py` | CI/CD-triggered code review webhook (Jenkins / GitHub Actions / Bitbucket / GitLab / Azure DevOps) |
+| F21 | `tools/precommit_reviewer.py` | Pre-commit / staged-change reviewer — Git hook that reviews only the diff |
+
+### Phase 6 Wave 6A — Spec-Driven Test Generation & Traceability
+
+| Agent Key | Feature | Agent | What It Produces |
+|---|---|---|---|
+| `api_test_generator` | F5 | API Test Generator (OpenAPI → tests) | Language-appropriate API test file (REST Assured / pytest+requests / xUnit / Jest) plus a ready-to-import `api_collection.json` (Postman v2.1) |
+| `perf_test_generator` | F6 | Perf / Load Test Generator | JMeter `plan.jmx` **or** Gatling `Simulation.scala`, driven by OpenAPI spec or a requirements story (think time, ramp, SLA) |
+| `traceability_matrix` | F10 | Traceability Matrix + Coverage Gap Finder | `matrix.csv` + `matrix.md` mapping stories ↔ tests, plus `gaps.md` listing untested stories; optionally invokes `test_coverage` subagent when source folder is supplied |
+
+Wave 6A agents share a single per-run report folder (`Reports/<YYYYMMDD_HHMMSS>/`) via the `JOB_REPORT_TS` env var set by the orchestrator, so F5 / F6 / F10 outputs land alongside each other. (The legacy `WAVE6A_REPORT_TS` name is maintained as a back-compat alias for one release.)
+
+### Phase 6 Wave 6B — Code Generation & Fixes
+
+| Agent Key | Feature | Agent | Input | Output Folder |
+|---|---|---|---|---|
+| `self_healing_agent` | F9 | Self-Healing Test Agent | `__page_html__` DOM snapshot + broken selector list | `self_healing/` — patched test files + `patches/<file>.diff` + `pr_comment.md` + `summary.json` |
+| `sonar_fix_agent` | F11 | SonarQube Fix Automation | Sonar REST issues (`__sonar_issues__`) or project key + `__sonar_top_n__=<int>` (default 50) | `sonar_fix/` — patched source files + `patches/<file>.diff` + `pr_comment.md` + `summary.json` |
+| `sql_generator` | F14 | NL → SQL / Stored-Procedure Generator | `__prompt__` (NL request) + `__db_schema__` (DDL or YAML, schema-aware, RLS-aware) | `sql_generator/` — `.sql` files + `patches/*.diff` + `pr_comment.md` + `summary.json` |
+| `auto_fix_agent` | F15 | Auto-Fix / Patch Generator | Auto-scan of Bug Analysis + Refactoring Advisor `findings.json` sidecars, or inline `__findings__` | `auto_fix/` — patched source + `patches/<file>.diff` + `pr_comment.md` + `summary.json` |
+
+All four Wave 6B agents share `tools/patch_emitter.py` for deterministic unified-diff output (CRLF-normalized, empty-base `@@ -0,0 +N,M @@` origin, tolerant of `\ No newline at end of file` markers). They share the same `Reports/<ts>/` via `JOB_REPORT_TS` so a single run can produce a coordinated PR across multiple fix types.
+
+**Reserved but not yet implemented:** `__page_url__=<url>` is a reserved F9 prefix for future headless-browser DOM fetch. **F13 (Code-from-Prompt Generator, 6 frameworks) is deferred** to its own future wave.
+
 ### Commit Analysis (5 modes)
 
 | Agent Key | Mode | What It Produces |
@@ -129,11 +171,14 @@ graph TD
     UI["Streamlit Frontend\n(app/)"]
     ORC["Orchestrator\nagents/orchestrator.py"]
     P0["Phase 0 — Pre-flight\nsecret_scanner (regex)"]
-    P1["Phase 1 — Foundation (13 agents, parallel)\nbug · static · code_flow · requirement · dependency\ncomplexity · test_coverage · duplication · performance\ntype_safety · architecture · license · change_impact"]
+    P1["Phase 1 — Foundation (20 agents, parallel)\nbug · static · code_flow · requirement · dependency\ncomplexity · test_coverage · duplication · performance\ntype_safety · architecture · license · change_impact\nmermaid · doxygen · c_test_generator · api_doc_generator\ncomment_generator · refactoring_advisor · code_design"]
     P2["Phase 2 — Context-Aware (4 agents)\ncode_design · mermaid\nrefactoring_advisor · api_doc_generator"]
     P3["Phase 3 — Synthesis (2 agents)\ncomment_generator · secret_scan"]
     P4["Phase 4 — Threat Model (1 agent)\nthreat_model"]
-    P5["Phase 5 — Reporting (2 agents)\nreport_per_file · report_consolidated"]
+    P5Q["Phase 5 — Quick Wins (7 agents)\nunit_test_generator · story_test_generator · gherkin_generator\ntest_data_generator · dead_code_detector · api_contract_checker\nopenapi_generator"]
+    P6A["Phase 6 Wave 6A (3 agents)\napi_test_generator · perf_test_generator · traceability_matrix"]
+    P6B["Phase 6 Wave 6B (4 agents)\nself_healing_agent · sonar_fix_agent\nsql_generator · auto_fix_agent"]
+    P5R["Reporting (2 agents)\nreport_per_file · report_consolidated"]
     COMMIT["Commit Agents (5 modes)\ncommit_analysis · release_notes\ndeveloper_activity · commit_hygiene · churn_analysis"]
     CACHE["Cache Layer\ntools/cache.py"]
     DB["DuckDB\ndata/arena.db"]
@@ -151,11 +196,14 @@ graph TD
     P1 -->|"results context"| P2
     P2 --> P3
     P3 --> P4
-    P4 --> P5
+    P4 --> P5Q
+    P5Q --> P6A
+    P6A --> P6B
+    P6B --> P5R
     UI -->|"commit history"| COMMIT
-    P1 & P2 & P3 & P4 & COMMIT --> CACHE
+    P1 & P2 & P3 & P4 & P5Q & P6A & P6B & COMMIT --> CACHE
     CACHE --> DB
-    P1 & P2 & P3 & P4 & COMMIT <-->|"Agent calls"| BEDROCK
+    P1 & P2 & P3 & P4 & P5Q & P6A & P6B & COMMIT <-->|"Agent calls"| BEDROCK
     ORC -->|"save results"| DB
     DB -->|"poll + load"| UI
 ```
@@ -171,11 +219,14 @@ sequenceDiagram
     participant ORC as Orchestrator
     participant DB as DuckDB
     participant P0 as Phase 0 Pre-flight
-    participant P1 as Phase 1 (13 agents)
+    participant P1 as Phase 1 (20 agents)
     participant P2 as Phase 2 (4 agents)
     participant P3 as Phase 3 Synthesis
     participant P4 as Phase 4 Threat Model
-    participant P5 as Phase 5 Reporting
+    participant P5Q as Phase 5 Quick Wins
+    participant P6A as Phase 6 Wave 6A
+    participant P6B as Phase 6 Wave 6B
+    participant P5R as Reporting
     participant LLM as AWS Bedrock
 
     User->>UI: Configure source + features, click Run
@@ -219,8 +270,19 @@ sequenceDiagram
     P4->>DB: write_cache + add_history
     P4-->>ORC: Phase 4 results
 
-    ORC->>P5: report_per_file(all results per file)<br/>report_consolidated(all per-file reports)
-    P5-->>ORC: Markdown reports
+    ORC->>P5Q: unit_test_generator · story_test_generator · gherkin_generator<br/>test_data_generator · dead_code_detector · api_contract_checker · openapi_generator
+    P5Q-->>ORC: Phase 5 quick-win outputs (saved under Reports/<ts>/)
+
+    ORC->>P6A: api_test_generator (F5) · perf_test_generator (F6) · traceability_matrix (F10)
+    Note over P6A: All three share Reports/<ts>/ via JOB_REPORT_TS env var<br/>(WAVE6A_REPORT_TS maintained as back-compat alias)
+    P6A-->>ORC: api_tests/ · perf_tests/ · traceability/
+
+    ORC->>P6B: self_healing_agent (F9) · sonar_fix_agent (F11)<br/>sql_generator (F14) · auto_fix_agent (F15)
+    Note over P6B: All four share tools/patch_emitter.py; reuse the same JOB_REPORT_TS run folder<br/>F15 auto-scans bug_analysis/ + refactoring_advisor/ findings.json sidecars
+    P6B-->>ORC: self_healing/ · sonar_fix/ · sql_generator/ · auto_fix/
+
+    ORC->>P5R: report_per_file(all results per file)<br/>report_consolidated(all per-file reports)
+    P5R-->>ORC: Markdown reports
 
     ORC->>DB: save_job_results(all_results)
     ORC->>DB: update_job_status(completed)
@@ -292,6 +354,50 @@ Synthesizes all per-file reports into one cohesive document. Three generation mo
 | `llm` | 1 | Slowest | Full narrative document |
 
 Reports are available as **Markdown** and **HTML** (via the built-in converter with Pygments syntax highlighting, sidebar TOC, and collapsible sections).
+
+### Reports Folder Layout (per run)
+
+Every orchestrated run creates a timestamped subfolder under `Reports/`. Phase 5 quick-win agents, the three Wave 6A agents, and the four Wave 6B agents deposit their outputs into dedicated subfolders so a single run can hold tests, perf scripts, traceability matrix, fix patches, and consolidated reports side by side:
+
+```
+Reports/<JOB_REPORT_TS>/
+├── api_tests/              # F5 — <language> API test file + api_collection.json (Postman v2.1)
+├── perf_tests/             # F6 — plan.jmx  OR  Simulation.scala
+├── traceability/           # F10 — matrix.csv + matrix.md + gaps.md
+├── self_healing/           # F9 — patched test files + patches/<file>.diff + pr_comment.md + summary.json
+├── sonar_fix/              # F11 — patched source + patches/<file>.diff + pr_comment.md + summary.json
+├── sql_generator/          # F14 — .sql files + patches/*.diff + pr_comment.md + summary.json
+├── auto_fix/               # F15 — patched source + patches/<file>.diff + pr_comment.md + summary.json
+├── bug_analysis/           # findings.json sidecar (F15 auto-scan source)
+├── refactoring_advisor/    # findings.json sidecar (F15 auto-scan source)
+├── unit_tests/             # F1 — framework-appropriate unit test files
+├── gherkin/                # F3 — .feature files
+├── test_data/              # F8 — synthetic data sets
+├── openapi/                # F37 — openapi.yaml / openapi.json
+└── … (per-agent folders from Phase 1–4 + report_per_file / report_consolidated output)
+```
+
+All multi-agent outputs in a single run share the same `Reports/<ts>/` because the orchestrator sets `JOB_REPORT_TS` once at the start of `run_analysis` before dispatching any sub-agent. The legacy `WAVE6A_REPORT_TS` name is honoured as a back-compat alias for one release.
+
+### Intake Conventions (custom_prompt prefix markers)
+
+Phase 5, Wave 6A and Wave 6B agents read structured inputs piggy-backed onto the `custom_prompt` field. The orchestrator / UI helper prepends these prefix markers so a single run can feed several agents with coordinated data:
+
+| Prefix marker | Used by | Purpose |
+|---|---|---|
+| `__openapi_spec__\n<YAML>` | F5, F6 | OpenAPI spec mode — spec body follows the marker |
+| `__mode__requirements\n<story>` | F6 | Requirements mode — generate perf script from a story instead of a spec |
+| `__stories__\n<text>` | F10 | Stories input block for the traceability matrix |
+| `__tests_dir__=<path>` | F10 | Absolute path to the tests folder to scan |
+| `__src_dir__=<path>` | F10 | Optional code folder; if present, F10 invokes the `test_coverage` subagent |
+| `__page_html__\n<html>` | F9 | Current DOM snapshot for selector self-healing |
+| `__page_url__=<url>` | F9 | **Reserved** — future headless-browser fetch (not yet implemented) |
+| `__sonar_issues__\n<json>` | F11 | Inline override of Sonar REST API / file fetch |
+| `__sonar_top_n__=<int>` | F11 | Issue cap (default `50`) |
+| `__prompt__\n<description>` | F14 | Required natural-language request |
+| `__db_schema__\n<DDL or YAML>` | F14 | Inline schema override (tables, columns, views, RLS policies) |
+| `__findings__\n<json or markdown>` | F15 | Alternative to auto-scan of bug_analysis/ + refactoring_advisor/ findings.json sidecars |
+| `__append__\n` | helpers | Generic marker from `agents/_bedrock._APPEND_PREFIX`, used by sibling-agent UI helpers to preserve sibling-agent prompts |
 
 ---
 
@@ -395,7 +501,7 @@ Unknown keys are silently dropped.
 
 | Page | Purpose |
 |---|---|
-| **Home** | Dashboard with pipeline visualization strip (7 phases), agent metrics, and feature category cards |
+| **Home** | Dashboard with pipeline visualization strip (8 phases, incl. Phase 6 Wave 6A and Wave 6B), agent metrics, and feature category cards |
 | **Code Analysis** | Run code analysis jobs with source, feature, and security selectors |
 | **Commit Analysis** | 5 commit analysis modes: Commit Analysis, Release Notes, Developer Activity, Commit Hygiene, Churn Analysis |
 | **History** | Browse past analyses with filter by feature and language |
@@ -407,7 +513,7 @@ Unknown keys are silently dropped.
 
 The Home page provides a high-level overview of the platform:
 
-- **Pipeline strip** — visual representation of the 6-phase execution pipeline plus standalone commit modes, showing agent count per phase
+- **Pipeline strip** — visual representation of the execution pipeline (Phases 0–5 foundation + Phase 5 quick wins + Phase 6 Wave 6A spec-driven tests + Phase 6 Wave 6B code-generation & fixes) plus standalone commit modes, showing agent count per phase
 - **Metrics row** — total analyses run, completed count, distinct languages analysed, total agent count
 - **Feature cards** — 7 expandable category cards showing all agents grouped by function
 
@@ -600,52 +706,76 @@ ai_code_maniac/
 │       └── 6_Templates.py         # Browse + filter 100+ prompt templates
 ├── agents/
 │   ├── _bedrock.py                # Bedrock model factory (boto3 session)
-│   ├── orchestrator.py            # 6-phase pipeline coordinator
-│   ├── bug_analysis.py            # Bug detection with severity + root cause
-│   ├── static_analysis.py         # Linting + semantic analysis
-│   ├── code_flow.py               # Execution flow narrative
-│   ├── requirement.py             # Requirement reverse-engineering
-│   ├── dependency_analysis.py     # SCA: dependency parsing + CVE lookup
-│   ├── code_complexity.py         # Cyclomatic/cognitive complexity metrics
-│   ├── test_coverage.py           # Test gap analysis + test case suggestions
-│   ├── duplication_detection.py   # Code clone + DRY violation detection
-│   ├── performance_analysis.py    # Big-O, memory, I/O, scalability analysis
-│   ├── type_safety.py             # Type hint coverage + type issue detection
-│   ├── architecture_mapper.py     # Module dependencies + layer violations
-│   ├── license_compliance.py      # License detection + compatibility checks
-│   ├── change_impact.py           # Blast radius + API surface analysis
-│   ├── doxygen_agent.py           # Doxygen comment headers + HTML generation
-│   ├── c_test_generator.py        # Python pytest + ctypes tests for C code
-│   ├── code_design.py             # 3-turn design document generation
-│   ├── mermaid.py                 # Mermaid diagram generation
-│   ├── refactoring_advisor.py     # Code smells + refactoring suggestions
+│   ├── orchestrator.py            # Phase 0 → 5 + Wave 6A + Wave 6B pipeline coordinator
+│   ├── api_contract_checker.py    # F24 — declared OpenAPI ↔ code conformance
 │   ├── api_doc_generator.py       # API documentation generation
-│   ├── comment_generator.py       # GitHub-style PR review comments
-│   ├── secret_scan.py             # Phase 0 regex + Phase 3 LLM secret detection
-│   ├── threat_model.py            # STRIDE / attacker-narrative threat model
-│   ├── commit_analysis.py         # Commit history + risk assessment
-│   ├── release_notes.py           # User-facing release notes from commits
-│   ├── developer_activity.py      # Contributor stats + activity patterns
-│   ├── commit_hygiene.py          # Conventional Commits compliance audit
+│   ├── api_test_generator.py      # F5 — API tests + Postman collection from OpenAPI (Wave 6A)
+│   ├── architecture_mapper.py     # Module dependencies + layer violations
+│   ├── auto_fix_agent.py          # F15 — Auto-Fix / Patch Generator (Wave 6B)
+│   ├── bug_analysis.py            # Bug detection with severity + root cause (+ findings.json sidecar)
+│   ├── c_test_generator.py        # Python pytest + ctypes tests for C code
+│   ├── change_impact.py           # Blast radius + API surface analysis
 │   ├── churn_analysis.py          # File hotspot + co-change detection
+│   ├── code_complexity.py         # Cyclomatic/cognitive complexity metrics
+│   ├── code_design.py             # 3-turn design document generation
+│   ├── code_flow.py               # Execution flow narrative
+│   ├── comment_generator.py       # GitHub-style PR review comments
+│   ├── commit_analysis.py         # Commit history + risk assessment
+│   ├── commit_hygiene.py          # Conventional Commits compliance audit
 │   ├── comparison.py              # Compare 2–5 analysis results
+│   ├── dead_code_detector.py      # F17 — unused symbols / unreachable code
+│   ├── dependency_analysis.py     # SCA: dependency parsing + CVE lookup
+│   ├── developer_activity.py      # Contributor stats + activity patterns
+│   ├── doxygen_agent.py           # Doxygen comment headers + HTML generation
+│   ├── duplication_detection.py   # Code clone + DRY violation detection
+│   ├── gherkin_generator.py       # F3 — BDD / Gherkin feature file generator
+│   ├── license_compliance.py      # License detection + compatibility checks
+│   ├── mermaid.py                 # Mermaid diagram generation
+│   ├── openapi_generator.py       # F37 — OpenAPI spec from code OR requirements
+│   ├── performance_analysis.py    # Big-O, memory, I/O, scalability analysis
+│   ├── perf_test_generator.py     # F6 — JMeter / Gatling perf scripts (Wave 6A)
+│   ├── refactoring_advisor.py     # Code smells + refactoring suggestions (+ findings.json sidecar)
+│   ├── release_notes.py           # User-facing release notes from commits
+│   ├── report_consolidated.py     # Consolidated report (template/LLM/hybrid)
 │   ├── report_per_file.py         # Per-file markdown report assembly
-│   └── report_consolidated.py     # Consolidated report (template/LLM/hybrid)
+│   ├── requirement.py             # Requirement reverse-engineering
+│   ├── secret_scan.py             # Phase 0 regex + Phase 3 LLM secret detection
+│   ├── self_healing_agent.py      # F9 — Self-Healing Test Agent (UI selector drift, Wave 6B)
+│   ├── sonar_fix_agent.py         # F11 — SonarQube issue fixes (Wave 6B)
+│   ├── sql_generator.py           # F14 — NL→SQL with schema awareness (Wave 6B)
+│   ├── static_analysis.py         # Linting + semantic analysis
+│   ├── story_test_generator.py    # F2 — test cases from user stories
+│   ├── test_coverage.py           # Test gap analysis + test case suggestions
+│   ├── test_data_generator.py     # F8 — synthetic / rule-based / PII-safe datasets
+│   ├── threat_model.py            # STRIDE / attacker-narrative threat model
+│   ├── traceability_matrix.py     # F10 — stories ↔ tests matrix + gap report (Wave 6A)
+│   ├── type_safety.py             # Type hint coverage + type issue detection
+│   └── unit_test_generator.py     # F1 — multi-language unit tests (pytest/JUnit/Jest/…)
 ├── tools/
 │   ├── cache.py                   # SHA256-keyed composite cache helpers
 │   ├── chunk_file.py              # Token-aware file splitter with overlap
 │   ├── clone_repo.py              # GitHub URL parser + git clone/pull + log
+│   ├── ddl_parser.py              # Wave 6B — F14 regex DDL parser (tables, columns, views, RLS policies)
 │   ├── dependency_parser.py       # Multi-ecosystem dependency file parser (20+ types)
 │   ├── fetch_github.py            # PyGithub file + PR diff fetcher
 │   ├── fetch_gitea.py             # httpx Gitea REST client
 │   ├── fetch_local.py             # Local file I/O + recursive folder scan
 │   ├── language_detect.py         # File extension → language name (40+ langs)
-│   ├── run_linter.py              # flake8 / ESLint subprocess runner
-│   ├── run_doxygen.py             # Doxygen CLI wrapper + Doxyfile generator
-│   ├── secret_scanner.py          # Phase 0 regex pre-flight scanner (no LLM)
-│   ├── web_scraper.py             # URL text scraper (httpx, CLI + importable)
-│   ├── python_html_converter.py   # Markdown → HTML with Pygments, TOC, collapsible sections
+│   ├── load_profile_builder.py    # Wave 6A — ramp/think-time/SLA load profile derivation
 │   ├── md_to_html.py              # Lightweight Markdown → HTML (stdlib only)
+│   ├── openapi_parser.py          # Phase 5 — OpenAPI 3.x / Swagger parser (endpoints, schemas)
+│   ├── patch_emitter.py           # Wave 6B — shared deterministic PR-patch emitter (all 4 Wave 6B agents)
+│   ├── postman_emitter.py         # Wave 6A — Postman v2.1 collection emitter
+│   ├── precommit_reviewer.py      # F21 — pre-commit / staged-diff reviewer (git hook)
+│   ├── python_html_converter.py   # Markdown → HTML with Pygments, TOC, collapsible sections
+│   ├── run_doxygen.py             # Doxygen CLI wrapper + Doxyfile generator
+│   ├── run_linter.py              # flake8 / ESLint subprocess runner
+│   ├── secret_scanner.py          # Phase 0 regex pre-flight scanner (no LLM)
+│   ├── sonar_fetcher.py           # Wave 6B — F11 Sonar REST API fetcher (stdlib urllib only)
+│   ├── spec_fetcher.py            # Phase 5 — fetch OpenAPI specs from URL or path
+│   ├── test_scanner.py            # Wave 6A — discover tests + story IDs for F10 matrix
+│   ├── web_scraper.py             # URL text scraper (httpx, CLI + importable)
+│   ├── webhook_server.py          # F20 — CI/CD-triggered review webhook (Jenkins/GH Actions/…)
 │   └── cve_backends/              # Pluggable CVE lookup backends
 │       ├── __init__.py            # Backend registry + get_backend() dispatcher
 │       ├── osv.py                 # OSV.dev API backend
