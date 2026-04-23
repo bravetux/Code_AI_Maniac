@@ -109,6 +109,7 @@ def test_f5_f6_f10_share_reports_ts_folder(test_db, tmp_path, monkeypatch):
 
 def test_report_ts_helper_uses_env_var_when_set(monkeypatch):
     """Unit-level proof that the helper respects WAVE6A_REPORT_TS."""
+    monkeypatch.delenv("JOB_REPORT_TS", raising=False)
     monkeypatch.setenv("WAVE6A_REPORT_TS", "99999999_123456")
     from agents.api_test_generator import _report_ts as f5_ts
     from agents.perf_test_generator import _report_ts as f6_ts
@@ -125,3 +126,23 @@ def test_report_ts_helper_falls_back_to_now(monkeypatch):
     ts = _report_ts()
     assert len(ts) == 15  # YYYYMMDD_HHMMSS
     assert ts[8] == "_"
+
+
+def test_report_ts_helper_prefers_job_report_ts(monkeypatch):
+    """JOB_REPORT_TS should be preferred when both env vars are set."""
+    monkeypatch.setenv("JOB_REPORT_TS", "11111111_111111")
+    monkeypatch.setenv("WAVE6A_REPORT_TS", "99999999_999999")
+    from agents.api_test_generator import _report_ts as f5_ts
+    from agents.perf_test_generator import _report_ts as f6_ts
+    from agents.traceability_matrix import _report_ts as f10_ts
+    assert f5_ts() == "11111111_111111"
+    assert f6_ts() == "11111111_111111"
+    assert f10_ts() == "11111111_111111"
+
+
+def test_report_ts_helper_falls_back_to_wave6a_alias(monkeypatch):
+    """When JOB_REPORT_TS is unset but WAVE6A_REPORT_TS is set, use the alias."""
+    monkeypatch.delenv("JOB_REPORT_TS", raising=False)
+    monkeypatch.setenv("WAVE6A_REPORT_TS", "22222222_222222")
+    from agents.api_test_generator import _report_ts
+    assert _report_ts() == "22222222_222222"

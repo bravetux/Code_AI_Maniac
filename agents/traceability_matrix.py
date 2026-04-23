@@ -51,10 +51,12 @@ from db.queries.history import add_history
 
 
 def _report_ts() -> str:
-    """Return the current job's report timestamp, honouring the WAVE6A_REPORT_TS
-    env var that the orchestrator sets at the start of each run so all agents
-    in a multi-agent job write to the same Reports/<ts>/ folder."""
-    return os.environ.get("WAVE6A_REPORT_TS") or datetime.now().strftime("%Y%m%d_%H%M%S")
+    """Return the current job's report timestamp.
+    Prefers JOB_REPORT_TS (generalised); falls back to WAVE6A_REPORT_TS
+    (deprecated alias) and then datetime.now()."""
+    return (os.environ.get("JOB_REPORT_TS")
+            or os.environ.get("WAVE6A_REPORT_TS")
+            or datetime.now().strftime("%Y%m%d_%H%M%S"))
 
 _CACHE_KEY = "traceability_matrix"
 
@@ -364,7 +366,7 @@ def _auto_scan_same_run(reports_root: str = "Reports") -> list[dict]:
 
     Honours the WAVE6A_REPORT_TS env var when set (test hook).
     """
-    ts = os.environ.get("WAVE6A_REPORT_TS")
+    ts = os.environ.get("JOB_REPORT_TS") or os.environ.get("WAVE6A_REPORT_TS")
     if ts:
         base = os.path.join(reports_root, ts)
         if not os.path.isdir(base):

@@ -156,4 +156,34 @@ def run_bug_analysis(conn: duckdb.DuckDBPyConnection, job_id: str,
     add_history(conn, job_id=job_id, feature="bug_analysis",
                 source_ref=file_path, language=language,
                 summary=result["summary"])
+
+    # Emit findings.json sidecar under Reports/<ts>/bug_analysis/ so F15's
+    # zero-config chain mode (agents/auto_fix_agent._resolve_findings) can
+    # auto-scan our output. Advisory only — never fail the main result.
+    try:
+        import os as _os
+        from datetime import datetime as _dt
+        _ts = (_os.environ.get("JOB_REPORT_TS")
+               or _os.environ.get("WAVE6A_REPORT_TS")
+               or _dt.now().strftime("%Y%m%d_%H%M%S"))
+        _sidecar_dir = _os.path.join("Reports", _ts, "bug_analysis")
+        _os.makedirs(_sidecar_dir, exist_ok=True)
+        _sidecar_path = _os.path.join(
+            _sidecar_dir,
+            _os.path.splitext(_os.path.basename(file_path))[0] + ".json",
+        )
+        _findings = []
+        for _i, _b in enumerate(result.get("bugs") or []):
+            _findings.append({
+                "id": _b.get("id") or f"B-{_i + 1}",
+                "line": _b.get("line"),
+                "severity": _b.get("severity"),
+                "description": _b.get("description") or _b.get("message"),
+                "suggestion": _b.get("suggestion"),
+            })
+        with open(_sidecar_path, "w", encoding="utf-8") as _fh:
+            json.dump({"findings": _findings}, _fh, indent=2)
+    except Exception:  # pragma: no cover — sidecar is advisory
+        pass
+
     return result

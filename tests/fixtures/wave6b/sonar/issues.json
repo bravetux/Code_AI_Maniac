@@ -1,0 +1,22 @@
+{
+  "issues": [
+    {"rule": "python:S2068", "severity": "BLOCKER", "component": "src/app.py",
+     "line": 5, "message": "Hardcoded credential detected",
+     "effort": "10min", "textRange": {"startLine": 5, "endLine": 5}},
+    {"rule": "python:S1481", "severity": "MAJOR", "component": "src/app.py",
+     "line": 12, "message": "Remove this unused local variable",
+     "effort": "2min", "textRange": {"startLine": 12, "endLine": 12}},
+    {"rule": "python:S3776", "severity": "CRITICAL", "component": "src/utils.py",
+     "line": 3, "message": "Cognitive complexity too high",
+     "effort": "15min", "textRange": {"startLine": 3, "endLine": 3}},
+    {"rule": "python:S1192", "severity": "MINOR", "component": "src/utils.py",
+     "line": 8, "message": "Define a constant instead of duplicating literal",
+     "effort": "5min", "textRange": {"startLine": 8, "endLine": 8}},
+    {"rule": "python:S5753", "severity": "MINOR", "component": "src/utils.py",
+     "line": 11, "message": "Use a more specific exception type",
+     "effort": "3min", "textRange": {"startLine": 11, "endLine": 11}}
+  ],
+  "total": 5,
+  "p": 1,
+  "ps": 100
+}

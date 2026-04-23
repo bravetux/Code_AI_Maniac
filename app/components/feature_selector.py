@@ -57,6 +57,11 @@ ALL_FEATURES: dict[str, str] = {
     "api_test_generator":    "API Test Generator (OpenAPI)",
     "perf_test_generator":   "Perf/Load Test Generator",
     "traceability_matrix":   "Traceability Matrix + Gaps",
+    # ── Phase 6 — Wave 6B ──────────────────────────────────────────────
+    "self_healing_agent":   "Self-Healing Test Agent (F9)",
+    "sonar_fix_agent":      "SonarQube Fix Automation (F11)",
+    "sql_generator":        "NL → SQL Generator (F14)",
+    "auto_fix_agent":       "Auto-Fix Patch Generator (F15)",
 }
 
 # Grouped categories for sidebar display
@@ -91,6 +96,12 @@ FEATURE_GROUPS: list[tuple[str, list[tuple[str, str]]]] = [
         ("api_test_generator",   "API Test Generator (OpenAPI)"),
         ("perf_test_generator",  "Perf/Load Test Generator"),
         ("change_impact",        "Change Impact"),
+    ]),
+    ("Code Generation & Fixes", [
+        ("self_healing_agent",   "Self-Healing Test Agent (F9)"),
+        ("sonar_fix_agent",      "SonarQube Fix Automation (F11)"),
+        ("sql_generator",        "NL → SQL Generator (F14)"),
+        ("auto_fix_agent",       "Auto-Fix Patch Generator (F15)"),
     ]),
     ("Security & Compliance", [
         ("license_compliance",   "License Compliance"),
@@ -136,6 +147,10 @@ FEATURE_HELP: dict[str, str] = {
     "api_test_generator":    "F5 — Generates API tests from an OpenAPI/Swagger spec. Framework picked by sidebar language (pytest+requests / REST Assured / xUnit / supertest). Always emits a Postman collection as a second artifact.",
     "perf_test_generator":   "F6 — Generates a JMeter .jmx or Gatling Simulation.scala from an OpenAPI spec or user story. Framework picked by sidebar language (java/scala → Gatling, else JMeter).",
     "traceability_matrix":   "F10 — Cross-references acceptance criteria ↔ tests ↔ code coverage. Emits CSV matrix + gap report. Auto-includes F5/F6 outputs from the same run.",
+    "self_healing_agent":    "F9 — Rewrites UI test scripts (Selenium/Playwright/Cypress) when selectors break due to DOM changes. Reads current DOM via __page_html__ prefix or sibling dom.html, emits a unified diff.",
+    "sonar_fix_agent":       "F11 — Ingests SonarQube issues and writes PR-ready patches. Accepts API fetch (SONAR_URL env), JSON export as source, or __sonar_issues__ prefix. Top-N issue cap (default 50).",
+    "sql_generator":         "F14 — NL → SQL / stored-procedure generator. Schema-aware (DDL source or __db_schema__ prefix) and PostgreSQL-RLS-aware. Pass the NL request via __prompt__ prefix.",
+    "auto_fix_agent":        "F15 — Auto-fix / patch generator. Consumes Bug Analysis + Refactoring Advisor findings (auto-scanned from same Reports/<ts>/ or via __findings__ prefix) and emits a PR-ready diff.",
 }
 
 MERMAID_TYPES = ["flowchart", "sequence", "class"]

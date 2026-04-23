@@ -1,0 +1,314 @@
+================================================================================
+AI Code Maniac -- Phase 6 Wave 6B Feature Test Guide
+================================================================================
+Project : 1128
+Phase   : 6 -- Wave 6B
+Scope   : F9, F11, F14, F15   (F13 deferred to a dedicated future wave)
+Updated : 22nd April 2026
+Author  : B.Vignesh Kumar (Bravetux) <ic19939@gmail.com>
+================================================================================
+
+
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+ 0.  Prerequisites & environment
+ 1.  F9  -- Self-Healing Test Agent (UI selector drift)
+ 2.  F11 -- SonarQube Fix Automation
+ 3.  F14 -- NL -> SQL / Stored-Procedure Generator
+ 4.  F15 -- Auto-Fix / Patch Generator
+ 5.  Wave 6B preset -- one-click run
+ 6.  JOB_REPORT_TS (generalised from WAVE6A_REPORT_TS)
+ 7.  Troubleshooting
+
+
+================================================================================
+ 0. PREREQUISITES & ENVIRONMENT
+================================================================================
+
+a. Activate the project virtualenv:
+      D:\Downloads\Projects\ai_arena\1128\venv\Scripts\activate.bat
+
+b. Install baseline deps:
+      pip install -r requirements.txt
+
+c. ENABLED_AGENTS -- ensure Wave 6B keys are enabled:
+      ENABLED_AGENTS=all
+   or include explicitly:
+      ...,self_healing_agent,sonar_fix_agent,sql_generator,auto_fix_agent
+
+d. Optional -- seed the one-click preset (idempotent):
+      python scripts\seed_wave6b_preset.py
+
+e. AWS Bedrock credentials (same as Phase 5 / Wave 6A):
+      AWS_ACCESS_KEY_ID=...
+      AWS_SECRET_ACCESS_KEY=...
+      AWS_REGION=us-east-1
+      BEDROCK_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
+
+f. F11 only -- live Sonar API fetch requires:
+      SONAR_URL=https://sonar.mycorp.test
+      SONAR_TOKEN=squ_xxxxxxxxxxxxxxxxxxxx
+      SONAR_PROJECT_KEY=my-project
+
+g. Outputs -- each agent writes under:
+      Reports\<JOB_REPORT_TS>\<feature_folder>\...
+
+h. Start the Streamlit UI for interactive tests:
+      startup.bat
+   Then browse to http://localhost:8501 -> "Code Analysis" page.
+   New group "Code Generation & Fixes" contains F9, F11, F14, F15.
+
+
+================================================================================
+ 1. F9 -- SELF-HEALING TEST AGENT
+================================================================================
+
+WHAT IT DOES
+  Rewrites UI test selectors (Selenium/Playwright/Cypress) when the DOM
+  changes. LLM emits a unified diff; tools/patch_emitter writes the patched
+  test, the diff, a PR-comment markdown, and a summary.json.
+
+AGENT KEY
+  self_healing_agent
+
+INTAKE
+  - Source = the old test file (.py / .ts / .js / .cy.js)
+  - DOM snapshot via:
+      * Fine-tune prompt: __page_html__<newline><html body>
+      * OR sibling dom.html next to the source
+
+FRAMEWORK DETECTION
+  Selenium      -> imports selenium / webdriver / By.*
+  Playwright    -> imports playwright / page.locator( / page.get_by_*
+  Cypress       -> cy.get( / cy.visit( / .cy.js or .cy.ts filename
+  Unknown       -> generic fallback prompt, confidence marked 'low'
+
+UI TEST STEPS
+  1. Source type = Local.
+  2. Upload tests\fixtures\wave6b\login_selectors\old_test.py.
+  3. Advanced / Fine-tune -> System Prompt (Overwrite):
+        __page_html__
+        <paste contents of tests\fixtures\wave6b\login_selectors\dom.html>
+  4. Features -> Code Generation & Fixes -> tick "Self-Healing Test Agent".
+  5. Run.
+
+EXPECTED OUTPUTS
+  Reports\<ts>\self_healing\patches\old_test.py
+  Reports\<ts>\self_healing\patches\old_test.py.diff
+  Reports\<ts>\self_healing\pr_comment.md
+  Reports\<ts>\self_healing\summary.json
+
+PASS CRITERIA
+  [ ] Patched file exists and selectors reference new data-testid values.
+  [ ] .diff file is a valid unified diff (applies via git apply --check).
+  [ ] summary.json has framework = 'selenium', confidence = 'high'.
+
+FAIL SIGNS
+  - "F9 error: no DOM" -> you forgot the __page_html__ prefix or sibling.
+  - Diff rejected (applied=false) -> LLM hallucinated; inspect raw diff.
+
+
+================================================================================
+ 2. F11 -- SONARQUBE FIX AUTOMATION
+================================================================================
+
+WHAT IT DOES
+  Ingests SonarQube issues (prefix / JSON export / live API) and emits
+  per-file unified diffs that fix as many issues as the LLM confidently
+  can. Issues sorted by severity; capped at __sonar_top_n__ (default 50).
+
+AGENT KEY
+  sonar_fix_agent
+
+INTAKE CHANNELS (first wins)
+  1. __sonar_issues__<newline><JSON body>    in the Fine-tune prompt
+  2. Source = .json file containing {"issues": [...]}
+  3. Live API:  SONAR_URL + SONAR_TOKEN + SONAR_PROJECT_KEY env vars
+
+OPTIONAL PREFIX
+  __sonar_top_n__=<int>                      cap default 50
+
+UI TEST STEPS -- file mode
+  1. Source = tests\fixtures\wave6b\sonar\issues.json
+  2. Copy the 'src\' directory into the project root (so the source paths
+     in issues.json resolve):
+        xcopy /E /I tests\fixtures\wave6b\sonar\src src
+  3. Tick "SonarQube Fix Automation". Run.
+
+EXPECTED OUTPUTS
+  Reports\<ts>\sonar_fix\patches\app.py + .diff
+  Reports\<ts>\sonar_fix\patches\utils.py + .diff
+  Reports\<ts>\sonar_fix\pr_comment.md
+  Reports\<ts>\sonar_fix\summary.json
+     { files: [...], issues_fixed: [...], issues_deferred: [...] }
+
+PASS CRITERIA
+  [ ] Two patched files emitted (one per source file in issues.json).
+  [ ] summary.json lists every input issue as fixed OR deferred.
+  [ ] With __sonar_top_n__=3, only top 3 severities reach the LLM.
+
+FAIL SIGNS
+  - "F11 error: no issues" -> prefix/file/API all failed. Check env vars
+    or inline the JSON via __sonar_issues__.
+  - Auth error from live API -> verify SONAR_TOKEN has 'Browse' permission
+    on the project.
+
+
+================================================================================
+ 3. F14 -- NL -> SQL / STORED-PROCEDURE GENERATOR
+================================================================================
+
+WHAT IT DOES
+  Generates SQL from a natural-language request using schema information
+  parsed from DDL. PostgreSQL dialect is first-class; other dialects fall
+  back to ANSI-generic with a review note.
+
+AGENT KEY
+  sql_generator
+
+INTAKE
+  Request (required):   __prompt__<newline><NL description>
+  Schema (one of):
+    1. __db_schema__<newline><DDL body>   in the Fine-tune prompt
+    2. Source = .sql / .ddl file
+    3. Sibling schema.sql / schema.ddl next to source
+
+DIALECT SELECTION
+  Sidebar Language = postgres / postgresql / pgsql  -> PostgreSQL
+  anything else / blank                             -> ANSI generic
+
+UI TEST STEPS
+  1. Source = tests\fixtures\wave6b\sql\multi_tenant_schema.sql
+  2. Sidebar -> Language -> type "postgres".
+  3. Advanced / Fine-tune -> System Prompt (Overwrite):
+        __prompt__
+        <paste contents of tests\fixtures\wave6b\sql\order_report_prompt.txt>
+  4. Tick "NL -> SQL Generator". Run.
+
+EXPECTED OUTPUTS
+  Reports\<ts>\sql_generator\patches\query.sql
+  Reports\<ts>\sql_generator\patches\query.sql.diff     (empty -- new file)
+  Reports\<ts>\sql_generator\pr_comment.md
+  Reports\<ts>\sql_generator\summary.json   { dialect, tables_referenced,
+                                               rls_policies_applied }
+
+PASS CRITERIA
+  [ ] query.sql references only tables present in the schema.
+  [ ] In postgres mode, RLS policies on referenced tables are honoured
+      (usually via current_setting() call or explicit WHERE filter).
+  [ ] In non-postgres mode, markdown contains a "review before use" note.
+
+FAIL SIGNS
+  - "F14 error: no prompt" -> forgot __prompt__.
+  - "F14 error: no schema" -> source isn't .sql/.ddl and no sibling found.
+  - "F14 error: LLM returned non-SQL" -> re-run; check Bedrock model id.
+
+
+================================================================================
+ 4. F15 -- AUTO-FIX / PATCH GENERATOR
+================================================================================
+
+WHAT IT DOES
+  Takes a source file and a set of findings (typically from Bug Analysis +
+  Refactoring Advisor) and emits a unified diff that addresses them.
+
+AGENT KEY
+  auto_fix_agent
+
+INTAKE (first wins)
+  1. __findings__<newline><JSON body or markdown>
+  2. Auto-scan Reports\<JOB_REPORT_TS>\bug_analysis\ and
+     Reports\<JOB_REPORT_TS>\refactoring_advisor\ for files whose names
+     include the source's basename
+
+UI TEST STEPS -- chain mode
+  1. Tick Bug Analysis + Auto-Fix Patch Generator together.
+  2. Upload tests\fixtures\wave6b\auto_fix\buggy.py as source.
+  3. Run.
+  -> Bug Analysis writes its findings to Reports\<ts>\bug_analysis\.
+  -> F15 auto-scans that folder and emits a patch addressing them.
+
+UI TEST STEPS -- prefix mode
+  1. Upload buggy.py as source.
+  2. Advanced / Fine-tune -> System Prompt (Overwrite):
+        __findings__
+        <paste contents of bug_analysis_findings.json>
+  3. Tick only "Auto-Fix Patch Generator". Run.
+
+EXPECTED OUTPUTS
+  Reports\<ts>\auto_fix\patches\buggy.py      (patched)
+  Reports\<ts>\auto_fix\patches\buggy.py.diff (unified diff)
+  Reports\<ts>\auto_fix\pr_comment.md
+  Reports\<ts>\auto_fix\summary.json   { findings_addressed: [...], applied }
+
+PASS CRITERIA
+  [ ] Patched file addresses the findings (e.g., zero-check, env var
+      replacement for hardcoded secrets).
+  [ ] summary.json.applied = true  (diff reverse-applied cleanly).
+  [ ] Chain mode: no __findings__ prefix needed; auto-scan picks them up.
+
+
+================================================================================
+ 5. WAVE 6B PRESET -- ONE-CLICK RUN
+================================================================================
+
+After running scripts\seed_wave6b_preset.py:
+
+  1. Tick F9, F11, F14, F15 in the "Code Generation & Fixes" group.
+  2. Advanced / Fine-tune -> Load preset -> "Wave 6B: Code-Gen & Fixes".
+  3. Run.
+
+RE-SEEDING
+  Idempotent -- rerunning the script prints "already exists" and makes
+  no changes.
+
+
+================================================================================
+ 6. JOB_REPORT_TS (generalised from WAVE6A_REPORT_TS)
+================================================================================
+
+The orchestrator sets JOB_REPORT_TS once per run_analysis() call so F5,
+F6, F9, F10, F11, F14, F15 all land in the same Reports\<ts>\ folder.
+
+Back-compat alias: WAVE6A_REPORT_TS is still honoured as a fallback for
+one release. Do NOT set it manually; rely on JOB_REPORT_TS going forward.
+
+Test hook:  set JOB_REPORT_TS before invoking run_analysis to pin a
+specific folder for deterministic test assertions.
+
+
+================================================================================
+ 7. TROUBLESHOOTING
+================================================================================
+
+SYMPTOM                                LIKELY CAUSE / FIX
+------------------------------------   -------------------------------------------
+Feature not visible in sidebar         ENABLED_AGENTS restricts. Set to 'all' or
+                                       add the four Wave 6B keys.
+
+F9 error "no DOM"                      Missing __page_html__ prefix or sibling
+                                       dom.html next to the source.
+
+F9 diff rejected (applied=false)       LLM hallucinated selectors. Inspect raw
+                                       diff in patches\<file>.diff; re-run.
+
+F11 "no issues resolvable"             Prefix/file/API all failed. Check
+                                       SONAR_URL/_TOKEN/_PROJECT_KEY or supply
+                                       __sonar_issues__ / JSON source.
+
+F11 empty pr_comment                   Top-N cap discarded everything. Raise
+                                       __sonar_top_n__ or widen severity.
+
+F14 non-postgres warning               Sidebar Language not set to postgres.
+                                       Set "postgres" to get dialect-specific
+                                       SQL; else expect ANSI generic output.
+
+F15 "no findings"                      Prefix not supplied AND no prior Bug
+                                       Analysis / Refactoring Advisor run in
+                                       the same JOB_REPORT_TS folder.
+
+LLM returned empty/invalid diff        Bedrock credentials or region mis-set;
+                                       rerun; check BEDROCK_MODEL_ID.
+
+END OF FILE
+================================================================================

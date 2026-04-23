@@ -1,0 +1,15 @@
+```diff
+--- a/app.py
++++ b/app.py
+@@ -1,5 +1,7 @@
+ import requests
++import os
+
+
+-DEFAULT_PASSWORD = "hunter2"  # S2068
++DEFAULT_PASSWORD = os.environ.get("APP_DEFAULT_PASSWORD", "")  # S2068 fixed
+@@ -10,5 +12,4 @@
+ def compute(x):
+-    unused = 42  # S1481
+     return x * 2
+```

@@ -1,0 +1,18 @@
+```diff
+--- a/buggy.py
++++ b/buggy.py
+@@ -1,7 +1,11 @@
++import os
++
++
+ def divide(a, b):
++    if b == 0:
++        raise ValueError("b must not be zero")
+     return a / b
+
+
+ def login(password):
+-    secret = "hunter2"
++    secret = os.environ.get("APP_SECRET", "")
+     return password == secret
+```

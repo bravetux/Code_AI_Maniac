@@ -1,0 +1,10 @@
+{
+  "findings": [
+    {"id": "B-1", "line": 2, "severity": "major",
+     "description": "Division by zero not handled",
+     "suggestion": "Add 'if b == 0: raise ValueError' before division"},
+    {"id": "B-2", "line": 6, "severity": "critical",
+     "description": "Hardcoded secret in source code",
+     "suggestion": "Move secret to environment variable"}
+  ]
+}
