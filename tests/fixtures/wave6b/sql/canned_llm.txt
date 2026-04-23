@@ -1,0 +1,12 @@
+```sql
+SELECT
+    t.name AS tenant_name,
+    SUM(o.total) AS revenue
+FROM orders o
+JOIN tenants t ON t.id = o.tenant_id
+WHERE o.placed_at >= '2026-01-01'
+  AND o.placed_at <  '2026-04-01'
+  AND o.tenant_id = current_setting('app.tenant_id')::int
+GROUP BY t.name
+ORDER BY revenue DESC;
+```

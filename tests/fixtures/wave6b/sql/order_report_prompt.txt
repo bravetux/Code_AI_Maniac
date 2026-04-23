@@ -1,0 +1,1 @@
+Total revenue per tenant in Q1 2026 (January through March), ordered by revenue descending. Respect the RLS policy on the orders table.
