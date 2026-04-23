@@ -417,6 +417,9 @@
   <p style="margin-top:6px">
     <a href="mailto:ic19939@gmail.com" style="font-size:15px;color:var(--accent);text-decoration:none">ic19939@gmail.com</a>
   </p>
+  <p style="font-size:12px;color:var(--muted);margin-top:18px">
+    Last updated: 22nd April 2026 &nbsp;&middot;&nbsp; Phase 5 + Wave 6A refresh
+  </p>
 </section>
 
 <!-- ══════════════════════════════════════════════════════
@@ -437,7 +440,7 @@
   </p>
   <div class="card-grid grid-4 mt-28" style="max-width:860px;width:100%">
     <div class="card center">
-      <div style="font-size:36px;font-weight:800;color:var(--accent)">27</div>
+      <div style="font-size:36px;font-weight:800;color:var(--accent)">37</div>
       <div style="font-size:12px;color:var(--muted);margin-top:4px">AI Agents</div>
     </div>
     <div class="card center">
@@ -504,7 +507,7 @@
   </div>
   <div class="card mt-16" style="max-width:800px;border-color:rgba(88,166,255,.3);background:rgba(88,166,255,.05)">
     <p style="font-size:15px;text-align:center">
-      <strong style="color:var(--accent)">27 specialized agents</strong> across code analysis, security, commit analysis, and reporting — orchestrated in a 6-phase pipeline.
+      <strong style="color:var(--accent)">37 specialized agents</strong> across code analysis, security, commit analysis, test generation, and reporting — orchestrated across the core 6-phase pipeline plus the Phase 5 Quick Wins and Phase 6 Wave 6A agent suites.
     </p>
   </div>
 </section>
@@ -536,7 +539,7 @@
   </div>
   <div class="card mt-20" style="max-width:800px;border-color:rgba(88,166,255,.3);background:rgba(88,166,255,.05)">
     <p style="font-size:16px;text-align:center">
-      <strong style="color:var(--accent)">AI Code Maniac</strong> solves this by orchestrating 27 specialized agents that run in parallel — delivering consistent, thorough analysis in under a minute.
+      <strong style="color:var(--accent)">AI Code Maniac</strong> solves this by orchestrating 37 specialized agents that run in parallel — delivering consistent, thorough analysis in under a minute.
     </p>
   </div>
 </section>
@@ -556,7 +559,7 @@
         <li>Accept code from GitHub, Gitea, and local files</li>
         <li>Support single-file, multi-file (up to 50), and folder scan</li>
         <li>Line-range targeting within any file</li>
-        <li>Run up to 27 analysis agents per job</li>
+        <li>Run up to 37 analysis agents per job</li>
         <li>6-phase orchestrated pipeline with dependency awareness</li>
         <li>Dual-phase security gate (Phase 0 regex + Phase 3 LLM)</li>
         <li>Composite result caching by file hash + feature + language + prompt</li>
@@ -645,7 +648,7 @@
     <div class="layer" style="background:rgba(188,140,255,.08);border-color:rgba(188,140,255,.4)">
       <div>
         <div class="layer-name" style="color:var(--purple)">Agent Layer</div>
-        <div style="font-size:13px;color:var(--muted);margin-top:3px">27 specialized agents &middot; cache-check &rarr; Bedrock &rarr; store pattern</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:3px">37 specialized agents &middot; cache-check &rarr; Bedrock &rarr; store pattern</div>
       </div>
       <div class="layer-files">agents/*.py</div>
     </div>
@@ -684,8 +687,8 @@
     </div>
     <div class="phase-arrow" style="font-size:16px;margin-top:30px">&rarr;</div>
     <div class="phase-block" style="background:rgba(31,119,180,.06);border-color:rgba(31,119,180,.5);padding:10px 8px">
-      <div class="phase-title" style="color:#1f77b4;font-size:10px">Phase 1 — Foundation</div>
-      <div style="font-size:10px;color:var(--muted);margin-bottom:6px">13 agents parallel</div>
+      <div class="phase-title" style="color:#1f77b4;font-size:10px">Phase 1 — Code Analysis</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:6px">20 agents parallel</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px">
         <div class="phase-agent" style="font-size:10px;padding:3px 5px">Bug</div>
         <div class="phase-agent" style="font-size:10px;padding:3px 5px">Static</div>
@@ -699,7 +702,14 @@
         <div class="phase-agent" style="font-size:10px;padding:3px 5px">TypeSafe</div>
         <div class="phase-agent" style="font-size:10px;padding:3px 5px">Arch</div>
         <div class="phase-agent" style="font-size:10px;padding:3px 5px">License</div>
-        <div class="phase-agent" style="font-size:10px;padding:3px 5px;grid-column:span 2">ChangeImpact</div>
+        <div class="phase-agent" style="font-size:10px;padding:3px 5px">ChangeImpact</div>
+        <div class="phase-agent" style="font-size:10px;padding:3px 5px">Design</div>
+        <div class="phase-agent" style="font-size:10px;padding:3px 5px">Mermaid</div>
+        <div class="phase-agent" style="font-size:10px;padding:3px 5px">Refactor</div>
+        <div class="phase-agent" style="font-size:10px;padding:3px 5px">APIDoc</div>
+        <div class="phase-agent" style="font-size:10px;padding:3px 5px">Doxygen</div>
+        <div class="phase-agent" style="font-size:10px;padding:3px 5px">CTestGen</div>
+        <div class="phase-agent" style="font-size:10px;padding:3px 5px">Comment</div>
       </div>
     </div>
     <div class="phase-arrow" style="font-size:16px;margin-top:30px">&rarr;</div>
@@ -726,7 +736,7 @@
     </div>
     <div class="phase-arrow" style="font-size:16px;margin-top:30px">&rarr;</div>
     <div class="phase-block" style="background:rgba(188,140,255,.06);border-color:rgba(188,140,255,.5);padding:10px 8px">
-      <div class="phase-title" style="color:var(--purple);font-size:10px">Phase 5 — Report</div>
+      <div class="phase-title" style="color:var(--purple);font-size:10px">Reports</div>
       <div style="font-size:10px;color:var(--muted);margin-bottom:6px">Generation</div>
       <div class="phase-agent" style="font-size:11px;padding:4px 6px">Per-File Report</div>
       <div class="phase-agent" style="font-size:11px;padding:4px 6px">Consolidated</div>
@@ -745,6 +755,32 @@
     </div>
     <div style="font-size:12px;color:var(--muted);flex:1">Independent workflow from the Commit Analysis page — runs outside the 6-phase pipeline.</div>
   </div>
+  <div style="max-width:1000px;margin-top:10px;display:flex;gap:12px;align-items:center">
+    <div class="phase-block" style="background:rgba(63,185,80,.06);border-color:rgba(63,185,80,.5);padding:8px 12px;flex:0 0 auto">
+      <div class="phase-title" style="color:var(--green);font-size:10px">Phase 5 — Quick Wins</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <div class="phase-agent" style="font-size:10px;padding:3px 6px">Unit Test Gen</div>
+        <div class="phase-agent" style="font-size:10px;padding:3px 6px">Story Test Gen</div>
+        <div class="phase-agent" style="font-size:10px;padding:3px 6px">Gherkin Gen</div>
+        <div class="phase-agent" style="font-size:10px;padding:3px 6px">Test Data Gen</div>
+        <div class="phase-agent" style="font-size:10px;padding:3px 6px">Dead Code</div>
+        <div class="phase-agent" style="font-size:10px;padding:3px 6px">API Contract</div>
+        <div class="phase-agent" style="font-size:10px;padding:3px 6px">OpenAPI Gen</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--muted);flex:1">7 agents + webhook server &amp; pre-commit reviewer CLI tools.</div>
+  </div>
+  <div style="max-width:1000px;margin-top:10px;display:flex;gap:12px;align-items:center">
+    <div class="phase-block" style="background:rgba(210,153,34,.06);border-color:rgba(210,153,34,.5);padding:8px 12px;flex:0 0 auto">
+      <div class="phase-title" style="color:var(--orange);font-size:10px">Phase 6 — Wave 6A</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <div class="phase-agent" style="font-size:10px;padding:3px 6px">API Test Gen (F5)</div>
+        <div class="phase-agent" style="font-size:10px;padding:3px 6px">Perf Test Gen (F6)</div>
+        <div class="phase-agent" style="font-size:10px;padding:3px 6px">Traceability (F10)</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--muted);flex:1">3 agents + postman_emitter / load_profile_builder / test_scanner pipeline tools.</div>
+  </div>
 </section>
 
 <!-- ══════════════════════════════════════════════════════
@@ -762,7 +798,7 @@
       <div class="seq-step"><div class="seq-num">3</div><div class="seq-text"><strong>Daemon thread</strong> spawned — UI returns immediately</div></div>
       <div class="seq-step"><div class="seq-num">4</div><div class="seq-text"><strong>Orchestrator</strong> fetches files from local / GitHub / Gitea</div></div>
       <div class="seq-step"><div class="seq-num" style="background:rgba(248,81,73,.15);color:var(--red)">5</div><div class="seq-text"><strong>Phase 0</strong> secret_scanner regex pre-flight — block/redact/warn</div></div>
-      <div class="seq-step"><div class="seq-num">6</div><div class="seq-text"><strong>Phase 1</strong> 13 agents run in parallel threads</div></div>
+      <div class="seq-step"><div class="seq-num">6</div><div class="seq-text"><strong>Phase 1</strong> 20 agents run in parallel threads</div></div>
       <div class="seq-step"><div class="seq-num">7</div><div class="seq-text">Each agent: <strong>check cache &rarr; miss &rarr; Bedrock &rarr; write cache</strong></div></div>
       <div class="seq-step"><div class="seq-num">8</div><div class="seq-text"><strong>Phase 2</strong> receives Phase 1 bug + static + flow context</div></div>
       <div class="seq-step"><div class="seq-num">9</div><div class="seq-text"><strong>Phase 3</strong> generates PR comments + deep secret scan from merged findings</div></div>
@@ -827,7 +863,7 @@ st.<span class="tok-fn">rerun</span>()  <span class="tok-cmt"># &rarr; poll ever
         <div style="display:flex;gap:12px;margin-bottom:14px">
           <div class="mock-metric" style="flex:1"><div class="mock-metric-val" style="color:var(--accent)">124</div><div class="mock-metric-lbl">Total Analyses Run</div></div>
           <div class="mock-metric" style="flex:1"><div class="mock-metric-val" style="color:var(--green)">119</div><div class="mock-metric-lbl">Completed</div></div>
-          <div class="mock-metric" style="flex:1"><div class="mock-metric-val" style="color:var(--purple)">27</div><div class="mock-metric-lbl">Agents Available</div></div>
+          <div class="mock-metric" style="flex:1"><div class="mock-metric-val" style="color:var(--purple)">37</div><div class="mock-metric-lbl">Agents Available</div></div>
         </div>
         <div style="font-size:13px;font-weight:600;margin-bottom:6px">Recent Jobs</div>
         <table class="mock-table">
@@ -1541,7 +1577,7 @@ print(user.name)</div>
 <section class="slide center" id="s22">
   <div class="slide-number">22 / 31</div>
   <div class="tag tag-blue">Agent Catalog</div>
-  <h2 class="grad-blue">17 More Specialized Agents</h2>
+  <h2 class="grad-blue">More Specialized Agents &amp; Phase 5 / Wave 6A Additions</h2>
   <div class="divider div-blue"></div>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:16px;max-width:960px;width:100%">
     <div class="card" style="padding:12px 14px">
@@ -1611,6 +1647,46 @@ print(user.name)</div>
     <div class="card" style="padding:12px 14px">
       <div style="font-size:14px;font-weight:600;margin-bottom:4px">&#128200; Churn Analysis</div>
       <div style="font-size:11px;color:var(--muted)">Hot files, change frequency, stability metrics</div>
+    </div>
+    <div class="card" style="padding:12px 14px;border-color:rgba(63,185,80,.3)">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">&#129514; Unit Test Generator <span class="badge badge-minor">P5</span></div>
+      <div style="font-size:11px;color:var(--muted)">pytest / JUnit test cases from function signatures and behaviour</div>
+    </div>
+    <div class="card" style="padding:12px 14px;border-color:rgba(63,185,80,.3)">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">&#128221; Story Test Generator <span class="badge badge-minor">P5</span></div>
+      <div style="font-size:11px;color:var(--muted)">User-story driven integration test scaffolds</div>
+    </div>
+    <div class="card" style="padding:12px 14px;border-color:rgba(63,185,80,.3)">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">&#129442; Gherkin Generator <span class="badge badge-minor">P5</span></div>
+      <div style="font-size:11px;color:var(--muted)">BDD feature files with Given/When/Then scenarios</div>
+    </div>
+    <div class="card" style="padding:12px 14px;border-color:rgba(63,185,80,.3)">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">&#128202; Test Data Generator <span class="badge badge-minor">P5</span></div>
+      <div style="font-size:11px;color:var(--muted)">Synthetic fixtures, edge-case payloads, boundary values</div>
+    </div>
+    <div class="card" style="padding:12px 14px;border-color:rgba(63,185,80,.3)">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">&#129531; Dead Code Detector <span class="badge badge-minor">P5</span></div>
+      <div style="font-size:11px;color:var(--muted)">Unused imports, unreachable branches, orphan functions</div>
+    </div>
+    <div class="card" style="padding:12px 14px;border-color:rgba(63,185,80,.3)">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">&#128279; API Contract Checker <span class="badge badge-minor">P5</span></div>
+      <div style="font-size:11px;color:var(--muted)">Drift between OpenAPI spec and implemented handlers</div>
+    </div>
+    <div class="card" style="padding:12px 14px;border-color:rgba(63,185,80,.3)">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">&#128214; OpenAPI Generator <span class="badge badge-minor">P5</span></div>
+      <div style="font-size:11px;color:var(--muted)">Emits OpenAPI 3.x specs from annotated source</div>
+    </div>
+    <div class="card" style="padding:12px 14px;border-color:rgba(210,153,34,.3)">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">&#128268; API Test Generator <span class="badge badge-major">W6A &middot; F5</span></div>
+      <div style="font-size:11px;color:var(--muted)">Postman collections from OpenAPI spec &middot; happy + edge cases</div>
+    </div>
+    <div class="card" style="padding:12px 14px;border-color:rgba(210,153,34,.3)">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">&#128293; Perf Test Generator <span class="badge badge-major">W6A &middot; F6</span></div>
+      <div style="font-size:11px;color:var(--muted)">Locust / k6 load profiles with ramp, soak and spike stages</div>
+    </div>
+    <div class="card" style="padding:12px 14px;border-color:rgba(210,153,34,.3)">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">&#128279; Traceability Matrix <span class="badge badge-major">W6A &middot; F10</span></div>
+      <div style="font-size:11px;color:var(--muted)">Requirements &harr; stories &harr; tests coverage map via test_scanner</div>
     </div>
   </div>
 </section>
@@ -1975,7 +2051,7 @@ key = SHA256(
         <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px">Performance Impact</div>
         <div style="font-size:13px;display:flex;flex-direction:column;gap:5px">
           <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Cache hit (all features)</span><span style="color:var(--green)">&lt; 1 second</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Small file, all 27 agents</span><span style="color:var(--orange)">20 - 60 sec</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Small file, all 37 agents</span><span style="color:var(--orange)">20 - 60 sec</span></div>
           <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Large file (chunked)</span><span style="color:var(--orange)">60 - 180 sec</span></div>
           <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Multi-file (10 files)</span><span style="color:var(--red)">2 - 10 min</span></div>
         </div>
@@ -2093,7 +2169,7 @@ conn.<span class="tok-fn">execute</span>(
         </div>
         <div style="background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.3);border-radius:6px;width:80%;padding:8px;text-align:center;font-size:13px">
           <div style="color:var(--green);font-weight:600">Unit Tests (mocked LLM)</div>
-          <div style="font-size:11px;color:var(--muted)">27 agents &middot; chunk_file &middot; queries &middot; tools</div>
+          <div style="font-size:11px;color:var(--muted)">37 agents &middot; chunk_file &middot; queries &middot; tools</div>
         </div>
         <div style="background:rgba(188,140,255,.1);border:1px solid rgba(188,140,255,.3);border-radius:6px;width:100%;padding:8px;text-align:center;font-size:13px">
           <div style="color:var(--purple);font-weight:600">Config &amp; Foundation Tests</div>
@@ -2179,7 +2255,7 @@ conn.<span class="tok-fn">execute</span>(
   <h2 class="grad-blue" style="font-size:42px">AI Code Maniac at a Glance</h2>
   <div class="divider div-blue"></div>
   <div class="card-grid grid-4 mt-20" style="max-width:900px">
-    <div class="big-stat"><div class="big-stat-num grad-blue">27</div><div class="big-stat-lbl">Specialized<br>AI Agents</div></div>
+    <div class="big-stat"><div class="big-stat-num grad-blue">37</div><div class="big-stat-lbl">Specialized<br>AI Agents</div></div>
     <div class="big-stat"><div class="big-stat-num grad-green">6</div><div class="big-stat-lbl">Orchestrated<br>Pipeline Phases</div></div>
     <div class="big-stat"><div class="big-stat-num grad-purple">9</div><div class="big-stat-lbl">DuckDB<br>Tables</div></div>
     <div class="big-stat"><div class="big-stat-num grad-orange">156</div><div class="big-stat-lbl">Automated<br>Tests</div></div>
@@ -2188,7 +2264,7 @@ conn.<span class="tok-fn">execute</span>(
     <div class="card center" style="border-color:rgba(88,166,255,.3)">
       <div style="font-size:22px;margin-bottom:8px">&#9889;</div>
       <div style="font-size:14px;font-weight:700;color:var(--accent);margin-bottom:5px">Parallel &amp; Cached</div>
-      <p style="font-size:12px">Phase 1 runs 13 agents in parallel. SHA-256 cache eliminates redundant Bedrock calls on unchanged files.</p>
+      <p style="font-size:12px">Phase 1 runs 20 agents in parallel. SHA-256 cache eliminates redundant Bedrock calls on unchanged files.</p>
     </div>
     <div class="card center" style="border-color:rgba(63,185,80,.3)">
       <div style="font-size:22px;margin-bottom:8px">&#128279;</div>
