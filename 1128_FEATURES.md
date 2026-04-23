@@ -6,13 +6,14 @@ Backlog of features to add to the AI Code Maniac platform (agent 1128) so it can
 
 Feature IDs match column I of that sheet — every tagged row points to one or more `F#` below.
 
-## Current capabilities (37 agents, for context)
+## Current capabilities (41 agents, for context)
 
 **Phase 1 — Code Analysis:** Bug Analysis · Static Analysis · Code Flow · Requirements · Dependency Analysis · Code Complexity · Test Coverage · Duplication Detection · Performance Analysis · Type Safety · Architecture Mapper · License Compliance · Change Impact · Doxygen Docs · C Test Generator
 **Phase 2:** Code Design · Mermaid · Refactoring Advisor · API Doc Generator · PR Comments
 **Phase 3–4 — Security:** Secret Scan · Threat Model
 **Phase 5 — Quick wins (7 agents):** Unit Test Generator · Story-to-TestCase · BDD/Gherkin · Test Data Generator · Dead Code Detector · API Contract Checker · OpenAPI Generator (plus tools F20 CI/CD Webhook · F21 Pre-Commit Reviewer)
 **Phase 6 Wave 6A (3 agents):** API Test Generator · Perf/Load Test Generator · Traceability Matrix
+**Phase 6 Wave 6B (4 agents):** Self-Healing Test Agent · SonarQube Fix Automation · NL→SQL Generator · Auto-Fix Patch Generator (plus tool patch_emitter shared across the four)
 **Commit Analysis:** Commit Analysis · Release Notes · Developer Activity · Commit Hygiene · Churn Analysis
 
 The existing stack is strong on **analysis & reporting**. The gap is in **generation, modernization, and test authoring**, plus **pipeline-triggered execution**.
@@ -31,9 +32,9 @@ The existing stack is strong on **analysis & reporting**. The gap is in **genera
 | F6 | **Performance / Load Test Script Generator** — JMeter / Gatling; LoadRunner→JMeter migrator | 7 | ✅ **SHIPPED (Phase 6 Wave 6A)** as `agents/perf_test_generator.py` + `tools/load_profile_builder.py` |
 | F7 | **Cross-Browser & Visual Regression Agent** — DOM/screenshot diff across browsers | 5 | Needs headless browser tool |
 | F8 | **Test Data Generator** — synthetic, rule-based, boundary, negative, PII-safe | 17 | ✅ **SHIPPED (Phase 5)** as `agents/test_data_generator.py` |
-| F9 | **Test Maintenance / Self-Healing Agent** — rewrites scripts when selectors/mapping docs change | 4 |   |
+| F9 | **Test Maintenance / Self-Healing Agent** — rewrites scripts when selectors/mapping docs change | 4 | ✅ **SHIPPED (Phase 6 Wave 6B)** as `agents/self_healing_agent.py` + shared `tools/patch_emitter.py` |
 | F10 | **Traceability Matrix + Coverage Gap Finder** — stories ↔ tests ↔ defects | 8 | Builds on `test_coverage` — ✅ **SHIPPED (Phase 6 Wave 6A)** as `agents/traceability_matrix.py` + `tools/test_scanner.py` |
-| F11 | **SonarQube Fix Automation** — ingest Sonar issues → PR with patches | 5 | Pairs with F15 |
+| F11 | **SonarQube Fix Automation** — ingest Sonar issues → PR with patches | 5 | Pairs with F15 — ✅ **SHIPPED (Phase 6 Wave 6B)** as `agents/sonar_fix_agent.py` + `tools/sonar_fetcher.py` + shared `tools/patch_emitter.py` |
 | F12 | **Defect Analytics & Triage** — cluster defects, RCA, trend reports | 7 |   |
 
 ## B. Code Generation from Intent
@@ -41,8 +42,8 @@ The existing stack is strong on **analysis & reporting**. The gap is in **genera
 | ID | Feature | UCs | Notes |
 |---|---|---:|---|
 | F13 | **Code-from-Prompt Generator** — multi-language, framework-aware (React / Spring / PEGA / PySpark / ABAP / RAML) | 45 | Catch-all for "generate X from prompt" UCs |
-| F14 | **NL → SQL / Stored-Procedure Generator** — schema-aware, RLS-aware | 6 | Aligns with AWS QuickSight Q direction |
-| F15 | **Auto-Fix / Patch Generator** — produce the actual PR diff, not just "suggestions" | 19 | Natural extension of existing Bug Analysis + Refactoring Advisor |
+| F14 | **NL → SQL / Stored-Procedure Generator** — schema-aware, RLS-aware | 6 | Aligns with AWS QuickSight Q direction — ✅ **SHIPPED (Phase 6 Wave 6B)** as `agents/sql_generator.py` + `tools/ddl_parser.py` + shared `tools/patch_emitter.py` |
+| F15 | **Auto-Fix / Patch Generator** — produce the actual PR diff, not just "suggestions" | 19 | Natural extension of existing Bug Analysis + Refactoring Advisor (both now emit `findings.json` sidecars) — ✅ **SHIPPED (Phase 6 Wave 6B)** as `agents/auto_fix_agent.py` + shared `tools/patch_emitter.py` |
 | F16 | **Green-Code / Sustainability Advisor** — energy / resource hotspots + rewrites | 2 |   |
 | F17 | **Dead-Code / Unused-Symbol Detector** — cross-repo, multi-language | 3 | Complements existing `duplication_detection` — ✅ **SHIPPED (Phase 5)** as `agents/dead_code_detector.py` |
 | F18 | **Code Optimizer Agent** — perf + readability rewrites (e.g., Java response-time) | 15 | Beyond Refactoring Advisor — outputs full rewritten files |
@@ -89,7 +90,9 @@ The existing stack is strong on **analysis & reporting**. The gap is in **genera
 
 **Phase 5 — Quick wins (reuse existing infra):** F1, F2, F3, F8, F17, F20, F21, F24, F37 — ✅ **SHIPPED**
 **Phase 6 Wave 6A — Spec-driven test gen + traceability:** F5, F6, F10 — ✅ **SHIPPED**
-**Phase 6 Waves 6B / 6C (pending) — Medium lift:** F11, F13, F14, F15, F9 (6B); F4, F22, F23 (6C)
+**Phase 6 Wave 6B — Code generation & fixes:** F9, F11, F14, F15 — ✅ **SHIPPED**
+**Phase 6 Wave 6B-deferred:** F13 (Code-from-Prompt, 6 frameworks — its own future spec)
+**Phase 6 Wave 6C (pending) — Medium lift:** F4, F22, F23
 **Phase 7 — Heavy lift (net-new tools):** F7, F12, F25
 **Phase 8 — Modernization pack:** F26 – F34 *(separate orchestrator profile — different inputs/outputs from daily code review)*
 **Phase 9 — Design-doc pack:** F35, F36 *(RAG-heavy — candidate for joint work with agent 887)*
