@@ -56,6 +56,11 @@ from agents.openapi_generator import run_openapi_generator
 from agents.api_test_generator import run_api_test_generator
 from agents.perf_test_generator import run_perf_test_generator
 from agents.traceability_matrix import run_traceability_matrix
+# Phase 6 — Wave 6B
+from agents.self_healing_agent import run_self_healing_agent
+from agents.sonar_fix_agent import run_sonar_fix_agent
+from agents.sql_generator import run_sql_generator
+from agents.auto_fix_agent import run_auto_fix_agent
 from agents.secret_scan import run_secret_scan
 from agents.threat_model import run_threat_model
 from agents.report_per_file import generate_per_file_report
@@ -191,7 +196,10 @@ def _run_features_for_file(conn, job_id, file_info, features, language,
                           "openapi_generator",
                           # Phase 6 — Wave 6A
                           "api_test_generator", "perf_test_generator",
-                          "traceability_matrix")
+                          "traceability_matrix",
+                          # Phase 6 — Wave 6B
+                          "self_healing_agent", "sonar_fix_agent",
+                          "sql_generator", "auto_fix_agent")
               if f in feat_set]
 
     if phase1:
@@ -225,6 +233,11 @@ def _run_features_for_file(conn, job_id, file_info, features, language,
         "api_test_generator":    run_api_test_generator,
         "perf_test_generator":   run_perf_test_generator,
         "traceability_matrix":   run_traceability_matrix,
+        # Phase 6 — Wave 6B
+        "self_healing_agent":    run_self_healing_agent,
+        "sonar_fix_agent":       run_sonar_fix_agent,
+        "sql_generator":         run_sql_generator,
+        "auto_fix_agent":        run_auto_fix_agent,
     }
 
     for feat in phase1:
@@ -425,7 +438,9 @@ def run_analysis(conn: duckdb.DuckDBPyConnection, job_id: str) -> dict:
 
     # Share one timestamp across all agents in this job so F5/F6/F10 land in
     # the same Reports/<ts>/ folder and F10's auto-scan picks up F5+F6 artefacts.
-    os.environ["WAVE6A_REPORT_TS"] = datetime.now().strftime("%Y%m%d_%H%M%S")
+    _job_ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    os.environ["JOB_REPORT_TS"] = _job_ts
+    os.environ["WAVE6A_REPORT_TS"] = _job_ts  # back-compat alias — deprecate next release
 
     update_job_status(conn, job_id, "running")
 
@@ -499,7 +514,9 @@ def run_analysis(conn: duckdb.DuckDBPyConnection, job_id: str) -> dict:
             _per_file_data = per_file
 
         try:
-            ts = os.environ.get("WAVE6A_REPORT_TS") or datetime.now().strftime("%Y%m%d_%H%M%S")
+            ts = (os.environ.get("JOB_REPORT_TS")
+                  or os.environ.get("WAVE6A_REPORT_TS")
+                  or datetime.now().strftime("%Y%m%d_%H%M%S"))
             reports_dir = os.path.join("Reports", ts)
             saved = _generate_reports(
                 conn, job_id, _per_file_data, features,

@@ -67,6 +67,11 @@ ALL_AGENTS: frozenset[str] = frozenset({
     "api_test_generator",       # F5
     "perf_test_generator",      # F6
     "traceability_matrix",      # F10
+    # Phase 6 — Wave 6B
+    "self_healing_agent",       # F9
+    "sonar_fix_agent",          # F11
+    "sql_generator",            # F14
+    "auto_fix_agent",           # F15
 })
 
 
