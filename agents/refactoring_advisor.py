@@ -146,4 +146,54 @@ def run_refactoring_advisor(conn: duckdb.DuckDBPyConnection, job_id: str,
                 language=language, custom_prompt=custom_prompt, result=result)
     add_history(conn, job_id=job_id, feature=_CACHE_KEY, source_ref=file_path,
                 language=language, summary=summary)
+
+    # Emit findings.json sidecar under Reports/<ts>/refactoring_advisor/ so
+    # F15's zero-config chain mode can auto-scan our output. This agent only
+    # produces markdown today, so we best-effort parse the "Code Smell
+    # Inventory" table for structured findings. Advisory only — never fail
+    # the main result.
+    try:
+        import os as _os
+        import re as _re
+        from datetime import datetime as _dt
+        _ts = (_os.environ.get("JOB_REPORT_TS")
+               or _os.environ.get("WAVE6A_REPORT_TS")
+               or _dt.now().strftime("%Y%m%d_%H%M%S"))
+        _sidecar_dir = _os.path.join("Reports", _ts, "refactoring_advisor")
+        _os.makedirs(_sidecar_dir, exist_ok=True)
+        _sidecar_path = _os.path.join(
+            _sidecar_dir,
+            _os.path.splitext(_os.path.basename(file_path))[0] + ".json",
+        )
+        # Best-effort parse of inventory rows of the form:
+        # | 1 | Long Method | lines 10-40 | Major | Extract Method |
+        _findings = []
+        _sev_map = {"critical": "critical", "major": "major", "minor": "minor",
+                    "high": "critical", "medium": "major", "low": "minor"}
+        for _idx, _line in enumerate(markdown.splitlines()):
+            _m = _re.match(r"^\s*\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*$", _line)
+            if not _m:
+                continue
+            _num, _smell, _loc, _sev, _refac = _m.groups()
+            if _smell.lower().strip() in ("smell", "---", ""):
+                continue
+            _line_num = None
+            _lm = _re.search(r"(\d+)", _loc)
+            if _lm:
+                try:
+                    _line_num = int(_lm.group(1))
+                except ValueError:
+                    _line_num = None
+            _findings.append({
+                "id": f"R-{len(_findings) + 1}",
+                "line": _line_num,
+                "severity": _sev_map.get(_sev.strip().lower(), "minor"),
+                "description": f"{_smell.strip()} at {_loc.strip()}",
+                "suggestion": _refac.strip(),
+            })
+        with open(_sidecar_path, "w", encoding="utf-8") as _fh:
+            json.dump({"findings": _findings}, _fh, indent=2)
+    except Exception:  # pragma: no cover — sidecar is advisory
+        pass
+
     return result
