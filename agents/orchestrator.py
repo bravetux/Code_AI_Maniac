@@ -45,6 +45,17 @@ from agents.refactoring_advisor import run_refactoring_advisor
 from agents.api_doc_generator import run_api_doc_generator
 from agents.doxygen_agent import run_doxygen
 from agents.c_test_generator import run_c_test_generator
+from agents.unit_test_generator import run_unit_test_generator
+from agents.story_test_generator import run_story_test_generator
+from agents.gherkin_generator import run_gherkin_generator
+from agents.test_data_generator import run_test_data_generator
+from agents.dead_code_detector import run_dead_code_detector
+from agents.api_contract_checker import run_api_contract_checker
+from agents.openapi_generator import run_openapi_generator
+# Phase 6 — Wave 6A
+from agents.api_test_generator import run_api_test_generator
+from agents.perf_test_generator import run_perf_test_generator
+from agents.traceability_matrix import run_traceability_matrix
 from agents.secret_scan import run_secret_scan
 from agents.threat_model import run_threat_model
 from agents.report_per_file import generate_per_file_report
@@ -172,7 +183,15 @@ def _run_features_for_file(conn, job_id, file_info, features, language,
                           "dependency_analysis", "code_complexity", "test_coverage",
                           "duplication_detection", "performance_analysis", "type_safety",
                           "architecture_mapper", "license_compliance", "change_impact",
-                          "doxygen", "c_test_generator")
+                          "doxygen", "c_test_generator",
+                          # Phase 5 — Quick wins (no cross-agent dependencies)
+                          "unit_test_generator", "story_test_generator",
+                          "gherkin_generator", "test_data_generator",
+                          "dead_code_detector", "api_contract_checker",
+                          "openapi_generator",
+                          # Phase 6 — Wave 6A
+                          "api_test_generator", "perf_test_generator",
+                          "traceability_matrix")
               if f in feat_set]
 
     if phase1:
@@ -194,6 +213,18 @@ def _run_features_for_file(conn, job_id, file_info, features, language,
         "change_impact":         run_change_impact,
         "doxygen":               run_doxygen,
         "c_test_generator":      run_c_test_generator,
+        # Phase 5 — Quick wins
+        "unit_test_generator":   run_unit_test_generator,
+        "story_test_generator":  run_story_test_generator,
+        "gherkin_generator":     run_gherkin_generator,
+        "test_data_generator":   run_test_data_generator,
+        "dead_code_detector":    run_dead_code_detector,
+        "api_contract_checker":  run_api_contract_checker,
+        "openapi_generator":     run_openapi_generator,
+        # Phase 6 — Wave 6A
+        "api_test_generator":    run_api_test_generator,
+        "perf_test_generator":   run_perf_test_generator,
+        "traceability_matrix":   run_traceability_matrix,
     }
 
     for feat in phase1:
@@ -392,6 +423,10 @@ def run_analysis(conn: duckdb.DuckDBPyConnection, job_id: str) -> dict:
     if not job:
         raise ValueError(f"Job {job_id} not found")
 
+    # Share one timestamp across all agents in this job so F5/F6/F10 land in
+    # the same Reports/<ts>/ folder and F10's auto-scan picks up F5+F6 artefacts.
+    os.environ["WAVE6A_REPORT_TS"] = datetime.now().strftime("%Y%m%d_%H%M%S")
+
     update_job_status(conn, job_id, "running")
 
     enabled  = get_settings().enabled_agent_set
@@ -464,7 +499,7 @@ def run_analysis(conn: duckdb.DuckDBPyConnection, job_id: str) -> dict:
             _per_file_data = per_file
 
         try:
-            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            ts = os.environ.get("WAVE6A_REPORT_TS") or datetime.now().strftime("%Y%m%d_%H%M%S")
             reports_dir = os.path.join("Reports", ts)
             saved = _generate_reports(
                 conn, job_id, _per_file_data, features,

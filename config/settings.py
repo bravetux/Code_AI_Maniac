@@ -53,6 +53,20 @@ ALL_AGENTS: frozenset[str] = frozenset({
     "secret_scan",
     "dependency_analysis",
     "threat_model",
+    # Phase 5 — Quick wins
+    "unit_test_generator",      # F1
+    "story_test_generator",     # F2
+    "gherkin_generator",        # F3
+    "test_data_generator",      # F8
+    "dead_code_detector",       # F17
+    "api_contract_checker",     # F24
+    "openapi_generator",        # F37
+    # F20 (CI/CD webhook) and F21 (pre-commit reviewer) are CLI/server tools
+    # — they do not run as per-file agents in the orchestrator.
+    # Phase 6 — Wave 6A
+    "api_test_generator",       # F5
+    "perf_test_generator",      # F6
+    "traceability_matrix",      # F10
 })
 
 

@@ -1,0 +1,54 @@
+# Virtual envs
+venv/
+.venv/
+env/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Python caches
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local secrets / runtime data (mount as volumes instead)
+.env
+.env.local
+data/
+Reports/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Node (eslint config local)
+node_modules/
+
+# Docs / assets not needed at runtime
+docs/
+screenshot_home.png
+*.md
+!README.md
+
+# Tests not needed in image
+tests/
+
+# Build artefacts
+build/
+dist/
+*.egg-info/
+
+# Claude / tooling local state
+.claude/
+memory/

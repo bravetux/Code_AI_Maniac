@@ -1,0 +1,9 @@
+Build an order-management API supporting create, list, get-by-id, and cancel.
+
+Acceptance Criteria:
+ - Orders have: id, customer_email, total, status (one of pending, paid, cancelled).
+ - POST /orders creates a new order; returns 201 with the created resource.
+ - GET /orders lists all orders, supports pagination via ?page and ?size.
+ - GET /orders/{id} returns 200 with the order, or 404 if unknown.
+ - POST /orders/{id}/cancel transitions a pending/paid order to cancelled; returns 409 if already cancelled.
+ - Expected steady-state traffic: 500 requests/second during business hours.
