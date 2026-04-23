@@ -35,13 +35,13 @@ p { margin: 0.5em 0; }
 <h2>Project Stats Summary</h2>
 <table>
 <tr><th>Metric</th><th>Value</th></tr>
-<tr><td>Total Python files</td><td>150</td></tr>
-<tr><td>Total lines of Python code</td><td>~27,441</td></tr>
-<tr><td>Agents + tools Python files</td><td>70 (~11,267 lines)</td></tr>
-<tr><td>Total test files</td><td>37</td></tr>
-<tr><td>Total documentation lines</td><td>~18,209</td></tr>
-<tr><td>Total commits</td><td>108</td></tr>
-<tr><td>Git insertions</td><td>80,270</td></tr>
+<tr><td>Total Python files</td><td>170</td></tr>
+<tr><td>Total lines of Python code</td><td>~30,500</td></tr>
+<tr><td>Agents + tools Python files</td><td>77 (~12,953 lines)</td></tr>
+<tr><td>Total test files</td><td>45</td></tr>
+<tr><td>Total documentation lines</td><td>~18,800</td></tr>
+<tr><td>Total commits</td><td>124</td></tr>
+<tr><td>Git insertions</td><td>89,118</td></tr>
 <tr><td>Config/infra files</td><td>7+</td></tr>
 </table>
 <hr>
@@ -97,6 +97,14 @@ p { margin: 0.5em 0; }
 <tr><td></td><td><em>tools/postman_emitter.py</em></td><td>Collection serialiser</td><td>—</td><td>1</td><td>—</td></tr>
 <tr><td></td><td><em>tools/load_profile_builder.py</em></td><td>Ramp/soak/spike profile DSL</td><td>—</td><td>1.5</td><td>—</td></tr>
 <tr><td></td><td><em>tools/test_scanner.py</em></td><td>Repo-wide pytest discovery for F10</td><td>—</td><td>1.5</td><td>—</td></tr>
+<tr><td><strong>7c</strong></td><td><strong>Phase 6 — Wave 6B (4 agents + 3 pipeline tools)</strong></td><td>Unified-diff patch emission, Selenium/Playwright/Cypress DOM rewriting, SonarQube issue ingestion, PostgreSQL RLS-aware SQL generation, DDL parsing</td><td>12</td><td>88</td><td><strong>100</strong></td></tr>
+<tr><td></td><td><em>self_healing_agent.py (F9)</em></td><td>DOM-aware Selenium/Playwright/Cypress test rewrite</td><td>—</td><td>22</td><td>—</td></tr>
+<tr><td></td><td><em>sonar_fix_agent.py (F11)</em></td><td>SonarQube issue ingestion + PR-ready patches</td><td>—</td><td>22</td><td>—</td></tr>
+<tr><td></td><td><em>sql_generator.py (F14)</em></td><td>NL &rarr; SQL / stored procedure, RLS-aware</td><td>—</td><td>22</td><td>—</td></tr>
+<tr><td></td><td><em>auto_fix_agent.py (F15)</em></td><td>Auto-fix diff from Bug Analysis + Refactoring Advisor findings</td><td>—</td><td>22</td><td>—</td></tr>
+<tr><td></td><td><em>tools/patch_emitter.py</em></td><td>Shared unified-diff emitter (CRLF / empty-base / no-newline edge cases)</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td></td><td><em>tools/sonar_fetcher.py</em></td><td>Sonar REST API fetcher + JSON export parser</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td></td><td><em>tools/ddl_parser.py</em></td><td>DDL schema parser (incl. NUMERIC(12,2) edge cases)</td><td>—</td><td>—</td><td>—</td></tr>
 <tr><td><strong>8</strong></td><td><strong>Tools Layer</strong></td><td>GitHub API (PyGithub), Gitea API (httpx), file I/O, subprocess</td><td>8</td><td>12</td><td><strong>20</strong></td></tr>
 <tr><td></td><td><em>fetch_github.py (71 lines)</em></td><td>GitHub REST API, token auth</td><td>—</td><td>2</td><td>—</td></tr>
 <tr><td></td><td><em>fetch_gitea.py (80 lines)</em></td><td>Gitea API integration</td><td>—</td><td>2</td><td>—</td></tr>
@@ -132,20 +140,20 @@ p { margin: 0.5em 0; }
 <h2>Grand Total</h2>
 <table>
 <tr><th>Category</th><th>Hours</th></tr>
-<tr><td><strong>Learning</strong></td><td><strong>116</strong></td></tr>
-<tr><td><strong>Implementation</strong></td><td><strong>332</strong></td></tr>
-<tr><td><strong>Total effort</strong></td><td><strong>448 hrs</strong></td></tr>
+<tr><td><strong>Learning</strong></td><td><strong>128</strong></td></tr>
+<tr><td><strong>Implementation</strong></td><td><strong>420</strong></td></tr>
+<tr><td><strong>Total effort</strong></td><td><strong>548 hrs</strong></td></tr>
 </table>
-<blockquote><p>Baseline rows (1–16) retained from the original estimate; Phase 5 Quick Wins (row 7a) adds <strong>122 hrs</strong> and Wave 6A (row 7b) adds <strong>80 hrs</strong> on top of the <strong>246 hr</strong> baseline.</p></blockquote>
+<blockquote><p>Baseline rows (1–16) retained from the original estimate; Phase 5 Quick Wins (row 7a) adds <strong>122 hrs</strong>, Wave 6A (row 7b) adds <strong>80 hrs</strong>, and Wave 6B (row 7c) adds <strong>100 hrs</strong> on top of the <strong>246 hr</strong> baseline.</p></blockquote>
 <hr>
 <h2>Calendar Days Calculation</h2>
 <table>
 <tr><th>Constraint</th><th>Value</th></tr>
 <tr><td>Hours per day</td><td>8 (4 learning + 4 implementation)</td></tr>
-<tr><td>Total hours</td><td>448</td></tr>
-<tr><td><strong>Working days required</strong></td><td><strong>~56 days</strong></td></tr>
-<tr><td>Working weeks (5-day)</td><td><strong>~11.2 weeks</strong></td></tr>
-<tr><td>Calendar weeks (with weekends)</td><td><strong>~13.5 weeks</strong></td></tr>
+<tr><td>Total hours</td><td>548</td></tr>
+<tr><td><strong>Working days required</strong></td><td><strong>~69 days</strong></td></tr>
+<tr><td>Working weeks (5-day)</td><td><strong>~13.7 weeks</strong></td></tr>
+<tr><td>Calendar weeks (with weekends)</td><td><strong>~16.5 weeks</strong></td></tr>
 </table>
 <hr>
 <h2>Phased Timeline (Recommended Order)</h2>
@@ -161,8 +169,9 @@ p { margin: 0.5em 0; }
 <tr><td><strong>Phase 8: Testing + Docs + Polish</strong> (Days 31-31)</td><td>1</td><td>Test suite, README, startup scripts</td></tr>
 <tr><td><strong>Phase 5 Quick Wins: Test-gen + CI hooks</strong> (Days 32-47)</td><td>~16</td><td>7 agents (unit/story/gherkin/test-data/dead-code/api-contract/openapi) + webhook server + pre-commit reviewer</td></tr>
 <tr><td><strong>Phase 6 Wave 6A: API+Perf+Traceability</strong> (Days 48-56)</td><td>~9</td><td>3 agents (api_test_generator F5, perf_test_generator F6, traceability_matrix F10) + postman_emitter / load_profile_builder / test_scanner tools</td></tr>
+<tr><td><strong>Phase 6 Wave 6B: Self-Heal+Sonar+SQL+Auto-Fix</strong> (Days 57-69)</td><td>~13</td><td>4 agents (self_healing_agent F9, sonar_fix_agent F11, sql_generator F14, auto_fix_agent F15) + patch_emitter / sonar_fetcher / ddl_parser tools. F13 deferred.</td></tr>
 </table>
-<blockquote><p><strong>Note:</strong> Phase 8 is compressed — realistically testing &amp; docs would bleed into 2-3 extra days of buffer, making a practical estimate of ~33-35 working days for the original baseline. Phase 5 Quick Wins and Wave 6A add another ~25 working days on top, bringing the cumulative effort to ~56 working days.</p></blockquote>
+<blockquote><p><strong>Note:</strong> Phase 8 is compressed — realistically testing &amp; docs would bleed into 2-3 extra days of buffer, making a practical estimate of ~33-35 working days for the original baseline. Phase 5 Quick Wins, Wave 6A, and Wave 6B add another ~38 working days on top, bringing the cumulative effort to ~69 working days.</p></blockquote>
 <hr>
 <h2>Risk Factors That Could Extend This</h2>
 <table>
@@ -182,16 +191,19 @@ p { margin: 0.5em 0; }
 <tr><td><strong>Baseline — Realistic</strong> (some learning friction)</td><td><strong>35 days</strong></td><td>~7 weeks</td></tr>
 <tr><td><strong>Baseline — Pessimistic</strong> (AWS + Strands issues)</td><td><strong>42 days</strong></td><td>~8.5 weeks</td></tr>
 <tr><td><strong>Baseline + Phase 5 Quick Wins</strong></td><td><strong>~51 days</strong></td><td>~10 weeks</td></tr>
-<tr><td><strong>Baseline + Phase 5 + Wave 6A (current state)</strong></td><td><strong>~56 days</strong></td><td>~11–13.5 weeks</td></tr>
+<tr><td><strong>Baseline + Phase 5 + Wave 6A</strong></td><td><strong>~56 days</strong></td><td>~11–13.5 weeks</td></tr>
+<tr><td><strong>Baseline + Phase 5 + Wave 6A + Wave 6B (current state)</strong></td><td><strong>~69 days</strong></td><td>~13.7–16.5 weeks</td></tr>
 </table>
-<p>For an intermediate Python programmer at <strong>8 hrs/day (4 learning + 4 coding)</strong>, the original baseline would take approximately <strong>7 weeks</strong> to build from scratch. With Phase 5 Quick Wins (7 agents + webhook/pre-commit tooling) and Wave 6A (3 agents + 3 pipeline tools) layered on top, the cumulative effort is approximately <strong>11 weeks</strong> (optimistic) to <strong>13.5 weeks</strong> (calendar, including weekends).</p>
+<p>For an intermediate Python programmer at <strong>8 hrs/day (4 learning + 4 coding)</strong>, the original baseline would take approximately <strong>7 weeks</strong> to build from scratch. With Phase 5 Quick Wins (7 agents + webhook/pre-commit tooling), Wave 6A (3 agents + 3 pipeline tools), and Wave 6B (4 agents + patch_emitter / sonar_fetcher / ddl_parser) layered on top, the cumulative effort is approximately <strong>13.7 weeks</strong> (optimistic) to <strong>16.5 weeks</strong> (calendar, including weekends).</p>
 <hr>
 <h2>Caveats</h2>
 <ul>
 <li><strong>Baseline rows (1–16) were not re-estimated</strong> against the current, enlarged codebase — their hour figures match the original pre-Phase-5 spreadsheet. If you want a fully refreshed estimate, the baseline rows (especially Phase 1 at 20 agents vs the original 4, the Tools layer which has nearly doubled, and Testing which now covers agents that did not exist before) should be re-walked agent by agent.</li>
-<li><strong>Phase 5 &amp; Wave 6A estimates are per-agent averages</strong> (~16 hrs and ~22 hrs respectively). Real dev time was spec + plan + code + tests across 2–3 days per Wave 6A agent. The tool-layer line items (postman_emitter, load_profile_builder, test_scanner, webhook_server, precommit_reviewer, openapi_parser, spec_fetcher) are bundled with their parent agent for simplicity rather than broken out individually.</li>
-<li><strong>Learning hours for Phase 5 / Wave 6A</strong> cover OpenAPI 3.x spec structure, Postman collection schema, Locust / k6 load-profile DSLs, pytest AST scanning, and FastAPI webhook patterns.</li>
-<li><strong>Commit count (108) and insertions (80,270)</strong> are from <code>git log</code> at refresh time (22nd April 2026); cache / DB files are excluded from the Python line count (<code>find agents tools -name '*.py' | xargs wc -l</code> — <code>venv/</code> and <code>Reports/</code> excluded).</li>
+<li><strong>Phase 5 / Wave 6A / Wave 6B estimates are per-agent averages</strong> (~16 hrs, ~22 hrs, and ~22 hrs respectively). Real dev time was spec + plan + code + tests across 2–3 days per Wave 6A/6B agent. The tool-layer line items (postman_emitter, load_profile_builder, test_scanner, webhook_server, precommit_reviewer, openapi_parser, spec_fetcher, patch_emitter, sonar_fetcher, ddl_parser) are bundled with their parent agent(s) for simplicity rather than broken out individually.</li>
+<li><strong>Learning hours for Phase 5 / Wave 6A / Wave 6B</strong> cover OpenAPI 3.x spec structure, Postman collection schema, Locust / k6 load-profile DSLs, pytest AST scanning, FastAPI webhook patterns, unified-diff emission edge cases (CRLF, empty base, trailing newline, bare empty context), DOM-aware selector rewriting for Selenium/Playwright/Cypress, SonarQube REST API surface, and PostgreSQL RLS-aware SQL generation.</li>
+<li><strong>F13 was explicitly deferred</strong> from the Wave 6B scope and is not counted toward either the agent total or the hour estimates.</li>
+<li><strong>Wave 6B introduced the <code>JOB_REPORT_TS</code> env var</strong> (renamed from <code>WAVE6A_REPORT_TS</code>, with a back-compat alias maintained for one release) so all Wave 6A/6B agents share a single <code>Reports/&lt;ts&gt;/</code> folder per job.</li>
+<li><strong>Commit count (124) and insertions (89,118)</strong> are from <code>git log</code> at refresh time (22nd April 2026); cache / DB files are excluded from the Python line count (<code>find agents tools -name '*.py' | xargs wc -l</code> — <code>venv/</code> and <code>Reports/</code> excluded).</li>
 </ul>
 </body>
 </html>

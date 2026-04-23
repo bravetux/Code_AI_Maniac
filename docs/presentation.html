@@ -418,7 +418,7 @@
     <a href="mailto:ic19939@gmail.com" style="font-size:15px;color:var(--accent);text-decoration:none">ic19939@gmail.com</a>
   </p>
   <p style="font-size:12px;color:var(--muted);margin-top:18px">
-    Last updated: 22nd April 2026 &nbsp;&middot;&nbsp; Phase 5 + Wave 6A refresh
+    Last updated: 22nd April 2026 &nbsp;&middot;&nbsp; Phase 5 + Wave 6A + Wave 6B refresh
   </p>
 </section>
 
@@ -440,7 +440,7 @@
   </p>
   <div class="card-grid grid-4 mt-28" style="max-width:860px;width:100%">
     <div class="card center">
-      <div style="font-size:36px;font-weight:800;color:var(--accent)">37</div>
+      <div style="font-size:36px;font-weight:800;color:var(--accent)">41</div>
       <div style="font-size:12px;color:var(--muted);margin-top:4px">AI Agents</div>
     </div>
     <div class="card center">
@@ -507,7 +507,7 @@
   </div>
   <div class="card mt-16" style="max-width:800px;border-color:rgba(88,166,255,.3);background:rgba(88,166,255,.05)">
     <p style="font-size:15px;text-align:center">
-      <strong style="color:var(--accent)">37 specialized agents</strong> across code analysis, security, commit analysis, test generation, and reporting — orchestrated across the core 6-phase pipeline plus the Phase 5 Quick Wins and Phase 6 Wave 6A agent suites.
+      <strong style="color:var(--accent)">41 specialized agents</strong> across code analysis, security, commit analysis, test generation, self-healing, Sonar remediation, NL&rarr;SQL, and reporting — orchestrated across the core 6-phase pipeline plus the Phase 5 Quick Wins and Phase 6 Wave 6A / Wave 6B agent suites.
     </p>
   </div>
 </section>
@@ -539,7 +539,7 @@
   </div>
   <div class="card mt-20" style="max-width:800px;border-color:rgba(88,166,255,.3);background:rgba(88,166,255,.05)">
     <p style="font-size:16px;text-align:center">
-      <strong style="color:var(--accent)">AI Code Maniac</strong> solves this by orchestrating 37 specialized agents that run in parallel — delivering consistent, thorough analysis in under a minute.
+      <strong style="color:var(--accent)">AI Code Maniac</strong> solves this by orchestrating 41 specialized agents that run in parallel — delivering consistent, thorough analysis in under a minute.
     </p>
   </div>
 </section>
@@ -559,7 +559,7 @@
         <li>Accept code from GitHub, Gitea, and local files</li>
         <li>Support single-file, multi-file (up to 50), and folder scan</li>
         <li>Line-range targeting within any file</li>
-        <li>Run up to 37 analysis agents per job</li>
+        <li>Run up to 41 analysis agents per job</li>
         <li>6-phase orchestrated pipeline with dependency awareness</li>
         <li>Dual-phase security gate (Phase 0 regex + Phase 3 LLM)</li>
         <li>Composite result caching by file hash + feature + language + prompt</li>
@@ -648,7 +648,7 @@
     <div class="layer" style="background:rgba(188,140,255,.08);border-color:rgba(188,140,255,.4)">
       <div>
         <div class="layer-name" style="color:var(--purple)">Agent Layer</div>
-        <div style="font-size:13px;color:var(--muted);margin-top:3px">37 specialized agents &middot; cache-check &rarr; Bedrock &rarr; store pattern</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:3px">41 specialized agents &middot; cache-check &rarr; Bedrock &rarr; store pattern</div>
       </div>
       <div class="layer-files">agents/*.py</div>
     </div>
@@ -781,6 +781,18 @@
     </div>
     <div style="font-size:12px;color:var(--muted);flex:1">3 agents + postman_emitter / load_profile_builder / test_scanner pipeline tools.</div>
   </div>
+  <div style="max-width:1000px;margin-top:10px;display:flex;gap:12px;align-items:center">
+    <div class="phase-block" style="background:rgba(248,81,73,.06);border-color:rgba(248,81,73,.5);padding:8px 12px;flex:0 0 auto">
+      <div class="phase-title" style="color:var(--red);font-size:10px">Phase 6 — Wave 6B</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <div class="phase-agent" style="font-size:10px;padding:3px 6px">Self-Healing (F9)</div>
+        <div class="phase-agent" style="font-size:10px;padding:3px 6px">Sonar Fix (F11)</div>
+        <div class="phase-agent" style="font-size:10px;padding:3px 6px">SQL Gen (F14)</div>
+        <div class="phase-agent" style="font-size:10px;padding:3px 6px">Auto-Fix (F15)</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--muted);flex:1">4 agents + patch_emitter / sonar_fetcher / ddl_parser pipeline tools. F13 deferred.</div>
+  </div>
 </section>
 
 <!-- ══════════════════════════════════════════════════════
@@ -863,7 +875,7 @@ st.<span class="tok-fn">rerun</span>()  <span class="tok-cmt"># &rarr; poll ever
         <div style="display:flex;gap:12px;margin-bottom:14px">
           <div class="mock-metric" style="flex:1"><div class="mock-metric-val" style="color:var(--accent)">124</div><div class="mock-metric-lbl">Total Analyses Run</div></div>
           <div class="mock-metric" style="flex:1"><div class="mock-metric-val" style="color:var(--green)">119</div><div class="mock-metric-lbl">Completed</div></div>
-          <div class="mock-metric" style="flex:1"><div class="mock-metric-val" style="color:var(--purple)">37</div><div class="mock-metric-lbl">Agents Available</div></div>
+          <div class="mock-metric" style="flex:1"><div class="mock-metric-val" style="color:var(--purple)">41</div><div class="mock-metric-lbl">Agents Available</div></div>
         </div>
         <div style="font-size:13px;font-weight:600;margin-bottom:6px">Recent Jobs</div>
         <table class="mock-table">
@@ -1577,7 +1589,7 @@ print(user.name)</div>
 <section class="slide center" id="s22">
   <div class="slide-number">22 / 31</div>
   <div class="tag tag-blue">Agent Catalog</div>
-  <h2 class="grad-blue">More Specialized Agents &amp; Phase 5 / Wave 6A Additions</h2>
+  <h2 class="grad-blue">More Specialized Agents &amp; Phase 5 / Wave 6A / Wave 6B Additions</h2>
   <div class="divider div-blue"></div>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:16px;max-width:960px;width:100%">
     <div class="card" style="padding:12px 14px">
@@ -1687,6 +1699,22 @@ print(user.name)</div>
     <div class="card" style="padding:12px 14px;border-color:rgba(210,153,34,.3)">
       <div style="font-size:14px;font-weight:600;margin-bottom:4px">&#128279; Traceability Matrix <span class="badge badge-major">W6A &middot; F10</span></div>
       <div style="font-size:11px;color:var(--muted)">Requirements &harr; stories &harr; tests coverage map via test_scanner</div>
+    </div>
+    <div class="card" style="padding:12px 14px;border-color:rgba(248,81,73,.3)">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">&#129704; Self-Healing Test Agent <span class="badge badge-major">W6B &middot; F9</span></div>
+      <div style="font-size:11px;color:var(--muted)">Rewrites Selenium/Playwright/Cypress tests when selectors break &middot; DOM-aware unified diff</div>
+    </div>
+    <div class="card" style="padding:12px 14px;border-color:rgba(248,81,73,.3)">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">&#128737; SonarQube Fix Automation <span class="badge badge-major">W6B &middot; F11</span></div>
+      <div style="font-size:11px;color:var(--muted)">Ingests Sonar issues (API / JSON / prefix) and writes PR-ready patches &middot; top-N cap</div>
+    </div>
+    <div class="card" style="padding:12px 14px;border-color:rgba(248,81,73,.3)">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">&#128190; NL &rarr; SQL Generator <span class="badge badge-major">W6B &middot; F14</span></div>
+      <div style="font-size:11px;color:var(--muted)">Schema-aware SQL / stored-procedure generator &middot; PostgreSQL-RLS aware &middot; DDL or prefix schema</div>
+    </div>
+    <div class="card" style="padding:12px 14px;border-color:rgba(248,81,73,.3)">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">&#128295; Auto-Fix Patch Generator <span class="badge badge-major">W6B &middot; F15</span></div>
+      <div style="font-size:11px;color:var(--muted)">Consumes Bug Analysis + Refactoring Advisor findings &middot; emits PR-ready diff via patch_emitter</div>
     </div>
   </div>
 </section>
@@ -2051,7 +2079,7 @@ key = SHA256(
         <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px">Performance Impact</div>
         <div style="font-size:13px;display:flex;flex-direction:column;gap:5px">
           <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Cache hit (all features)</span><span style="color:var(--green)">&lt; 1 second</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Small file, all 37 agents</span><span style="color:var(--orange)">20 - 60 sec</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Small file, all 41 agents</span><span style="color:var(--orange)">20 - 60 sec</span></div>
           <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Large file (chunked)</span><span style="color:var(--orange)">60 - 180 sec</span></div>
           <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Multi-file (10 files)</span><span style="color:var(--red)">2 - 10 min</span></div>
         </div>
@@ -2169,7 +2197,7 @@ conn.<span class="tok-fn">execute</span>(
         </div>
         <div style="background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.3);border-radius:6px;width:80%;padding:8px;text-align:center;font-size:13px">
           <div style="color:var(--green);font-weight:600">Unit Tests (mocked LLM)</div>
-          <div style="font-size:11px;color:var(--muted)">37 agents &middot; chunk_file &middot; queries &middot; tools</div>
+          <div style="font-size:11px;color:var(--muted)">41 agents &middot; chunk_file &middot; queries &middot; tools</div>
         </div>
         <div style="background:rgba(188,140,255,.1);border:1px solid rgba(188,140,255,.3);border-radius:6px;width:100%;padding:8px;text-align:center;font-size:13px">
           <div style="color:var(--purple);font-weight:600">Config &amp; Foundation Tests</div>
@@ -2255,7 +2283,7 @@ conn.<span class="tok-fn">execute</span>(
   <h2 class="grad-blue" style="font-size:42px">AI Code Maniac at a Glance</h2>
   <div class="divider div-blue"></div>
   <div class="card-grid grid-4 mt-20" style="max-width:900px">
-    <div class="big-stat"><div class="big-stat-num grad-blue">37</div><div class="big-stat-lbl">Specialized<br>AI Agents</div></div>
+    <div class="big-stat"><div class="big-stat-num grad-blue">41</div><div class="big-stat-lbl">Specialized<br>AI Agents</div></div>
     <div class="big-stat"><div class="big-stat-num grad-green">6</div><div class="big-stat-lbl">Orchestrated<br>Pipeline Phases</div></div>
     <div class="big-stat"><div class="big-stat-num grad-purple">9</div><div class="big-stat-lbl">DuckDB<br>Tables</div></div>
     <div class="big-stat"><div class="big-stat-num grad-orange">156</div><div class="big-stat-lbl">Automated<br>Tests</div></div>
