@@ -34,7 +34,7 @@ from datetime import datetime
 import duckdb
 from strands import Agent
 
-from agents._bedrock import make_bedrock_model, resolve_prompt
+from agents._bedrock import make_bedrock_model, resolve_prompt, _APPEND_PREFIX
 from tools.cache import check_cache, write_cache
 from tools.ddl_parser import parse_ddl
 from tools.patch_emitter import emit as emit_patch
@@ -60,7 +60,6 @@ def _resolve_schema(file_path: str, content: str,
                     custom_prompt: str | None) -> dict:
     # Strip _APPEND_PREFIX wrap if present (F10 UI helper convention)
     working = custom_prompt or ""
-    from agents._bedrock import _APPEND_PREFIX
     if working.startswith(_APPEND_PREFIX):
         working = working[len(_APPEND_PREFIX):]
 
@@ -90,7 +89,6 @@ def _resolve_prompt_text(custom_prompt: str | None) -> str:
     if not custom_prompt:
         return ""
     working = custom_prompt
-    from agents._bedrock import _APPEND_PREFIX
     if working.startswith(_APPEND_PREFIX):
         working = working[len(_APPEND_PREFIX):]
     m = re.search(r"__prompt__\n(.+?)(?=^__\w+__|\Z)",

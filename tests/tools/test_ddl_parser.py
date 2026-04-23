@@ -79,3 +79,23 @@ def test_parse_partial_on_bad_ddl():
     """
     result = parse_ddl(ddl)
     assert any(t["name"] == "good" for t in result["tables"])
+
+
+def test_parse_numeric_with_precision():
+    """Bug 1 regression: columns with parameterised types like NUMERIC(12,2)
+    must be extracted, not silently dropped."""
+    ddl = """
+    CREATE TABLE payments (
+        id INT PRIMARY KEY,
+        amount NUMERIC(12,2) NOT NULL,
+        tax_rate DECIMAL(5,4)
+    );
+    """
+    result = parse_ddl(ddl)
+    assert len(result["tables"]) == 1
+    cols = {c["name"]: c for c in result["tables"][0]["columns"]}
+    # Both parameterised-type columns present
+    assert "amount" in cols
+    assert "tax_rate" in cols
+    assert "NUMERIC" in cols["amount"]["type"].upper()
+    assert cols["amount"]["nullable"] is False  # NOT NULL parses correctly

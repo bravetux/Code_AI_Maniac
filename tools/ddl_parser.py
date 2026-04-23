@@ -51,7 +51,7 @@ _CREATE_POLICY_RE = re.compile(
 
 _COL_RE = re.compile(
     r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s+"
-    r"([A-Za-z][A-Za-z0-9_\(\)\s]*?)"
+    r"([A-Za-z][A-Za-z0-9_\(\),\s]*?)"
     r"(?:\s+(.*))?$",
 )
 _FK_INLINE_RE = re.compile(
