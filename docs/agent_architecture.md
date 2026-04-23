@@ -1,6 +1,6 @@
 # AI Code Maniac — Agent Architecture & Code Flow
 
-**AI Code Maniac** | Updated: 2026-04-22
+**AI Code Maniac** | Updated: 2026-04-22 (Wave 6B refresh)
 
 This document describes the internal architecture of each agent, the orchestration pipeline that coordinates them, and the detailed code flow from user action to rendered result.
 
@@ -44,6 +44,7 @@ This document describes the internal architecture of each agent, the orchestrati
    - 8.5 [Churn Analysis](#85-churn-analysis)
 8A. [Phase 5 Quick Wins (7 agents + 2 CLI/server tools)](#8a-phase-5-quick-wins)
 8B. [Phase 6 Wave 6A — Spec-Driven Test Generation (3 agents)](#8b-phase-6-wave-6a-spec-driven-test-generation)
+8C. [Phase 6 Wave 6B — PR-Ready Code Patching (4 agents)](#8c-phase-6-wave-6b-pr-ready-code-patching)
 9. [Shared Infrastructure](#9-shared-infrastructure)
    - 9.1 [Bedrock Model Factory](#91-bedrock-model-factory)
    - 9.2 [Cache Layer](#92-cache-layer)
@@ -120,7 +121,8 @@ This document describes the internal architecture of each agent, the orchestrati
                  ┌───────────────────────────────────────────────────┐
                  │      PHASE 6 WAVE 6A — Spec-Driven Tests          │
                  │                                                    │
-                 │  ┌─ set WAVE6A_REPORT_TS at run_analysis() start ─┐│
+                 │  ┌─ set JOB_REPORT_TS at run_analysis() start ────┐│
+                 │  │ (WAVE6A_REPORT_TS retained as back-compat alias)│
                  │  │ api_test_generator (F5) → api_tests/           ││
                  │  │   ├─ test_api.py (or .java/.cs/.ts)            ││
                  │  │   └─ api_collection.json (postman_emitter)     ││
@@ -135,9 +137,35 @@ This document describes the internal architecture of each agent, the orchestrati
                  │  │   └─ test_scanner.py walks all frameworks       ││
                  │  └─ all three write under Reports/<shared ts>/ ────┘│
                  └───────────────────────────────────────────────────┘
+                                 ▼
+                 ┌───────────────────────────────────────────────────┐
+                 │   PHASE 6 WAVE 6B — PR-Ready Code Patching        │
+                 │                                                    │
+                 │  ┌─ same Reports/<JOB_REPORT_TS>/ folder as 6A ──┐│
+                 │  │                                                 ││
+                 │  │ self_healing_agent (F9)  → self_healing/        ││
+                 │  │   DOM via __page_html__ or sibling dom.html     ││
+                 │  │                                                 ││
+                 │  │ sonar_fix_agent (F11)    → sonar_fix/           ││
+                 │  │   issues via prefix / sidecar / sonar_fetcher   ││
+                 │  │                                                 ││
+                 │  │ sql_generator (F14)      → sql_generator/       ││
+                 │  │   DDL schema → ddl_parser → NL→SQL LLM call     ││
+                 │  │                                                 ││
+                 │  │ auto_fix_agent (F15)     → auto_fix/            ││
+                 │  │   ▲                                             ││
+                 │  │   │ reads findings.json sidecars from:          ││
+                 │  │   ├─ Reports/<ts>/bug_analysis/                 ││
+                 │  │   └─ Reports/<ts>/refactoring_advisor/          ││
+                 │  │                                                 ││
+                 │  │ every agent → tools/patch_emitter.py (shared)   ││
+                 │  │   emits patches/<file>, .diff, pr_comment.md,   ││
+                 │  │   summary.json per file under its subfolder     ││
+                 │  └─────────────────────────────────────────────────┘│
+                 └───────────────────────────────────────────────────┘
 ```
 
-**Why six phases?**
+**Why six phases (and why split Wave 6A from Wave 6B)?**
 
 - **Phase 0** is regex-based (no LLM cost) and gates subsequent analysis — secrets can be redacted from content before any LLM sees it.
 - **Phase 1** agents are **independent** — they only need raw file content. Running them in parallel maximises throughput and minimises total latency.
@@ -145,7 +173,8 @@ This document describes the internal architecture of each agent, the orchestrati
 - **Phase 3** agents **synthesise** earlier outputs — `comment_generator` combines bug and static perspectives into a unified PR voice; `secret_scan` validates Phase 0 regex findings with LLM intelligence.
 - **Phase 4** (`threat_model`) consumes the widest context — bugs, static issues, secrets, and dependencies — to produce comprehensive security assessments.
 - **Phase 5** adds post-baseline "quick win" generators (tests, fixtures, OpenAPI, dead-code sweep, contract checking). They are registered in `ALL_AGENTS` and dispatched by the orchestrator; two companion tools (`webhook_server.py`, `precommit_reviewer.py`) are CLI/server entrypoints that invoke the orchestrator from outside the UI.
-- **Phase 6 Wave 6A** is spec-driven test generation. F5/F6/F10 share a single `Reports/<ts>/` folder via the `WAVE6A_REPORT_TS` process env var set once at `run_analysis()` entry. F10 leverages this to auto-discover F5's `api_collection.json` and F6's `plan.jmx`/`Simulation.scala` siblings without explicit paths. Deterministic subagents (`postman_emitter`, `load_profile_builder`, `test_scanner`) take load-shape, collection-emission, and test-discovery decisions out of the LLM's hands.
+- **Phase 6 Wave 6A** is spec-driven test generation. F5/F6/F10 share a single `Reports/<ts>/` folder via the `JOB_REPORT_TS` process env var (formerly `WAVE6A_REPORT_TS`, retained as a back-compat alias for one release) set once at `run_analysis()` entry. F10 leverages this to auto-discover F5's `api_collection.json` and F6's `plan.jmx`/`Simulation.scala` siblings without explicit paths. Deterministic subagents (`postman_emitter`, `load_profile_builder`, `test_scanner`) take load-shape, collection-emission, and test-discovery decisions out of the LLM's hands.
+- **Phase 6 Wave 6B** is the PR-ready code-patching wave. F9 (self-healing selectors), F11 (Sonar fixes), F14 (NL→SQL), and F15 (auto-fix from findings) are separated from Wave 6A because the concerns are orthogonal: Wave 6A *generates tests* — its outputs are greenfield files that no reviewer has to approve line-by-line. Wave 6B *modifies existing production code* — every artifact is a unified diff that a human reviewer must sign off on, so the four agents share a different contract (deterministic diff emission via `tools/patch_emitter.py`, per-file `pr_comment.md`, machine-readable `summary.json`). All four share the same `Reports/<JOB_REPORT_TS>/` folder as Wave 6A so that multi-wave runs stay coherent, and F15 specifically auto-reads the `findings.json` sidecars that `bug_analysis` and `refactoring_advisor` write into that same folder.
 
 ---
 
@@ -972,7 +1001,7 @@ Seven agents (registered in `ALL_AGENTS`) + two CLI/server tools (intentionally 
 
 ## 8B. Phase 6 Wave 6A Spec-Driven Test Generation
 
-All three agents share a single `Reports/<ts>/` run folder via the `WAVE6A_REPORT_TS` environment variable (set once per `run_analysis(conn, job_id)` call by the orchestrator). Each agent reads the timestamp via the shared `_report_ts()` helper (fallback to `datetime.now()`).
+All three agents share a single `Reports/<ts>/` run folder via the `JOB_REPORT_TS` environment variable (set once per `run_analysis(conn, job_id)` call by the orchestrator). Each agent reads the timestamp via the shared `_report_ts()` helper with fallback chain `JOB_REPORT_TS` → `WAVE6A_REPORT_TS` (back-compat alias for one release) → `datetime.now()`.
 
 ### 8B.1 API Test Generator (F5)
 
@@ -1008,7 +1037,7 @@ Returns `{markdown, summary, test_code, output_paths}`.
 **Purpose:** Maps acceptance criteria (ACs) from user stories to discovered tests; flags gaps.
 **Inputs:** `__stories__\n<text>` for AC source; optional `__tests_dir__=<path>` override; optional `__src_dir__=<path>` to enable coverage-aware gap analysis.
 **Prompts used:** Batched ambiguous-match prompt (one call for all ambiguous ACs); fallback AC-extraction prompt if deterministic parse fails.
-**Tools consumed:** `tools/test_scanner.py` (zero-LLM — walks pytest/JUnit/xUnit/Jest/Gherkin/Robot/JMeter/Postman); `run_test_coverage` subagent when `__src_dir__` resolves; `_auto_scan_same_run(<WAVE6A_REPORT_TS>)` to discover sibling `api_tests/` and `perf_tests/` folders.
+**Tools consumed:** `tools/test_scanner.py` (zero-LLM — walks pytest/JUnit/xUnit/Jest/Gherkin/Robot/JMeter/Postman); `run_test_coverage` subagent when `__src_dir__` resolves; `_auto_scan_same_run(<JOB_REPORT_TS>)` to discover sibling `api_tests/` and `perf_tests/` folders.
 **Matching algorithm:**
 1. Deterministic Jaccard (threshold ≥ 0.7, stop-words filtered, case-insensitive) — locks confident matches.
 2. Ambiguous ACs (spec §6.2 step 4: no test ≥ 0.5, OR top ∈ [0.5, 0.7), OR two ≥ 0.7 within 0.1 of each other) are passed in **one** batched LLM call.
@@ -1022,6 +1051,57 @@ Reports/<ts>/traceability/
 Returns `{markdown, summary, matrix, gaps}`.
 **Subagent structure:** 0-2 LLM calls + deterministic scanner + optional coverage subagent.
 **Typical invocation:** Sidebar checkbox with stories pasted into extra instructions; commonly co-selected with F5/F6 for full same-run traceability.
+
+---
+
+## 8C. Phase 6 Wave 6B PR-Ready Code Patching
+
+Four agents dispatched from the sidebar UI that share the same `Reports/<JOB_REPORT_TS>/` folder as Wave 6A. Every agent follows the same output contract: the deterministic `tools/patch_emitter.py` shared helper writes a per-file artifact quartet — `patches/<file>` (rewritten content), `patches/<file>.diff` (unified diff), `pr_comment.md` (reviewer-facing), `summary.json` (machine-readable). The LLM's job in every Wave 6B agent is narrow: produce the new content or a diff; all PR-artifact materialisation is deterministic.
+
+### 8C.1 Self-Healing Agent (F9)
+
+**File:** `agents/self_healing_agent.py`
+**Purpose:** Rewrites broken UI test selectors (Selenium, Playwright, Cypress) against a supplied DOM snapshot so flaky tests can self-heal after front-end changes.
+**Inputs:** `content` (the failing UI test source); DOM via `__page_html__\n<html>` prefix or a sibling `dom.html` next to the test file; reserved `__page_url__=<url>` for a future headless-browser fetch integration.
+**Prompts used:** Selector-rewrite prompt — the LLM is shown the original selector + surrounding test code + DOM and asked for the most stable equivalent selector.
+**LLM subagent count:** 1.
+**Pipeline-tool subagents:** `tools/patch_emitter.py` (shared Wave 6B diff emitter).
+**Outputs:** `Reports/<ts>/self_healing/` with the standard patch quartet per rewritten test.
+**Interaction with `patch_emitter`:** `new_content` mode — the agent hands patch_emitter the rewritten test source and lets it compute the diff from the original.
+
+### 8C.2 Sonar Fix Agent (F11)
+
+**File:** `agents/sonar_fix_agent.py`
+**Purpose:** Ingests SonarQube/SonarCloud issues and emits per-file fixes as PR-ready patches.
+**Inputs:** `content` (the file being fixed) plus Sonar issues sourced from one of `__sonar_issues__\n<json>` prefix, a sidecar JSON file, or a live API pull via `tools/sonar_fetcher.py`. Severity-sorted and capped by `__sonar_top_n__=<int>` (default 50).
+**Prompts used:** Per-file fix prompt — one file and its issue cluster are handed to the LLM at a time; the LLM produces the corrected file content.
+**LLM subagent count:** 1 per file being patched (bounded by the top-N grouping).
+**Pipeline-tool subagents:** `tools/sonar_fetcher.py` (optional, dependency-light — stdlib `urllib`, paginates, handles 429 Retry-After); `tools/patch_emitter.py`.
+**Outputs:** `Reports/<ts>/sonar_fix/` with a patch quartet per fixed file.
+**Interaction with `patch_emitter`:** `new_content` mode per file.
+
+### 8C.3 SQL Generator (F14)
+
+**File:** `agents/sql_generator.py`
+**Purpose:** Natural-language → SQL generation with DDL-parsed schema context. PostgreSQL-first, ANSI fallback, RLS-policy aware.
+**Inputs:** Required `__prompt__\n<NL request>` plus DDL schema via `__db_schema__\n<DDL|YAML>`.
+**Prompts used:** SQL-synthesis prompt that receives the canonicalised schema (tables, columns with parameterised numeric types, views, PG RLS policies) and the natural-language request.
+**LLM subagent count:** 1.
+**Pipeline-tool subagents:** `tools/ddl_parser.py` (zero-LLM regex DDL parser); `tools/patch_emitter.py`.
+**Outputs:** `Reports/<ts>/sql_generator/` with `patches/<query>.sql` + `.diff`, `pr_comment.md`, `summary.json`.
+**Interaction with `patch_emitter`:** `new_content` mode — the generated SQL is materialised as a new file artifact so reviewers can diff it against an empty base (or an existing query file when editing).
+
+### 8C.4 Auto Fix Agent (F15)
+
+**File:** `agents/auto_fix_agent.py`
+**Purpose:** Consumes Bug Analysis + Refactoring Advisor findings and emits a unified diff that addresses them.
+**Inputs:** Findings via `__findings__\n<json|md>` prefix OR — when the prefix is absent — auto-scanned from same-run sidecars at `Reports/<ts>/bug_analysis/findings.json` and `Reports/<ts>/refactoring_advisor/findings.json`.
+**Prompts used:** Diff-generation prompt — the LLM receives the original file content + the aggregated findings and is asked to emit a unified diff that resolves them.
+**LLM subagent count:** 1.
+**Pipeline-tool subagents:** `tools/patch_emitter.py` in `diff + base_content` mode — the LLM's diff is handed back with the base file; patch_emitter reverse-applies the diff to validate it against the base before committing the artifact quartet.
+**Existing-agent subagents:** `bug_analysis` (findings.json sidecar) + `refactoring_advisor` (findings.json sidecar; currently a regex-parsed markdown-table sidecar — a structured-output upgrade is tracked as follow-up work).
+**Outputs:** `Reports/<ts>/auto_fix/` with the standard patch quartet.
+**Interaction with `patch_emitter`:** `diff + base_content` mode so the emitter can detect malformed diffs and fall back gracefully (tolerates CRLF bases, bare empty-line hunk context, `\ No newline at end of file` markers, and empty-base `@@ -0,0 @@` hunks).
 
 ---
 
@@ -1208,9 +1288,9 @@ python tools/web_scraper.py https://example.com -o output.txt
 
 ---
 
-### 9.7 Phase 5 and Wave 6A Tools
+### 9.7 Phase 5, Wave 6A, and Wave 6B Tools
 
-Seven tools were added post-baseline. The table separates zero-LLM deterministic subagents (safe to depend on without Bedrock budget impact) from I/O tools (network/filesystem side effects).
+Ten tools were added post-baseline. The table separates zero-LLM deterministic subagents (safe to depend on without Bedrock budget impact) from I/O tools (network/filesystem side effects).
 
 | Tool | Role | LLM-free? | One-line description |
 |---|---|---|---|
@@ -1221,6 +1301,9 @@ Seven tools were added post-baseline. The table separates zero-LLM deterministic
 | `tools/postman_emitter.py` | Subagent | Yes | Deterministic Postman v2.1 collection emitter; F5 uses it every run |
 | `tools/load_profile_builder.py` | Subagent | Yes | Deterministic VU/ramp/steady/think-time/RPS numbers for F6; keeps load-shape decisions out of the LLM |
 | `tools/test_scanner.py` | Subagent | Yes | Multi-framework test discovery (pytest, JUnit, xUnit, Jest, Gherkin, Robot, JMeter, Postman); F10's canonical test inventory |
+| `tools/patch_emitter.py` | Subagent | Yes | **Shared by all 4 Wave 6B agents.** Deterministic unified-diff + PR-artifact emitter. Three modes: `new_content`, `diff + base_content` (reverse-apply-validated), `base + new` (computes diff). Tolerates CRLF bases, bare empty-line hunk context, `\ No newline at end of file` markers, empty-base `@@ -0,0 @@` hunks |
+| `tools/sonar_fetcher.py` | I/O | Yes (LLM-free, dependency-light — stdlib `urllib` only) | F11 live Sonar issue fetcher. Paginates `/api/issues/search`, honours `Retry-After` on HTTP 429, no external dependencies |
+| `tools/ddl_parser.py` | Subagent | Yes | F14 regex DDL parser. Handles `CREATE TABLE` (including parameterised numeric types like `NUMERIC(12,2)`), views, PostgreSQL row-level-security policies |
 
 ---
 
@@ -1274,13 +1357,20 @@ Phase 0: secret_scanner (regex) → redact/block/pass
 | api_test_generator (F5) | 6 Wave 6A | `content` (+ optional `__openapi_spec__` YAML); always emits via `postman_emitter.py`; shares `chunk_file` with F1 |
 | perf_test_generator (F6) | 6 Wave 6A | `content` (+ `__openapi_spec__` or `__mode__requirements`); load shape from `load_profile_builder.py` |
 | traceability_matrix (F10) | 6 Wave 6A | `__stories__` ACs + `test_scanner.py` inventory of sibling `api_tests/` (F5's `api_collection.json`) and `perf_tests/` (F6's `plan.jmx`/`Simulation.scala`); optionally calls `run_test_coverage` subagent when `__src_dir__` resolves |
+| self_healing_agent (F9) | 6 Wave 6B | `content` + DOM via `__page_html__` (or sibling `dom.html`); emits via `tools/patch_emitter.py` to `Reports/<ts>/self_healing/` |
+| sonar_fix_agent (F11) | 6 Wave 6B | `content` + Sonar issues via `__sonar_issues__` / sidecar / live `tools/sonar_fetcher.py` (optional); `__sonar_top_n__` cap; emits via `patch_emitter` to `Reports/<ts>/sonar_fix/` |
+| sql_generator (F14) | 6 Wave 6B | `__prompt__` + `__db_schema__` parsed by `tools/ddl_parser.py`; emits via `patch_emitter` to `Reports/<ts>/sql_generator/` |
+| auto_fix_agent (F15) | 6 Wave 6B | `__findings__` prefix OR sidecars `Reports/<ts>/bug_analysis/findings.json` + `Reports/<ts>/refactoring_advisor/findings.json`; emits via `patch_emitter` (`diff + base_content` mode) to `Reports/<ts>/auto_fix/` |
 
 **Specific cross-dependencies called out:**
 
-- **F10 consumes F5 + F6 via `test_scanner.py`.** Because all three Wave 6A agents share `WAVE6A_REPORT_TS`, F10's `_auto_scan_same_run()` walks sibling subfolders of `Reports/<shared_ts>/` and picks up F5's `api_collection.json` and F6's `plan.jmx` / `Simulation.scala` without an explicit `__tests_dir__` override.
+- **F10 consumes F5 + F6 via `test_scanner.py`.** Because all three Wave 6A agents share `JOB_REPORT_TS` (with `WAVE6A_REPORT_TS` retained as a back-compat alias), F10's `_auto_scan_same_run()` walks sibling subfolders of `Reports/<shared_ts>/` and picks up F5's `api_collection.json` and F6's `plan.jmx` / `Simulation.scala` without an explicit `__tests_dir__` override.
 - **F10 → `run_test_coverage` subagent.** When `__src_dir__=<path>` resolves to a directory, F10 invokes the existing Phase 1 `test_coverage` agent internally to enrich gap analysis with source-coverage data.
 - **F1 and F5 both use `chunk_file`.** Large files hit the same chunker with a 3 000-token budget for unit tests and a similar budget for API tests.
 - **F37 and F24 both use `tools/openapi_parser.py`.** F37 validates its generated YAML; F24 canonicalises the reference spec before diffing.
+- **All 4 Wave 6B agents share `tools/patch_emitter.py`.** Every PR-ready artifact quartet (`patches/<file>`, `patches/<file>.diff`, `pr_comment.md`, `summary.json`) is produced by the same deterministic helper — no agent hand-rolls diff formatting.
+- **F15 auto-scans Bug Analysis + Refactoring Advisor sidecars via `JOB_REPORT_TS`.** Bug Analysis and Refactoring Advisor now write a structured `findings.json` next to their existing markdown output (the Refactoring Advisor sidecar is regex-parsed from its markdown table — structured output is tracked as follow-up). F15's auto-scan walks `Reports/<shared_ts>/bug_analysis/` and `Reports/<shared_ts>/refactoring_advisor/` so co-selecting F15 with the two findings agents produces a fully wired-up patch run without any `__findings__` prefix.
+- **All 7 multi-wave agents (3 Wave 6A + 4 Wave 6B) share `Reports/<JOB_REPORT_TS>/`.** The orchestrator sets `JOB_REPORT_TS` once at `run_analysis()` entry; every consuming agent reads it via `_report_ts()` with the fallback chain `JOB_REPORT_TS` → `WAVE6A_REPORT_TS` → `datetime.now()`.
 
 ---
 
@@ -1528,7 +1618,7 @@ config/settings.py → Settings.enabled_agents (string)
         ▼
 orchestrator.py / feature_selector.py
         │
-        ├─ "all" or "" or "*" → ALL_AGENTS (all 37 — see config/settings.py::ALL_AGENTS)
+        ├─ "all" or "" or "*" → ALL_AGENTS (all 41 — see config/settings.py::ALL_AGENTS)
         │
         └─ "bug_analysis,static_analysis" → {bug_analysis, static_analysis}
                                              (intersected with ALL_AGENTS)
@@ -1539,4 +1629,4 @@ Disabled agents are:
 2. Never called by the orchestrator (condition check before each phase).
 3. Not present in `result_json` (no empty placeholder entries).
 
-`ALL_AGENTS` currently holds **37** keys across Phase 1 Code Analysis (20), Phase 2 Commit Analysis (5), Phase 3-4 Security (2), Phase 5 Quick Wins (7), and Phase 6 Wave 6A (3). The `webhook_server.py` (F20) and `precommit_reviewer.py` (F21) entrypoints are Phase 5 deliverables but intentionally **not** members of `ALL_AGENTS` — they invoke the orchestrator rather than being dispatched by it.
+`ALL_AGENTS` currently holds **41** keys across Phase 1 Code Analysis (20), Phase 2 Commit Analysis (5), Phase 3-4 Security (2), Phase 5 Quick Wins (7), Phase 6 Wave 6A (3), and Phase 6 Wave 6B (4). The `webhook_server.py` (F20) and `precommit_reviewer.py` (F21) entrypoints are Phase 5 deliverables but intentionally **not** members of `ALL_AGENTS` — they invoke the orchestrator rather than being dispatched by it.
