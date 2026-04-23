@@ -1,6 +1,6 @@
 # AI Code Maniac — Agent Architecture & Code Flow
 
-**AI Code Maniac** | Updated: 2026-04-04
+**AI Code Maniac** | Updated: 2026-04-22
 
 This document describes the internal architecture of each agent, the orchestration pipeline that coordinates them, and the detailed code flow from user action to rendered result.
 
@@ -11,7 +11,7 @@ This document describes the internal architecture of each agent, the orchestrati
 1. [Pipeline Overview](#1-pipeline-overview)
 2. [Orchestrator Code Flow](#2-orchestrator-code-flow)
 3. [Agent Execution Contract](#3-agent-execution-contract)
-4. [Phase 1 Agents — Foundation (15 agents)](#4-phase-1-agents--foundation)
+4. [Phase 1 Agents — Foundation (20 agents)](#4-phase-1-agents--foundation)
    - 4.1 [Bug Analysis](#41-bug-analysis)
    - 4.2 [Static Analysis](#42-static-analysis)
    - 4.3 [Code Flow](#43-code-flow)
@@ -42,6 +42,8 @@ This document describes the internal architecture of each agent, the orchestrati
    - 8.3 [Developer Activity](#83-developer-activity)
    - 8.4 [Commit Hygiene](#84-commit-hygiene)
    - 8.5 [Churn Analysis](#85-churn-analysis)
+8A. [Phase 5 Quick Wins (7 agents + 2 CLI/server tools)](#8a-phase-5-quick-wins)
+8B. [Phase 6 Wave 6A — Spec-Driven Test Generation (3 agents)](#8b-phase-6-wave-6a-spec-driven-test-generation)
 9. [Shared Infrastructure](#9-shared-infrastructure)
    - 9.1 [Bedrock Model Factory](#91-bedrock-model-factory)
    - 9.2 [Cache Layer](#92-cache-layer)
@@ -69,7 +71,8 @@ This document describes the internal architecture of each agent, the orchestrati
                  └───────────────────────────┬──────────────────────────┘
                                              ▼
                  ┌──────────────────────────────────────────────────────┐
-                 │          PHASE 1  —  Foundation  (15 agents, parallel)│
+                 │   PHASE 1  —  Foundation  (15 parallel; 5 more context-aware │
+                 │                             run in Phases 2 & 3 below)       │
                  │                                                        │
                  │  bug_analysis  · static_analysis · code_flow           │
                  │  requirement   · dependency_analysis                    │
@@ -101,15 +104,48 @@ This document describes the internal architecture of each agent, the orchestrati
                  │                                                    │
                  │  threat_model  ← bug + static + secret + dep      │
                  └───────────────────────────────────────────────────┘
+                                 ▼
+                 ┌───────────────────────────────────────────────────┐
+                 │      PHASE 5  —  Quick Wins (7 agents)            │
+                 │                                                    │
+                 │  unit_test_generator (F1)  story_test_gen (F2)    │
+                 │  gherkin_generator (F3)    test_data_gen (F8)     │
+                 │  dead_code_detector (F17)  api_contract_chk (F24) │
+                 │  openapi_generator (F37)                          │
+                 │                                                    │
+                 │  + CLI/server tools (not in ALL_AGENTS):          │
+                 │    webhook_server.py (F20)  precommit_rev (F21)   │
+                 └───────────────────────────────────────────────────┘
+                                 ▼
+                 ┌───────────────────────────────────────────────────┐
+                 │      PHASE 6 WAVE 6A — Spec-Driven Tests          │
+                 │                                                    │
+                 │  ┌─ set WAVE6A_REPORT_TS at run_analysis() start ─┐│
+                 │  │ api_test_generator (F5) → api_tests/           ││
+                 │  │   ├─ test_api.py (or .java/.cs/.ts)            ││
+                 │  │   └─ api_collection.json (postman_emitter)     ││
+                 │  │                                                 ││
+                 │  │ perf_test_generator (F6) → perf_tests/          ││
+                 │  │   └─ plan.jmx OR Simulation.scala               ││
+                 │  │       (load shape from load_profile_builder)    ││
+                 │  │                                                 ││
+                 │  │ traceability_matrix (F10) → traceability/       ││
+                 │  │   ├─ matrix.csv / matrix.md / gaps.md           ││
+                 │  │   ├─ _auto_scan_same_run(<ts>) ← scans siblings ││
+                 │  │   └─ test_scanner.py walks all frameworks       ││
+                 │  └─ all three write under Reports/<shared ts>/ ────┘│
+                 └───────────────────────────────────────────────────┘
 ```
 
-**Why four phases?**
+**Why six phases?**
 
 - **Phase 0** is regex-based (no LLM cost) and gates subsequent analysis — secrets can be redacted from content before any LLM sees it.
 - **Phase 1** agents are **independent** — they only need raw file content. Running them in parallel maximises throughput and minimises total latency.
 - **Phase 2** agents are **context-enriched** — `code_design` produces higher-quality reviews when it knows which bugs and static issues already exist; `refactoring_advisor` builds on complexity and duplication findings to avoid repeating discoveries.
 - **Phase 3** agents **synthesise** earlier outputs — `comment_generator` combines bug and static perspectives into a unified PR voice; `secret_scan` validates Phase 0 regex findings with LLM intelligence.
 - **Phase 4** (`threat_model`) consumes the widest context — bugs, static issues, secrets, and dependencies — to produce comprehensive security assessments.
+- **Phase 5** adds post-baseline "quick win" generators (tests, fixtures, OpenAPI, dead-code sweep, contract checking). They are registered in `ALL_AGENTS` and dispatched by the orchestrator; two companion tools (`webhook_server.py`, `precommit_reviewer.py`) are CLI/server entrypoints that invoke the orchestrator from outside the UI.
+- **Phase 6 Wave 6A** is spec-driven test generation. F5/F6/F10 share a single `Reports/<ts>/` folder via the `WAVE6A_REPORT_TS` process env var set once at `run_analysis()` entry. F10 leverages this to auto-discover F5's `api_collection.json` and F6's `plan.jmx`/`Simulation.scala` siblings without explicit paths. Deterministic subagents (`postman_emitter`, `load_profile_builder`, `test_scanner`) take load-shape, collection-emission, and test-discovery decisions out of the LLM's hands.
 
 ---
 
@@ -205,7 +241,9 @@ A cache hit returns the stored result immediately, with no Bedrock call and no h
 
 ---
 
-## 4. Phase 1 Agents — Foundation
+## 4. Phase 1 Agents — Foundation (20 agents)
+
+Phase 1 Code Analysis spans 20 agents total. The subsections below detail the 15 foundation-parallel agents; the remaining 5 (`code_design`, `mermaid`, `refactoring_advisor`, `api_doc_generator`, `comment_generator`) are context-aware and documented in sections 5 and 6 — they are still part of the Phase 1 Code Analysis bucket in `ALL_AGENTS`.
 
 ### 4.1 Bug Analysis
 
@@ -851,6 +889,142 @@ File hotspot detection: most frequently changed files, directory-level churn, co
 
 ---
 
+## 8A. Phase 5 Quick Wins
+
+Seven agents (registered in `ALL_AGENTS`) + two CLI/server tools (intentionally not in `ALL_AGENTS`). All seven agents follow the same execution contract as Phase 1 agents (cache-first, `resolve_prompt` for append/overwrite handling, `write_cache` + `add_history` on miss). Framework/language choices are driven by the sidebar `language` field.
+
+### 8A.1 Unit Test Generator (F1)
+
+**File:** `agents/unit_test_generator.py`
+**Purpose:** Per-function unit test generation in the idiomatic framework for the detected language.
+**Inputs:** `content`, `language`, `file_path`, `custom_prompt`.
+**Prompts used:** Framework-specific system prompt (pytest for Python, JUnit 5 for Java/Kotlin, xUnit for C#/.NET, Jest for JS/TS, Catch2 for C/C++).
+**Tools consumed:** `chunk_file.chunk_by_lines(max_tokens=3000)` for large files.
+**Outputs:** `Reports/<ts>/unit_tests/test_<name>.<ext>`; returns `{markdown, summary, test_code, output_path}`.
+**Typical invocation:** Sidebar checkbox "Unit Test Generator" with language set.
+
+### 8A.2 Story Test Generator (F2)
+
+**File:** `agents/story_test_generator.py`
+**Purpose:** BDD-style story tests wired to actual functions (distinct from F3's pure Gherkin).
+**Inputs:** `content` + user stories / acceptance criteria in `custom_prompt`.
+**Prompts used:** Given/When/Then narrative prompt with binding-code guidance.
+**Tools consumed:** None LLM-adjacent.
+**Outputs:** `Reports/<ts>/story_tests/`; returns `{markdown, summary, test_code}`.
+**Typical invocation:** Sidebar + user stories pasted into extra instructions.
+
+### 8A.3 Gherkin Generator (F3)
+
+**File:** `agents/gherkin_generator.py`
+**Purpose:** Emits pure `.feature` files (Feature/Scenario/Given/When/Then) without binding code.
+**Inputs:** `content` (source or requirements text).
+**Prompts used:** Gherkin-style requirement extraction prompt.
+**Tools consumed:** None.
+**Outputs:** `Reports/<ts>/gherkin/*.feature`; returns `{markdown, summary, features}`.
+**Typical invocation:** Sidebar checkbox; commonly co-selected with F10 for matrix input.
+
+### 8A.4 Test Data Generator (F8)
+
+**File:** `agents/test_data_generator.py`
+**Purpose:** Realistic fixture/factory datasets (valid, edge, invalid, boundary).
+**Inputs:** `content`; optional schema hints in `custom_prompt`.
+**Prompts used:** Dataset synthesis prompt with diversity constraints.
+**Tools consumed:** None.
+**Outputs:** `Reports/<ts>/test_data/`; returns `{markdown, summary, datasets}`.
+**Typical invocation:** Sidebar; output feeds F1 and F5 consumers.
+
+### 8A.5 Dead Code Detector (F17)
+
+**File:** `agents/dead_code_detector.py`
+**Purpose:** Unreachable block + unused function/class/import sweep with confidence ranking.
+**Inputs:** `content`, `language`.
+**Prompts used:** Unreachability heuristics prompt with language-aware examples.
+**Tools consumed:** None.
+**Outputs:** `{markdown, summary, findings}` — no file artifacts, results rendered in a Streamlit tab.
+**Typical invocation:** Sidebar checkbox.
+
+### 8A.6 API Contract Checker (F24)
+
+**File:** `agents/api_contract_checker.py`
+**Purpose:** Diffs an OpenAPI spec against implementation routes — missing endpoints, extra endpoints, parameter/status-code mismatches.
+**Inputs:** `content` (implementation); spec via `__openapi_spec__\n<YAML>` prefix or URL fetched by `tools/spec_fetcher.py`.
+**Prompts used:** Contract-diff prompt; LLM compares canonicalised spec to route inventory.
+**Tools consumed:** `tools/openapi_parser.py` (zero-LLM), `tools/spec_fetcher.py` (I/O).
+**Outputs:** `{markdown, summary, diffs}`.
+**Typical invocation:** Sidebar + spec URL/YAML in extra instructions.
+
+### 8A.7 OpenAPI Generator (F37)
+
+**File:** `agents/openapi_generator.py`
+**Purpose:** Infers an OpenAPI 3.x YAML spec from API handler code.
+**Inputs:** `content`, `language`, `file_path`.
+**Prompts used:** OpenAPI schema synthesis prompt with strict YAML-only output constraint.
+**Tools consumed:** `tools/openapi_parser.py` for canonical-shape validation of the generated YAML.
+**Outputs:** `Reports/<ts>/openapi/openapi.yaml`; returns `{markdown, summary, spec_yaml, output_path}`.
+**Typical invocation:** Sidebar checkbox.
+
+### 8A.8 CLI/Server Tool Entrypoints (F20, F21 — not in `ALL_AGENTS`)
+
+- **`tools/webhook_server.py` (F20).** FastAPI server exposing a webhook endpoint. Receives GitHub/Gitea push or PR events, authenticates the signature, resolves the changed-file diff, and calls the orchestrator. Started via `python tools/webhook_server.py` or the bundled `docker/webhook_start.bat`. Not an agent — it invokes the orchestrator rather than being dispatched by it.
+- **`tools/precommit_reviewer.py` (F21).** CLI wrapper that runs a trimmed subset of agents (bug_analysis + static_analysis + secret_scan by default) against git-staged files and exits non-zero when critical findings exceed the threshold. Used as a `pre-commit` hook command.
+
+---
+
+## 8B. Phase 6 Wave 6A Spec-Driven Test Generation
+
+All three agents share a single `Reports/<ts>/` run folder via the `WAVE6A_REPORT_TS` environment variable (set once per `run_analysis(conn, job_id)` call by the orchestrator). Each agent reads the timestamp via the shared `_report_ts()` helper (fallback to `datetime.now()`).
+
+### 8B.1 API Test Generator (F5)
+
+**File:** `agents/api_test_generator.py`
+**Purpose:** Framework-auto-picked API tests plus a deterministic Postman v2.1 collection.
+**Inputs:** `content`; optional `__openapi_spec__\n<YAML>` spec prefix; sidebar `language` drives framework selection.
+**Prompts used:** Framework-specific API test prompt (pytest+requests, REST Assured+JUnit 5, xUnit+HttpClient, supertest+Jest). Postman-only path skips the LLM entirely when language is blank.
+**Tools consumed:** `chunk_file` (large inputs), `tools/openapi_parser.py` (spec mode), `tools/postman_emitter.py` (always — zero-LLM deterministic subagent).
+**Outputs:**
+```
+Reports/<ts>/api_tests/
+├── test_api.py (or ApiTests.java / ApiTests.cs / api.test.ts)
+└── api_collection.json
+```
+Returns `{markdown, summary, test_code, output_paths}`.
+**Subagent structure:** 0 or 1 LLM calls (0 in Postman-only mode) + 1 deterministic Postman emit.
+**Typical invocation:** Sidebar checkbox; often co-selected with F10 so the matrix picks up `api_collection.json` automatically.
+
+### 8B.2 Perf Test Generator (F6)
+
+**File:** `agents/perf_test_generator.py`
+**Purpose:** JMeter `plan.jmx` (default) or Gatling `Simulation.scala` (java/scala/gatling) from a spec or requirement narrative.
+**Inputs:** `content` + either `__openapi_spec__\n<YAML>` (spec mode) or `__mode__requirements\n<story>` (requirements mode).
+**Prompts used:** Framework-specific load-plan composition prompt. Crucially, the prompt does **not** ask the LLM to decide VU count, ramp, or RPS — those come from `load_profile_builder.py`. The LLM's job is limited to framework syntax.
+**Tools consumed:** `tools/openapi_parser.py` (spec mode), `tools/load_profile_builder.py` (always — zero-LLM deterministic subagent that returns `{vus, ramp_s, steady_s, think_ms, target_rps}`).
+**Outputs:** `Reports/<ts>/perf_tests/plan.jmx` OR `Reports/<ts>/perf_tests/Simulation.scala`; returns `{markdown, summary, plan_code, output_path}`.
+**Subagent structure:** 1 LLM call + 1 deterministic load-profile build.
+**Typical invocation:** Sidebar checkbox; spec or story in extra instructions.
+
+### 8B.3 Traceability Matrix (F10)
+
+**File:** `agents/traceability_matrix.py`
+**Purpose:** Maps acceptance criteria (ACs) from user stories to discovered tests; flags gaps.
+**Inputs:** `__stories__\n<text>` for AC source; optional `__tests_dir__=<path>` override; optional `__src_dir__=<path>` to enable coverage-aware gap analysis.
+**Prompts used:** Batched ambiguous-match prompt (one call for all ambiguous ACs); fallback AC-extraction prompt if deterministic parse fails.
+**Tools consumed:** `tools/test_scanner.py` (zero-LLM — walks pytest/JUnit/xUnit/Jest/Gherkin/Robot/JMeter/Postman); `run_test_coverage` subagent when `__src_dir__` resolves; `_auto_scan_same_run(<WAVE6A_REPORT_TS>)` to discover sibling `api_tests/` and `perf_tests/` folders.
+**Matching algorithm:**
+1. Deterministic Jaccard (threshold ≥ 0.7, stop-words filtered, case-insensitive) — locks confident matches.
+2. Ambiguous ACs (spec §6.2 step 4: no test ≥ 0.5, OR top ∈ [0.5, 0.7), OR two ≥ 0.7 within 0.1 of each other) are passed in **one** batched LLM call.
+**Outputs:**
+```
+Reports/<ts>/traceability/
+├── matrix.csv
+├── matrix.md
+└── gaps.md
+```
+Returns `{markdown, summary, matrix, gaps}`.
+**Subagent structure:** 0-2 LLM calls + deterministic scanner + optional coverage subagent.
+**Typical invocation:** Sidebar checkbox with stories pasted into extra instructions; commonly co-selected with F5/F6 for full same-run traceability.
+
+---
+
 ## 9. Shared Infrastructure
 
 ### 9.1 Bedrock Model Factory
@@ -1034,6 +1208,22 @@ python tools/web_scraper.py https://example.com -o output.txt
 
 ---
 
+### 9.7 Phase 5 and Wave 6A Tools
+
+Seven tools were added post-baseline. The table separates zero-LLM deterministic subagents (safe to depend on without Bedrock budget impact) from I/O tools (network/filesystem side effects).
+
+| Tool | Role | LLM-free? | One-line description |
+|---|---|---|---|
+| `tools/openapi_parser.py` | Subagent | Yes | Parses OpenAPI/Swagger YAML/JSON into a canonical Python representation; consumed by F5, F24, F37 |
+| `tools/spec_fetcher.py` | I/O | Yes (LLM-free, but does HTTP) | Fetches an OpenAPI spec from URL/file, auto-detects YAML vs JSON, feeds `openapi_parser.py` |
+| `tools/precommit_reviewer.py` | CLI entrypoint | N/A (invokes agents that call Bedrock) | Git pre-commit hook — runs a trimmed agent subset against staged files and blocks on critical findings |
+| `tools/webhook_server.py` | Server entrypoint | N/A (invokes orchestrator) | FastAPI webhook receiver for GitHub/Gitea push/PR events; dispatches to the orchestrator |
+| `tools/postman_emitter.py` | Subagent | Yes | Deterministic Postman v2.1 collection emitter; F5 uses it every run |
+| `tools/load_profile_builder.py` | Subagent | Yes | Deterministic VU/ramp/steady/think-time/RPS numbers for F6; keeps load-shape decisions out of the LLM |
+| `tools/test_scanner.py` | Subagent | Yes | Multi-framework test discovery (pytest, JUnit, xUnit, Jest, Gherkin, Robot, JMeter, Postman); F10's canonical test inventory |
+
+---
+
 ## 10. Inter-Agent Data Flow
 
 ```
@@ -1042,7 +1232,7 @@ Phase 0: secret_scanner (regex) → redact/block/pass
                      file_hash, content, language
                               │
          ┌────────────────────▼────────────────────────────┐
-         │              PHASE 1 OUTPUT (15 agents)          │
+         │   PHASE 1 OUTPUT (15 parallel foundation agents)  │
          │                                                   │
          │  bug_results ─── static_results ─── flow_ctx     │
          │  requirement ─── dependency_analysis              │
@@ -1078,6 +1268,19 @@ Phase 0: secret_scanner (regex) → redact/block/pass
 | comment_generator | 3 | bug_results, static_results |
 | secret_scan | 3 | phase0_findings, static_results |
 | threat_model | 4 | bug_results, static_results, secret_results, dependency_results |
+| unit_test_generator (F1) | 5 | raw `content` only; shares `chunk_file` pathway with F5 |
+| api_contract_checker (F24) | 5 | `content` + OpenAPI spec via `openapi_parser.py` |
+| openapi_generator (F37) | 5 | `content`; validates output via `openapi_parser.py` |
+| api_test_generator (F5) | 6 Wave 6A | `content` (+ optional `__openapi_spec__` YAML); always emits via `postman_emitter.py`; shares `chunk_file` with F1 |
+| perf_test_generator (F6) | 6 Wave 6A | `content` (+ `__openapi_spec__` or `__mode__requirements`); load shape from `load_profile_builder.py` |
+| traceability_matrix (F10) | 6 Wave 6A | `__stories__` ACs + `test_scanner.py` inventory of sibling `api_tests/` (F5's `api_collection.json`) and `perf_tests/` (F6's `plan.jmx`/`Simulation.scala`); optionally calls `run_test_coverage` subagent when `__src_dir__` resolves |
+
+**Specific cross-dependencies called out:**
+
+- **F10 consumes F5 + F6 via `test_scanner.py`.** Because all three Wave 6A agents share `WAVE6A_REPORT_TS`, F10's `_auto_scan_same_run()` walks sibling subfolders of `Reports/<shared_ts>/` and picks up F5's `api_collection.json` and F6's `plan.jmx` / `Simulation.scala` without an explicit `__tests_dir__` override.
+- **F10 → `run_test_coverage` subagent.** When `__src_dir__=<path>` resolves to a directory, F10 invokes the existing Phase 1 `test_coverage` agent internally to enrich gap analysis with source-coverage data.
+- **F1 and F5 both use `chunk_file`.** Large files hit the same chunker with a 3 000-token budget for unit tests and a similar budget for API tests.
+- **F37 and F24 both use `tools/openapi_parser.py`.** F37 validates its generated YAML; F24 canonicalises the reference spec before diffing.
 
 ---
 
@@ -1325,7 +1528,7 @@ config/settings.py → Settings.enabled_agents (string)
         ▼
 orchestrator.py / feature_selector.py
         │
-        ├─ "all" or "" or "*" → ALL_AGENTS (all 8)
+        ├─ "all" or "" or "*" → ALL_AGENTS (all 37 — see config/settings.py::ALL_AGENTS)
         │
         └─ "bug_analysis,static_analysis" → {bug_analysis, static_analysis}
                                              (intersected with ALL_AGENTS)
@@ -1335,3 +1538,5 @@ Disabled agents are:
 1. Hidden from the feature checkboxes in the Streamlit UI.
 2. Never called by the orchestrator (condition check before each phase).
 3. Not present in `result_json` (no empty placeholder entries).
+
+`ALL_AGENTS` currently holds **37** keys across Phase 1 Code Analysis (20), Phase 2 Commit Analysis (5), Phase 3-4 Security (2), Phase 5 Quick Wins (7), and Phase 6 Wave 6A (3). The `webhook_server.py` (F20) and `precommit_reviewer.py` (F21) entrypoints are Phase 5 deliverables but intentionally **not** members of `ALL_AGENTS` — they invoke the orchestrator rather than being dispatched by it.
