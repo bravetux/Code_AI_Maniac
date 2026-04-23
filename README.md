@@ -278,7 +278,7 @@ sequenceDiagram
     P6A-->>ORC: api_tests/ · perf_tests/ · traceability/
 
     ORC->>P6B: self_healing_agent (F9) · sonar_fix_agent (F11)<br/>sql_generator (F14) · auto_fix_agent (F15)
-    Note over P6B: All four share tools/patch_emitter.py; reuse the same JOB_REPORT_TS run folder<br/>F15 auto-scans bug_analysis/ + refactoring_advisor/ findings.json sidecars
+    Note over P6B: All four share tools/patch_emitter.py and the JOB_REPORT_TS run folder<br/>F15 auto-scans bug_analysis and refactoring_advisor findings.json sidecars
     P6B-->>ORC: self_healing/ · sonar_fix/ · sql_generator/ · auto_fix/
 
     ORC->>P5R: report_per_file(all results per file)<br/>report_consolidated(all per-file reports)
