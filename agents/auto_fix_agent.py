@@ -135,40 +135,7 @@ def _extract_diff(raw: str) -> str:
             body = m.group(1).strip() + "\n"
         else:
             body = raw.strip() + "\n"
-    return _normalise_blank_context(body)
-
-
-def _normalise_blank_context(diff: str) -> str:
-    """Convert bare empty lines inside a hunk to space-prefixed blank context.
-
-    LLMs (and some editors) frequently strip the single-space prefix from
-    blank context lines, producing diffs that strict parsers reject. Inside
-    a hunk, a line that is completely empty should be treated as a blank
-    context line (" \\n"). Headers (@@, ---, +++) and non-hunk whitespace
-    are preserved verbatim.
-    """
-    raw_lines = diff.split("\n")
-    # Preserve the trailing empty element from a final newline.
-    trailing = ""
-    if raw_lines and raw_lines[-1] == "":
-        raw_lines = raw_lines[:-1]
-        trailing = "\n"
-    out: list[str] = []
-    in_hunk = False
-    for line in raw_lines:
-        if line.startswith("@@"):
-            in_hunk = True
-            out.append(line)
-            continue
-        if line.startswith("---") or line.startswith("+++"):
-            in_hunk = False
-            out.append(line)
-            continue
-        if in_hunk and line == "":
-            out.append(" ")
-        else:
-            out.append(line)
-    return "\n".join(out) + trailing
+    return body
 
 
 def run_auto_fix_agent(conn: duckdb.DuckDBPyConnection, job_id: str,

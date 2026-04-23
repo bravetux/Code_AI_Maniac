@@ -210,3 +210,53 @@ def test_empty_base_hunk_header_zero_origin_is_safe(tmp_path):
     content = (tmp_path / "auto_fix" / "patches" / "new.py").read_text(encoding="utf-8")
     assert "line 1" in content
     assert "line 2" in content
+
+
+def test_diff_with_bare_empty_context_line_applies_cleanly(tmp_path):
+    """Regression: unified diffs with bare empty context lines (no leading ' ')
+    should apply, matching git apply's tolerance."""
+    base = "line 1\n\nline 3\n"  # blank line between 1 and 3
+    # Note the bare empty line (not ' \n') between context lines
+    diff_text = (
+        "--- a/foo.py\n"
+        "+++ b/foo.py\n"
+        "@@ -1,3 +1,3 @@\n"
+        " line 1\n"
+        "\n"                 # BARE empty line - blank context
+        "-line 3\n"
+        "+line THREE\n"
+    )
+    result = emit(
+        agent_key="auto_fix",
+        reports_root=str(tmp_path),
+        file_path="foo.py",
+        base_content=base,
+        diff=diff_text,
+        description="bare blank context",
+    )
+    assert result["applied"] is True
+    content = (tmp_path / "auto_fix" / "patches" / "foo.py").read_text(encoding="utf-8")
+    assert "line THREE" in content
+
+
+def test_diff_with_no_newline_marker_is_tolerated(tmp_path):
+    """Regression: '\\ No newline at end of file' markers should not trip validation."""
+    base = "line 1\nline 2"  # no trailing newline
+    diff_text = (
+        "--- a/foo.py\n"
+        "+++ b/foo.py\n"
+        "@@ -1,2 +1,2 @@\n"
+        " line 1\n"
+        "-line 2\n"
+        "+line TWO\n"
+        "\\ No newline at end of file\n"
+    )
+    result = emit(
+        agent_key="auto_fix",
+        reports_root=str(tmp_path),
+        file_path="foo.py",
+        base_content=base,
+        diff=diff_text,
+        description="no-newline marker",
+    )
+    assert result["applied"] is True
