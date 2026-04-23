@@ -54,6 +54,12 @@ def emit(agent_key: str, reports_root: str, file_path: str,
     if new_content is None and diff is None:
         raise ValueError("emit() requires new_content or diff (or both with base_content)")
 
+    # Normalize line endings in base_content to LF so validation and
+    # apply stay in sync. Diffs are emitted with LF per unified-diff
+    # convention.
+    if base_content is not None:
+        base_content = base_content.replace("\r\n", "\n").replace("\r", "\n")
+
     basename = os.path.basename(file_path) or "unnamed"
     out_dir = os.path.join(reports_root, agent_key)
     patches_dir = os.path.join(out_dir, "patches")
@@ -163,7 +169,7 @@ def _validate_diff_applies(diff: str, base: str) -> None:
             in_hunk = True
             try:
                 minus_spec = raw.split(" ")[1]
-                hunk_base_line = int(minus_spec[1:].split(",")[0]) - 1
+                hunk_base_line = max(0, int(minus_spec[1:].split(",")[0]) - 1)
                 base_idx = hunk_base_line
             except (IndexError, ValueError):
                 raise _DiffApplyError(f"unparseable hunk header: {raw!r}")
@@ -197,7 +203,7 @@ def _apply_unified_diff(diff: str, base: str) -> str:
         if raw.startswith("@@"):
             try:
                 minus_spec = raw.split(" ")[1]
-                hunk_base_line = int(minus_spec[1:].split(",")[0]) - 1
+                hunk_base_line = max(0, int(minus_spec[1:].split(",")[0]) - 1)
             except (IndexError, ValueError):
                 raise _DiffApplyError("unparseable hunk header")
             while base_idx < hunk_base_line and base_idx < len(base_lines):
@@ -214,11 +220,17 @@ def _apply_unified_diff(diff: str, base: str) -> str:
         elif raw.startswith("-"):
             base_idx += 1
         elif raw.startswith("+"):
-            out.append(raw[1:] + ("\n" if not raw[1:].endswith("\n") else ""))
+            out.append(raw[1:] + "\n")
     while base_idx < len(base_lines):
         out.append(base_lines[base_idx])
         base_idx += 1
-    return "".join(out)
+    # Restore the base file's trailing-newline convention. If the base
+    # did not end with a newline, strip the trailing newline we added
+    # on the final line.
+    result = "".join(out)
+    if base and not base.endswith("\n") and result.endswith("\n"):
+        result = result[:-1]
+    return result
 
 
 def _build_pr_block(basename: str, description: str,

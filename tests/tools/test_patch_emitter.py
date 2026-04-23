@@ -108,3 +108,105 @@ def test_requires_at_least_one_of_new_content_or_diff(tmp_path):
     import pytest
     with pytest.raises(ValueError):
         emit(agent_key="x", reports_root=str(tmp_path), file_path="f.py")
+
+
+def test_no_trailing_newline_preserved_when_base_has_none(tmp_path):
+    """Bug 1 regression: files without trailing newline stay that way after patch."""
+    base = "line 1\nline 2"  # NO trailing newline
+    diff_text = (
+        "--- a/foo.py\n"
+        "+++ b/foo.py\n"
+        "@@ -1,2 +1,2 @@\n"
+        "-line 1\n"
+        "+line ONE\n"
+        " line 2"
+    )
+    result = emit(
+        agent_key="auto_fix",
+        reports_root=str(tmp_path),
+        file_path="foo.py",
+        base_content=base,
+        diff=diff_text,
+        description="no-trailing-newline preserved",
+    )
+    content = (tmp_path / "auto_fix" / "patches" / "foo.py").read_text(encoding="utf-8")
+    assert not content.endswith("\n"), (
+        f"patched content gained a spurious trailing newline: {content!r}"
+    )
+    assert "line ONE" in content
+    assert result["applied"] is True
+
+
+def test_trailing_newline_preserved_when_base_has_one(tmp_path):
+    """Complement: files WITH trailing newline still have one after patch."""
+    base = "line 1\nline 2\n"  # WITH trailing newline
+    diff_text = (
+        "--- a/foo.py\n"
+        "+++ b/foo.py\n"
+        "@@ -1,2 +1,2 @@\n"
+        "-line 1\n"
+        "+line ONE\n"
+        " line 2\n"
+    )
+    result = emit(
+        agent_key="auto_fix",
+        reports_root=str(tmp_path),
+        file_path="foo.py",
+        base_content=base,
+        diff=diff_text,
+        description="trailing-newline preserved",
+    )
+    content = (tmp_path / "auto_fix" / "patches" / "foo.py").read_text(encoding="utf-8")
+    assert content.endswith("\n")
+
+
+def test_crlf_base_normalized_to_lf(tmp_path):
+    """Bug 2 regression: CRLF base + LF diff should apply cleanly."""
+    base = "line 1\r\nline 2\r\nline 3\r\n"  # Windows-style
+    diff_text = (
+        "--- a/foo.py\n"
+        "+++ b/foo.py\n"
+        "@@ -1,3 +1,3 @@\n"
+        " line 1\n"
+        "-line 2\n"
+        "+line TWO\n"
+        " line 3\n"
+    )
+    result = emit(
+        agent_key="auto_fix",
+        reports_root=str(tmp_path),
+        file_path="foo.py",
+        base_content=base,
+        diff=diff_text,
+        description="CRLF base normalized",
+    )
+    assert result["applied"] is True
+    content = (tmp_path / "auto_fix" / "patches" / "foo.py").read_text(encoding="utf-8")
+    # Content is normalized to LF (acceptable - unified-diff convention)
+    assert "line TWO" in content
+    assert "\r" not in content  # LF-only output
+
+
+def test_empty_base_hunk_header_zero_origin_is_safe(tmp_path):
+    """Bug 3 regression: @@ -0,0 +1,N @@ style header doesn't index base[-1]."""
+    # Simulate new-file creation via diff mode (unusual but valid)
+    base = ""
+    diff_text = (
+        "--- a/new.py\n"
+        "+++ b/new.py\n"
+        "@@ -0,0 +1,2 @@\n"
+        "+line 1\n"
+        "+line 2\n"
+    )
+    result = emit(
+        agent_key="auto_fix",
+        reports_root=str(tmp_path),
+        file_path="new.py",
+        base_content=base,
+        diff=diff_text,
+        description="new file via empty-base diff",
+    )
+    assert result["applied"] is True
+    content = (tmp_path / "auto_fix" / "patches" / "new.py").read_text(encoding="utf-8")
+    assert "line 1" in content
+    assert "line 2" in content
