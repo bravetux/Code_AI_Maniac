@@ -6,10 +6,12 @@ Key capabilities:
 - Accept code from GitHub/Gitea repositories or local files
 - Support specifying line ranges within a file or entire files (up to 50 files)
 - Use Amazon Bedrock via Strands Agents as the LLM backend
-- 27 specialized agents across code analysis, commit analysis, and security
+- 37 specialized agents across code analysis, test generation, traceability, commit analysis, and security (latest phase shipped: **Phase 6 Wave 6A**)
   - **Code Analysis (Phase 1):** Bug Analysis, Static Analysis, Code Flow, Requirements, Dependency Analysis, Code Complexity, Test Coverage, Duplication Detection, Performance Analysis, Type Safety, Architecture Mapper, License Compliance, Change Impact, Doxygen Docs, C Test Generator
   - **Code Analysis (Phase 2):** Code Design, Mermaid Diagrams, Refactoring Advisor, API Doc Generator, PR Comments
   - **Security (Phase 3-4):** Secret Scan, Threat Model
+  - **Phase 5 — Quick wins (7 agents):** Unit Test Generator (F1), Story-to-TestCase (F2), BDD/Gherkin (F3), Test Data Generator (F8), Dead Code Detector (F17), API Contract Checker (F24), OpenAPI Generator (F37) — plus CLI/server tools for F20 (CI/CD webhook) and F21 (pre-commit reviewer)
+  - **Phase 6 Wave 6A (3 agents):** API Test Generator (F5), Perf/Load Test Generator (F6), Traceability Matrix (F10)
   - **Commit Analysis:** Commit Analysis, Release Notes, Developer Activity, Commit Hygiene, Churn Analysis
 - DuckDB local storage for jobs, cache, chunks, history, and presets
 
@@ -58,7 +60,7 @@ OrchestratorAgent (agents/orchestrator.py)
   ├── Routes and parallelizes sub-agent calls
   └── Aggregates results back to Streamlit
        ↕
-  Sub-Agents (agents/) — 27 total:
+  Sub-Agents (agents/) — 37 total:
   Phase 1: bug_analysis | static_analysis | code_flow | requirement
            dependency_analysis | code_complexity | test_coverage
            duplication_detection | performance_analysis | type_safety
@@ -67,12 +69,19 @@ OrchestratorAgent (agents/orchestrator.py)
   Phase 2: code_design | mermaid | refactoring_advisor | api_doc_generator
   Phase 3: comment_generator | secret_scan
   Phase 4: threat_model
+  Phase 5 (Quick wins): unit_test_generator | story_test_generator
+           gherkin_generator | test_data_generator | dead_code_detector
+           api_contract_checker | openapi_generator
+  Phase 6 Wave 6A: api_test_generator | perf_test_generator | traceability_matrix
   Commit:  commit_analysis | release_notes | developer_activity
            commit_hygiene | churn_analysis
        ↕
   Shared Tool Layer (tools/):
   fetch_local | fetch_github | fetch_gitea | chunk_file | run_linter
   cache | run_doxygen | web_scraper
+  Phase 5 tools:  openapi_parser | spec_fetcher
+                  precommit_reviewer (F21) | webhook_server (F20)
+  Wave 6A tools:  postman_emitter | load_profile_builder | test_scanner
        ↕
   DuckDB (data/arena.db)
        ↕
